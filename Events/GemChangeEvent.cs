@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class GemChangeEvent : VisibleEvent
+    public class GemChangeEvent : VisibleEvent
     {
         public GemChangeEvent(Player player, int value) : base("onGemChange")
         {

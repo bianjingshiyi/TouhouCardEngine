@@ -11,13 +11,15 @@ namespace TouhouHeartstone
     /// </summary>
     public class Pile : IEnumerable<Card>
     {
-        public Pile(string name)
+        public Pile()
         {
-            this.name = name;
+            name = null;
         }
-        public Pile(string name, Card[] cards)
+        public Pile(string name = null, Card[] cards = null)
         {
             this.name = name;
+            if (cards == null)
+                return;
             foreach (Card card in cards)
             {
                 card.pile = this;
@@ -137,14 +139,14 @@ namespace TouhouHeartstone
         {
             return name + "[" + cardList.Count + "]";
         }
-        public static implicit operator Pile[] (Pile pile)
+        public static implicit operator Pile[](Pile pile)
         {
             if (pile != null)
                 return new Pile[] { pile };
             else
                 return new Pile[0];
         }
-        public static implicit operator Card[] (Pile pile)
+        public static implicit operator Card[](Pile pile)
         {
             if (pile != null)
                 return pile.cardList.ToArray();

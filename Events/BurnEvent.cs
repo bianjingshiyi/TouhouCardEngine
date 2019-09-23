@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class BurnEvent : VisibleEvent
+    public class BurnEvent : VisibleEvent
     {
         public BurnEvent(Player player, Card card) : base("onBurn")
         {

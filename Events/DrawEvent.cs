@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class DrawEvent : VisibleEvent
+    public class DrawEvent : VisibleEvent
     {
         public DrawEvent(Player player) : base("onDraw")
         {

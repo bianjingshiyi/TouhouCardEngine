@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class TurnEndEvent : VisibleEvent
+    public class TurnEndEvent : VisibleEvent
     {
         public TurnEndEvent(Player player) : base("onTurnEnd")
         {

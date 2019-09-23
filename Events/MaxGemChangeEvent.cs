@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class MaxGemChangeEvent : VisibleEvent
+    public class MaxGemChangeEvent : VisibleEvent
     {
         public MaxGemChangeEvent(Player player, int value) : base("onMaxGemChange")
         {

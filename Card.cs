@@ -40,7 +40,7 @@ namespace TouhouHeartstone
             get { return buffList.ToArray(); }
         }
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
-        public Card(CardEngine game, CardDefine define)
+        public Card(CardDefine define)
         {
             if (define != null)
                 this.define = define;

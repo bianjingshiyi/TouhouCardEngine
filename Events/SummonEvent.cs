@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class SummonEvent : VisibleEvent
+    public class SummonEvent : VisibleEvent
     {
         public SummonEvent(Player player, Card card, int position) : base("onSummon")
         {

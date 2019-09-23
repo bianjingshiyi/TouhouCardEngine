@@ -1,6 +1,6 @@
 ﻿namespace TouhouHeartstone
 {
-    class TiredEvent : VisibleEvent
+    public class TiredEvent : VisibleEvent
     {
         public TiredEvent(Player player) : base("onTired")
         {

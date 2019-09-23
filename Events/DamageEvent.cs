@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace TouhouHeartstone
 {
-    class DamageEvent : VisibleEvent
+    public class DamageEvent : VisibleEvent
     {
         public DamageEvent(Card[] cards, int[] amounts) : base("onDamage")
         {
