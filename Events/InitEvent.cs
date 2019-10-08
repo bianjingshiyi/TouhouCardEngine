@@ -47,10 +47,10 @@ namespace TouhouHeartstone
         {
             EventWitness witness = new InitWitness();
             //双方玩家所使用的卡组主人公
-            witness.setVar("masterCardsRID", engine.getPlayers().Select(p => { return p["Master"][0].getProp<int>("RID"); }).ToArray());
+            witness.setVar("masterCardsRID", engine.getPlayers().Select(p => { return p["Master"][0].id; }).ToArray());
             witness.setVar("masterCardsDID", engine.getPlayers().Select(p => { return p["Master"][0].define.id; }).ToArray());
             //双方玩家所使用的技能
-            witness.setVar("skillCardsRID", engine.getPlayers().Select(p => { return p["Skill"][0].getProp<int>("RID"); }).ToArray());
+            witness.setVar("skillCardsRID", engine.getPlayers().Select(p => { return p["Skill"][0].id; }).ToArray());
             witness.setVar("skillCardsDID", engine.getPlayers().Select(p => { return p["Skill"][0].define.id; }).ToArray());
             //然后是玩家的先后行动顺序
             witness.setVar("sortedPlayersIndex", engine.getProp<Player[]>("sortedPlayers").Select(p => { return engine.getPlayerIndex(p); }).ToArray());

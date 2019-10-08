@@ -61,9 +61,16 @@ namespace TouhouHeartstone
         }
         public T getVar<T>(string varName, bool throwException = true)
         {
-            if (dicVar.ContainsKey(varName) && dicVar[varName] is T)
-                return (T)dicVar[varName];
-            if (throwException)
+            if (dicVar.ContainsKey(varName))
+            {
+                if (dicVar[varName] is T)
+                    return (T)dicVar[varName];
+                else if (throwException)
+                    throw new InvalidCastException("存在变量'" + varName + "'，但是其类型为" + dicVar[varName].GetType().Name);
+                else
+                    return default;
+            }
+            else if (throwException)
                 throw new KeyNotFoundException("没有找到变量" + varName);
             else
                 return default;
