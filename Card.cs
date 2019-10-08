@@ -33,7 +33,7 @@ namespace TouhouHeartstone
     {
         public int id { get; internal set; } = 0;
         public Pile pile { get; internal set; } = null;
-        public CardDefine define { get; }
+        public CardDefine define { get; } = null;
         List<Buff> buffList { get; } = new List<Buff>();
         public Buff[] buffs
         {
@@ -46,6 +46,10 @@ namespace TouhouHeartstone
                 this.define = define;
             else
                 throw new ArgumentNullException(nameof(define));
+        }
+        public Card(int id)
+        {
+            this.id = id;
         }
         public void addBuff(Buff buff)
         {
@@ -130,7 +134,7 @@ namespace TouhouHeartstone
         {
             return "Card(" + id + ")<" + define.id + ">";
         }
-        public static implicit operator Card[] (Card card)
+        public static implicit operator Card[](Card card)
         {
             if (card != null)
                 return new Card[] { card };

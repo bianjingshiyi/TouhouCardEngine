@@ -70,6 +70,78 @@ namespace TouhouHeartstone
             }
             targetPile.cardList.InsertRange(position, removedCardList);
         }
+        /// <summary>
+        /// 将该牌堆中的一些卡换成其他牌堆中的另一些卡。
+        /// </summary>
+        /// <param name="originalCards"></param>
+        /// <param name="replacedCards"></param>
+        public void replace(Card[] originalCards, Card[] replacedCards)
+        {
+            if (originalCards.Length != replacedCards.Length)
+                throw new IndexOutOfRangeException("originalCards与replacedCards数量不一致");
+            for (int i = 0; i < originalCards.Length; i++)
+            {
+                int originIndex = indexOf(originalCards[i]);
+                if (originIndex < 0)
+                    throw new InvalidOperationException(originalCards[i] + "不在" + this + "中");
+                else
+                {
+                    int replaceIndex = replacedCards[i].pile.indexOf(replacedCards[i]);
+                    this[originIndex] = replacedCards[i];
+                    replacedCards[i].pile[replaceIndex] = originalCards[i];
+                    originalCards[i].pile = replacedCards[i].pile;
+                    replacedCards[i].pile = this;
+                }
+            }
+        }
+        /// <summary>
+        /// 将牌堆中的一些牌与目标牌堆中随机的一些牌相替换。
+        /// </summary>
+        /// <param name="engine">用于提供随机功能的引擎</param>
+        /// <param name="originalCards">要进行替换的卡牌</param>
+        /// <param name="pile">目标牌堆</param>
+        /// <param name="shuffle">在进行随机替换之前是否先将要替换的卡牌洗入目标牌堆？</param>
+        public void replaceByRandom(CardEngine engine, Card[] originalCards, Pile pile, bool shuffle)
+        {
+            if (shuffle)
+            {
+                int[] indexArray = new int[originalCards.Length];
+                for (int i = 0; i < originalCards.Length; i++)
+                {
+                    //把牌放回去
+                    pile.cardList.Add(originalCards[i]);
+                    originalCards[i].pile = pile;
+                    //记录当前牌堆中的空位
+                    cardList[i] = null;
+                    indexArray[i] = indexOf(originalCards[i]);
+                }
+                for (int i = 0; i < indexArray.Length; i++)
+                {
+                    //将牌堆中的随机卡片填入空位
+                    int targetIndex = engine.randomInt(0, pile.count - 1);
+                    cardList[indexArray[i]] = pile.cardList[targetIndex];
+                    cardList[indexArray[i]].pile = this;
+                    //并将其从牌堆中移除
+                    pile.cardList.RemoveAt(targetIndex);
+                }
+            }
+            else
+            {
+                Card[] replacedCards = new Card[originalCards.Length];
+                List<int> indexList = new List<int>();
+                for (int i = 0; i < pile.count; i++)
+                {
+                    indexList.Add(i);
+                }
+                for (int i = 0; i < replacedCards.Length; i++)
+                {
+                    int targetIndexOfIndex = engine.randomInt(0, indexList.Count - 1);//好他妈绕啊。
+                    replacedCards[i] = pile[indexList[targetIndexOfIndex]];
+                    indexList.RemoveAt(targetIndexOfIndex);
+                }
+                replace(originalCards, replacedCards);
+            }
+        }
         internal void remove(Card card)
         {
             if (cardList.Remove(card))
