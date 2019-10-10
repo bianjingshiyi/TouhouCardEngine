@@ -31,7 +31,13 @@ namespace TouhouHeartstone
     [Serializable]
     public class Card
     {
+        /// <summary>
+        /// 卡片的id
+        /// </summary>
         public int id { get; internal set; } = 0;
+        /// <summary>
+        /// 卡片所在的牌堆
+        /// </summary>
         public Pile pile { get; internal set; } = null;
         public CardDefine define { get; } = null;
         List<Buff> buffList { get; } = new List<Buff>();
