@@ -1,4 +1,4 @@
-﻿namespace TouhouHeartstone
+﻿namespace TouhouCardEngine
 {
     public abstract class Rule
     {

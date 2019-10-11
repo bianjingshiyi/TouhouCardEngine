@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 
-namespace TouhouHeartstone
+namespace TouhouCardEngine
 {
     public abstract class Event
     {

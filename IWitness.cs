@@ -1,4 +1,4 @@
-﻿namespace TouhouHeartstone
+﻿namespace TouhouCardEngine
 {
     public interface IWitness
     {
