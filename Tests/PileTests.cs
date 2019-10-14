@@ -4,6 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
+using TouhouCardEngine;
 using TouhouHeartstone;
 
 namespace Tests

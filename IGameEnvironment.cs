@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using Microsoft.CodeAnalysis.Scripting;
 
-namespace TouhouHeartstone
+namespace TouhouCardEngine
 {
     public interface IGameEnvironment
     {

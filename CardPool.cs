@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 
-namespace TouhouHeartstone
+namespace TouhouCardEngine
 {
     [Serializable]
     public class CardPool : IEnumerable<CardDefine>

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 
-namespace TouhouHeartstone
+namespace TouhouCardEngine
 {
     [Serializable]
     public partial class CardEngine

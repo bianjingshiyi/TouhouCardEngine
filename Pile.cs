@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TouhouHeartstone
+namespace TouhouCardEngine
 {
     /// <summary>
     /// Pile（牌堆）表示一个可以容纳卡片的有序集合，比如卡组，手牌，战场等等。一个Region中可以包含可枚举数量的卡牌。
@@ -95,32 +95,34 @@ namespace TouhouHeartstone
             }
         }
         /// <summary>
-        /// 将牌堆中的一些牌洗回目标牌堆并用抽取的卡牌替换。
+        /// 将牌堆中的一些牌与目标牌堆中随机的一些牌相替换。
         /// </summary>
         /// <param name="engine">用于提供随机功能的引擎</param>
         /// <param name="originalCards">要进行替换的卡牌</param>
         /// <param name="pile">目标牌堆</param>
-        /// <param name="shuffle">在进行随机替换之前是否先将要替换的卡牌洗入目标牌堆？</param>
-        public void replaceWithShuffle(CardEngine engine, Card[] originalCards, Pile pile)
+        /// <returns>返回替换原有卡牌的卡牌数组，顺序与替换的顺序相同</returns>
+        public Card[] replaceByRandom(CardEngine engine, Card[] originalCards, Pile pile)
         {
             int[] indexArray = new int[originalCards.Length];
             for (int i = 0; i < originalCards.Length; i++)
             {
-                //把牌洗回去
+                //把牌放回去
                 pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), originalCards[i]);
                 originalCards[i].pile = pile;
                 //记录当前牌堆中的空位
-                cardList[i] = null;
                 indexArray[i] = indexOf(originalCards[i]);
+                cardList[indexArray[i]] = null;
             }
             for (int i = 0; i < indexArray.Length; i++)
             {
                 //将牌堆中的随机卡片填入空位
-                cardList[indexArray[i]] = pile.cardList[pile.count - 1];
+                int targetIndex = engine.randomInt(0, pile.count - 1);
+                cardList[indexArray[i]] = pile.cardList[targetIndex];
                 cardList[indexArray[i]].pile = this;
                 //并将其从牌堆中移除
-                pile.cardList.RemoveAt(pile.count - 1);
+                pile.cardList.RemoveAt(targetIndex);
             }
+            return indexArray.Select(i => pile.cardList[i]).ToArray();
         }
         internal void remove(Card card)
         {

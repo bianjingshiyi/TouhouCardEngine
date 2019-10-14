@@ -1,4 +1,4 @@
-﻿namespace TouhouHeartstone
+﻿namespace TouhouCardEngine
 {
     /// <summary>
     /// 卡片定义，包含了一张卡的静态数据和效果逻辑。
