@@ -7,6 +7,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class CardPool : IEnumerable<CardDefine>
     {
+        int lastAllocateID { get; set; } = 0;
         public CardPool()
         {
             dicCardDefine = new Dictionary<int, CardDefine>();
@@ -17,7 +18,16 @@ namespace TouhouCardEngine
             foreach (CardDefine define in cardDefines)
             {
                 dicCardDefine.Add(define.id, define);
+                if (define.id > lastAllocateID)
+                    lastAllocateID = define.id;
             }
+        }
+        public int register(CardDefine define)
+        {
+            lastAllocateID += 1;
+            dicCardDefine.Add(lastAllocateID, define);
+            define.id = lastAllocateID;
+            return lastAllocateID;
         }
         public CardDefine this[int id]
         {

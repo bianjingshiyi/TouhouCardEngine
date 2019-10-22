@@ -9,6 +9,27 @@ using TouhouHeartstone;
 
 namespace Tests
 {
+    public class CardPoolTests
+    {
+        [Test]
+        public void registerTest()
+        {
+            CardPool pool = new CardPool();
+
+        }
+    }
+    class TestCardDefine : CardDefine
+    {
+        public override int id { get; set; }
+        public override CardDefineType type => throw new System.NotImplementedException();
+
+        public override Effect[] effects => throw new System.NotImplementedException();
+
+        public override string isUsable(CardEngine engine, Player player, Card card)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
     public class PileTests
     {
         [Test]

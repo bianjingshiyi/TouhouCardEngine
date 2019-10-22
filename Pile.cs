@@ -29,21 +29,6 @@ namespace TouhouCardEngine
         public Player owner { get; set; } = null;
         public string name { get; } = null;
         /// <summary>
-        /// 将一张不属于任何牌堆的卡牌插入该牌堆。
-        /// </summary>
-        /// <param name="card"></param>
-        /// <param name="position"></param>
-        internal void insert(Card card, int position)
-        {
-            if (card.pile == null)
-            {
-                card.pile = this;
-                cardList.Insert(position, card);
-            }
-            else
-                throw new InvalidOperationException(card + "已经属于Pile[" + card.pile.name + "]");
-        }
-        /// <summary>
         /// 将位于该牌堆中的一张牌移动到其他的牌堆中。
         /// </summary>
         /// <param name="card"></param>
@@ -106,12 +91,11 @@ namespace TouhouCardEngine
             int[] indexArray = new int[originalCards.Length];
             for (int i = 0; i < originalCards.Length; i++)
             {
+                //记录当前牌堆中的空位
+                indexArray[i] = indexOf(originalCards[i]);
                 //把牌放回去
                 pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), originalCards[i]);
                 originalCards[i].pile = pile;
-                //记录当前牌堆中的空位
-                indexArray[i] = indexOf(originalCards[i]);
-                cardList[indexArray[i]] = null;
             }
             for (int i = 0; i < indexArray.Length; i++)
             {
@@ -122,7 +106,7 @@ namespace TouhouCardEngine
                 //并将其从牌堆中移除
                 pile.cardList.RemoveAt(targetIndex);
             }
-            return indexArray.Select(i => pile.cardList[i]).ToArray();
+            return indexArray.Select(i => cardList[i]).ToArray();
         }
         internal void remove(Card card)
         {

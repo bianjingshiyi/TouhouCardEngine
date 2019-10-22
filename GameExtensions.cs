@@ -4,69 +4,69 @@ using System.Collections.Generic;
 
 namespace TouhouCardEngine
 {
-    public partial class CardEngine
+    public static class CardEngineExtension
     {
-        public void addBuff(Card[] cards, string[] propNames, int[] changeTypes, int[] values)
-        {
-            foreach (Card card in cards)
-            {
-                PropertyModifier[] modifiers = new PropertyModifier[propNames.Length];
-                for (int i = 0; i < modifiers.Length; i++)
-                {
-                    modifiers[i] = new PropertyModifier(propNames[i], (PropertyChangeType)changeTypes[i], values[i]);
-                }
-                card.addBuff(new GeneratedBuff(modifiers));
-            }
-        }
-        public void addBuff(Card[] cards, string propName, int changeType, int value)
-        {
-            foreach (Card card in cards)
-            {
-                card.addBuff(new GeneratedBuff(new PropertyModifier(propName, (PropertyChangeType)changeType, value)));
-            }
-        }
-        public readonly int PropertyChangeType_set = 0;
-        public readonly int PropertyChangeType_add = 1;
-        public Card[] getNearbyCards(Card card)
-        {
-            if (card.pile.count > 2)
-            {
-                if (card.pile.indexOf(card) == 0)
-                    return new Card[] { card.pile[1] };
-                else if (card.pile.indexOf(card) == card.pile.count - 1)
-                    return new Card[] { card.pile[card.pile.count - 2] };
-                else
-                    return new Card[] { card.pile[card.pile.indexOf(card) - 1], card.pile[card.pile.indexOf(card) + 1] };
-            }
-            else if (card.pile.count > 1)
-            {
-                if (card.pile.indexOf(card) == 0)
-                    return new Card[] { card.pile[1] };
-                else
-                    return new Card[] { card.pile[0] };
-            }
-            else
-                return new Card[0];
-        }
-        public Card getRandomEnemy(Player player)
-        {
-            Card[] enemies = getAllEnemies(player);
-            return enemies[randomInt(0, enemies.Length - 1)];
-        }
-        public Card[] getAllEnemies(Player player)
-        {
-            List<Card> enemyList = new List<Card>();
-            foreach (Player opponent in getPlayers().Where(p => { return p != player; }))
-            {
-                enemyList.AddRange(opponent["Master"]);
-                enemyList.AddRange(opponent["Field"]);
-            }
-            return enemyList.ToArray();
-        }
-        public Card[] getCharacters(Func<Card, bool> filter = null)
+        //public void addBuff(Card[] cards, string[] propNames, int[] changeTypes, int[] values)
+        //{
+        //    foreach (Card card in cards)
+        //    {
+        //        PropertyModifier[] modifiers = new PropertyModifier[propNames.Length];
+        //        for (int i = 0; i < modifiers.Length; i++)
+        //        {
+        //            modifiers[i] = new PropertyModifier(propNames[i], (PropertyChangeType)changeTypes[i], values[i]);
+        //        }
+        //        card.addBuff(new GeneratedBuff(modifiers));
+        //    }
+        //}
+        //public void addBuff(Card[] cards, string propName, int changeType, int value)
+        //{
+        //    foreach (Card card in cards)
+        //    {
+        //        card.addBuff(new GeneratedBuff(new PropertyModifier(propName, (PropertyChangeType)changeType, value)));
+        //    }
+        //}
+        //public readonly int PropertyChangeType_set = 0;
+        //public readonly int PropertyChangeType_add = 1;
+        //public Card[] getNearbyCards(Card card)
+        //{
+        //    if (card.pile.count > 2)
+        //    {
+        //        if (card.pile.indexOf(card) == 0)
+        //            return new Card[] { card.pile[1] };
+        //        else if (card.pile.indexOf(card) == card.pile.count - 1)
+        //            return new Card[] { card.pile[card.pile.count - 2] };
+        //        else
+        //            return new Card[] { card.pile[card.pile.indexOf(card) - 1], card.pile[card.pile.indexOf(card) + 1] };
+        //    }
+        //    else if (card.pile.count > 1)
+        //    {
+        //        if (card.pile.indexOf(card) == 0)
+        //            return new Card[] { card.pile[1] };
+        //        else
+        //            return new Card[] { card.pile[0] };
+        //    }
+        //    else
+        //        return new Card[0];
+        //}
+        //public Card getRandomEnemy(Player player)
+        //{
+        //    Card[] enemies = getAllEnemies(player);
+        //    return enemies[randomInt(0, enemies.Length - 1)];
+        //}
+        //public Card[] getAllEnemies(Player player)
+        //{
+        //    List<Card> enemyList = new List<Card>();
+        //    foreach (Player opponent in getPlayers().Where(p => { return p != player; }))
+        //    {
+        //        enemyList.AddRange(opponent["Master"]);
+        //        enemyList.AddRange(opponent["Field"]);
+        //    }
+        //    return enemyList.ToArray();
+        //}
+        public static Card[] getCharacters(this CardEngine engine, Func<Card, bool> filter = null)
         {
             List<Card> charList = new List<Card>();
-            foreach (Player player in getPlayers())
+            foreach (Player player in engine.getPlayers())
             {
                 if (filter != null)
                 {
