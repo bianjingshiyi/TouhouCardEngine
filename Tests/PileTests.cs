@@ -15,7 +15,6 @@ namespace Tests
         public void registerTest()
         {
             CardPool pool = new CardPool();
-
         }
     }
     class TestCardDefine : CardDefine
