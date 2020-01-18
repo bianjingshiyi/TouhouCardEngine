@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-
+using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
     /// <summary>
@@ -33,6 +33,7 @@ namespace TouhouCardEngine
         /// <param name="targets"></param>
         /// <returns></returns>
         public abstract bool checkTargets(CardEngine engine, Player player, Card card, object[] targets);
+        public abstract Task executeAsync(CardEngine engine, Player player, Card card, object[] targets);
         /// <summary>
         /// 发动效果
         /// </summary>
@@ -40,7 +41,11 @@ namespace TouhouCardEngine
         /// <param name="player"></param>
         /// <param name="card"></param>
         /// <param name="targets"></param>
-        public abstract void execute(CardEngine engine, Player player, Card card, object[] targets);
+        [Obsolete]
+        public virtual void execute(CardEngine engine, Player player, Card card, object[] targets)
+        {
+            executeAsync(engine, player, card, targets);
+        }
         /// <summary>
         /// 检查效果目标是否合法
         /// </summary>
