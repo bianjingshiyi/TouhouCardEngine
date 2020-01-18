@@ -30,7 +30,7 @@ namespace TouhouCardEngine
         {
             if (dicVar.ContainsKey(varName) && dicVar[varName] is T)
                 return (T)dicVar[varName];
-            return default(T);
+            return default;
         }
         public void setProp<T>(string propName, T value)
         {
