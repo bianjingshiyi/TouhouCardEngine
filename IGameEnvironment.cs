@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using Microsoft.CodeAnalysis.Scripting;
 
 namespace TouhouCardEngine
 {
