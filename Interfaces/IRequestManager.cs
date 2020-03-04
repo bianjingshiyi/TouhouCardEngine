@@ -20,4 +20,12 @@ namespace TouhouCardEngine.Interfaces
         IResponse askAll(IRequest request);
         void answer(IResponse response);
     }
+    public interface IEventManager
+    {
+        Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
+    }
+    public interface IEventArg
+    {
+
+    }
 }
