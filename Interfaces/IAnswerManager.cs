@@ -10,6 +10,7 @@ namespace TouhouCardEngine.Interfaces
     {
         int[] playersId { get; set; }
         bool isAny { get; set; }
+        float timeout { get; set; }
         bool isValidResponse(IResponse response);
         IResponse getDefaultResponse(IGame game);
     }
@@ -32,13 +33,5 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="request"></param>
         /// <returns>单位为毫秒</returns>
         float getRemainedTime(IRequest request);
-    }
-    public interface ITriggerManager
-    {
-        Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
-    }
-    public interface IEventArg
-    {
-
     }
 }
