@@ -5,17 +5,13 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface ITriggerManager
     {
-        void register(string eventName, ITrigger trigger);
-        bool remove(string eventName, ITrigger trigger);
-        ITrigger[] getTriggers(string eventName);
-        Task doEvent(string[] eventNames, object[] args);
-        string getName<T>();
+        string getName<T>() where T : IEventArg;
         void register<T>(ITrigger<T> trigger) where T : IEventArg;
         bool remove<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggers<T>() where T : IEventArg;
         Task doEvent<T>(T eventArg) where T : IEventArg;
-        string getNameBefore<T>();
-        string getNameAfter<T>();
+        string getNameBefore<T>() where T : IEventArg;
+        string getNameAfter<T>() where T : IEventArg;
         void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg;
         void registerAfter<T>(ITrigger<T> trigger) where T : IEventArg;
         bool removeBefore<T>(ITrigger<T> trigger) where T : IEventArg;
@@ -25,18 +21,26 @@ namespace TouhouCardEngine.Interfaces
         Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
         Task doEvent<T>(string[] eventNames, T eventArg, object[] args) where T : IEventArg;
         Task doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, object[] args) where T : IEventArg;
-        IEventArg getEventArg(string[] eventNames, object[] args);
+        IEventArg currentEvent { get; }
+        IEventArg[] getEventChain();
     }
     public interface ITrigger
     {
-        bool checkCondition(object[] args);
-        Task invoke(object[] args);
+        int compare(ITrigger other, IEventArg arg);
+        bool checkCondition(IEventArg arg);
+        Task invoke(IEventArg arg);
     }
     public interface ITrigger<T> : ITrigger where T : IEventArg
     {
+        int compare(ITrigger<T> other, T arg);
+        bool checkCondition(T arg);
+        Task invoke(T arg);
     }
     public interface IEventArg
     {
+        string[] beforeNames { get; set; }
+        string[] afterNames { get; set; }
+        object[] args { get; set; }
         bool isCanceled { get; set; }
         int repeatTime { get; set; }
         Func<IEventArg, Task> action { get; set; }
