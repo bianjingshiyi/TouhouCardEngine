@@ -1,21 +1,63 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
     [Serializable]
-    public partial class CardEngine
+    public partial class CardEngine : IGame
     {
         public IGameEnvironment env { get; }
         public Rule rule { get; }
-        public CardEngine(IGameEnvironment env, Rule rule, int randomSeed)
+        public CardEngine(IGameEnvironment env, Rule rule, int randomSeed, params CardDefine[] defines)
         {
             this.env = env;
             this.rule = rule;
             random = new Random(randomSeed);
+            foreach (CardDefine define in defines)
+            {
+                addCardDefine(define);
+            }
         }
+        public void addCardDefine(CardDefine define)
+        {
+            cardDefineDic.Add(define.id, define);
+        }
+        public T getCardDefine<T>() where T : CardDefine
+        {
+            foreach (var pair in cardDefineDic)
+            {
+                if (pair.Value is T t)
+                    return t;
+            }
+            return null;
+        }
+        public CardDefine getCardDefine(int id)
+        {
+            if (cardDefineDic.ContainsKey(id))
+                return cardDefineDic[id];
+            else
+                return null;
+        }
+        Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
+        public Card createCardById(int id)
+        {
+            CardDefine define = getCardDefine(id);
+            if (define == null)
+                throw new NoCardDefineException(id);
+            return createCard(define);
+        }
+        public Card createCard(CardDefine define)
+        {
+            int id = cardDic.Count + 1;
+            while (cardDic.ContainsKey(id))
+                id++;
+            Card card = new Card(id, define);
+            cardDic.Add(id, card);
+            return card;
+        }
+        Dictionary<int, Card> cardDic { get; } = new Dictionary<int, Card>();
         public T runFunc<T>(string script, EffectGlobals globals)
         {
             return env.runFunc<T>(script, globals);
@@ -103,6 +145,13 @@ namespace TouhouCardEngine
         public void addPlayer(Player player)
         {
             playerList.Add(player);
+        }
+        protected int getNewPlayerId()
+        {
+            int id = playerList.Count;
+            if (playerList.Any(p => p.id == id))
+                id++;
+            return id;
         }
         private List<Player> playerList { get; } = new List<Player>();
         public void doEvent(Event e)

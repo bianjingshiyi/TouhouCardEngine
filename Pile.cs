@@ -6,16 +6,13 @@ using System.Linq;
 namespace TouhouCardEngine
 {
     /// <summary>
-    /// Pile（牌堆）表示一个可以容纳卡片的有序集合，比如卡组，手牌，战场等等。一个Region中可以包含可枚举数量的卡牌。
-    /// 注意，卡片在Region中的顺序代表了它的位置。0是最左边（手牌），0也是最底部（卡组）。
+    /// Pile（牌堆）表示一个可以容纳卡片的有序集合，比如卡组，手牌，战场等等。一个Pile中可以包含可枚举数量的卡牌。
+    /// 注意，卡片在Pile中的顺序代表了它的位置。0是最左边（手牌），0也是最底部（卡组）。
     /// </summary>
     public class Pile : IEnumerable<Card>
     {
-        public Pile()
-        {
-            name = null;
-        }
-        public Pile(string name = null, Card[] cards = null)
+        public int maxCount { get; set; }
+        public Pile(string name = null, Card[] cards = null, int maxCount = -1)
         {
             this.name = name;
             if (cards == null)
@@ -25,6 +22,7 @@ namespace TouhouCardEngine
                 card.pile = this;
             }
             cardList.AddRange(cards);
+            this.maxCount = maxCount;
         }
         public Player owner { get; set; } = null;
         public string name { get; } = null;

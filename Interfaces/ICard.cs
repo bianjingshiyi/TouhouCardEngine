@@ -2,6 +2,8 @@
 {
     public interface IGame
     {
+        ITriggerManager triggers { get; }
+        IAnswerManager answers { get; }
     }
     public interface IPlayer
     {

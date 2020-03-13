@@ -57,6 +57,14 @@ namespace TouhouCardEngine
         {
             this.id = id;
         }
+        public Card(int id, CardDefine define)
+        {
+            this.id = id;
+            if (define != null)
+                this.define = define;
+            else
+                throw new ArgumentNullException(nameof(define));
+        }
         public void addBuff(Buff buff)
         {
             if (buff == null)

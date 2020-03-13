@@ -7,9 +7,12 @@ namespace TouhouCardEngine
     [Serializable]
     public class Player
     {
-        public Player(CardEngine engine, Pile[] piles)
+        public int id { get; }
+        public string name { get; set; }
+        public Player(int id, string name, params Pile[] piles)
         {
-            this.engine = engine;
+            this.id = id;
+            this.name = name;
             foreach (Pile pile in piles)
             {
                 pile.owner = this;
@@ -56,13 +59,12 @@ namespace TouhouCardEngine
         {
             return pileList.FirstOrDefault(e => { return e.name == name; });
         }
-        List<Pile> pileList { get; } = new List<Pile>();
-        CardEngine engine { get; }
+        protected List<Pile> pileList { get; } = new List<Pile>();
         public override string ToString()
         {
-            return "Player(" + engine.getPlayerIndex(this) + ")";
+            return name;
         }
-        public static implicit operator Player[] (Player player)
+        public static implicit operator Player[](Player player)
         {
             return new Player[] { player };
         }
