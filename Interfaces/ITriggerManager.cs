@@ -21,6 +21,8 @@ namespace TouhouCardEngine.Interfaces
         Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
         Task doEvent<T>(string[] eventNames, T eventArg, object[] args) where T : IEventArg;
         Task doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, object[] args) where T : IEventArg;
+        event Action<IEventArg> onEventBefore;
+        event Action<IEventArg> onEventAfter;
         IEventArg currentEvent { get; }
         IEventArg[] getEventChain();
     }

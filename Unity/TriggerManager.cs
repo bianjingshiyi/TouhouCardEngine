@@ -170,6 +170,7 @@ namespace TouhouCardEngine
             //加入事件链
             EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
             _eventChainList.Add(eventArgItem);
+            onEventBefore?.Invoke(eventArg);
             //获取事件名
             IEnumerable<string> eventNames = eventArg.afterNames;
             if (eventNames == null)
@@ -216,6 +217,7 @@ namespace TouhouCardEngine
                     }
                 }
             }
+            onEventAfter?.Invoke(eventArg);
             //移出事件链
             _eventChainList.Remove(eventArgItem);
         }
@@ -231,6 +233,7 @@ namespace TouhouCardEngine
             {
                 return action.Invoke((T)arg);
             };
+            onEventBefore?.Invoke(eventArg);
             //Before
             IEnumerable<string> beforeNames = eventArg.beforeNames;
             if (beforeNames == null)
@@ -334,8 +337,11 @@ namespace TouhouCardEngine
                     }
                 }
             }
+            onEventAfter?.Invoke(eventArg);
             _eventChainList.Remove(eventArgItem);
         }
+        public event Action<IEventArg> onEventBefore;
+        public event Action<IEventArg> onEventAfter;
         [Serializable]
         public class EventArgItem
         {
