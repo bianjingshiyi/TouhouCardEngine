@@ -1,0 +1,17 @@
+{
+    "name": "TouhouCardEngine.Tests",
+    "references": [
+        "GUID:8d127f57985fd644ca5546f1641c002f"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

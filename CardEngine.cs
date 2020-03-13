@@ -8,6 +8,8 @@ namespace TouhouCardEngine
     [Serializable]
     public partial class CardEngine : IGame
     {
+        public ITriggerManager triggers { get; set; }
+        public IAnswerManager answers { get; set; }
         public IGameEnvironment env { get; }
         public Rule rule { get; }
         public CardEngine(IGameEnvironment env, Rule rule, int randomSeed, params CardDefine[] defines)
