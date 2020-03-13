@@ -25,6 +25,7 @@ namespace TouhouCardEngine.Interfaces
         event Action<IEventArg> onEventAfter;
         IEventArg currentEvent { get; }
         IEventArg[] getEventChain();
+        IEventArg[] getRecordedEvents();
     }
     public interface ITrigger
     {

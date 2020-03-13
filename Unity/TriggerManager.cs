@@ -170,6 +170,7 @@ namespace TouhouCardEngine
             //加入事件链
             EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
             _eventChainList.Add(eventArgItem);
+            _eventRecordList.Add(eventArgItem);
             onEventBefore?.Invoke(eventArg);
             //获取事件名
             IEnumerable<string> eventNames = eventArg.afterNames;
@@ -227,6 +228,7 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(eventArg));
             EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
             _eventChainList.Add(eventArgItem);
+            _eventRecordList.Add(eventArgItem);
             eventArg.isCanceled = false;
             eventArg.repeatTime = 0;
             eventArg.action = arg =>
@@ -353,6 +355,12 @@ namespace TouhouCardEngine
         public IEventArg[] getEventChain()
         {
             return _eventChainList.Select(ei => ei.eventArg).ToArray();
+        }
+        [SerializeField]
+        List<EventArgItem> _eventRecordList = new List<EventArgItem>();
+        public IEventArg[] getRecordedEvents()
+        {
+            return _eventRecordList.Select(ei => ei.eventArg).ToArray();
         }
     }
     public class Trigger : Trigger<IEventArg>
