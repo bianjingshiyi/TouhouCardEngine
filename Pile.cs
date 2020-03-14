@@ -15,6 +15,7 @@ namespace TouhouCardEngine
         public Pile(string name = null, Card[] cards = null, int maxCount = -1)
         {
             this.name = name;
+            this.maxCount = maxCount;
             if (cards == null)
                 return;
             foreach (Card card in cards)
@@ -22,7 +23,6 @@ namespace TouhouCardEngine
                 card.pile = this;
             }
             cardList.AddRange(cards);
-            this.maxCount = maxCount;
         }
         public Player owner { get; set; } = null;
         public string name { get; } = null;
@@ -123,6 +123,9 @@ namespace TouhouCardEngine
                 cardList[index] = card;
             }
         }
+        /// <summary>
+        /// 牌堆顶上的那一张，也就是列表中的最后一张。
+        /// </summary>
         public Card top
         {
             get

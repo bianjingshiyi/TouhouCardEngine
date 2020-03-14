@@ -140,10 +140,6 @@ namespace TouhouCardEngine
         {
             return playerList.ToArray();
         }
-        public Player[] players
-        {
-            get { return playerList.ToArray(); }
-        }
         public int playerCount
         {
             get { return playerList.Count; }

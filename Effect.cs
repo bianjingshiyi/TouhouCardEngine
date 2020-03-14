@@ -1,9 +1,35 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
+    public abstract class TriggerTime
+    {
+        public abstract string getEventName(ITriggerManager manager);
+    }
+    public class Before<T> : TriggerTime where T : IEventArg
+    {
+        public override string getEventName(ITriggerManager manager)
+        {
+            return manager.getNameBefore<T>();
+        }
+    }
+    public class On<T> : TriggerTime where T : IEventArg
+    {
+        public override string getEventName(ITriggerManager manager)
+        {
+            return manager.getName<T>();
+        }
+    }
+    public class After<T> : TriggerTime where T : IEventArg
+    {
+        public override string getEventName(ITriggerManager manager)
+        {
+            return manager.getNameAfter<T>();
+        }
+    }
     /// <summary>
     /// 效果
     /// </summary>
@@ -12,10 +38,23 @@ namespace TouhouCardEngine
         /// <summary>
         /// 效果的作用时机
         /// </summary>
-        public abstract string trigger { get; }
+        [Obsolete]
+        public virtual string trigger { get; } = null;
+        public abstract TriggerTime[] triggerTimes { get; }
         string[] IEffect.events
         {
             get { return new string[] { trigger }; }
+        }
+        string[] IEffect.getEvents(ITriggerManager manager)
+        {
+            List<string> eventList = new List<string>();
+            if (!string.IsNullOrEmpty(trigger))
+                eventList.Add(trigger);
+            foreach (var triggerTime in triggerTimes)
+            {
+                eventList.Add(triggerTime.getEventName(manager));
+            }
+            return eventList.ToArray();
         }
         /// <summary>
         /// 效果的作用域
@@ -50,10 +89,10 @@ namespace TouhouCardEngine
         {
             return checkTargets(game as CardEngine, player as Player, card as Card, targets);
         }
-        public abstract Task executeAsync(CardEngine engine, Player player, Card card, object[] vars, object[] targets);
+        public abstract Task execute(CardEngine engine, Player player, Card card, object[] vars, object[] targets);
         Task IEffect.execute(IGame game, IPlayer player, ICard card, object[] vars, object[] targets)
         {
-            return executeAsync(game as CardEngine, player as Player, card as Card, vars, targets);
+            return execute(game as CardEngine, player as Player, card as Card, vars, targets);
         }
         /// <summary>
         /// 发动效果
@@ -65,7 +104,7 @@ namespace TouhouCardEngine
         [Obsolete]
         public virtual void execute(CardEngine engine, Player player, Card card, object[] targets)
         {
-            executeAsync(engine, player, card, new object[0], targets);
+            execute(engine, player, card, new object[0], targets);
         }
         /// <summary>
         /// 检查效果目标是否合法

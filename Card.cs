@@ -107,7 +107,7 @@ namespace TouhouCardEngine
             if (typeof(T) == typeof(int))
             {
                 //基础值
-                int value = 0;
+                int value = define.getProp<int>(propName);
                 if (propDic.ContainsKey(propName) && propDic[propName] is int)
                     value = (int)propDic[propName];
                 //加值，乘值
@@ -141,7 +141,7 @@ namespace TouhouCardEngine
                 if (propDic.ContainsKey(propName) && propDic[propName] is T)
                     return (T)propDic[propName];
                 else
-                    return default;
+                    return define.getProp<T>(propName);
             }
         }
         public override string ToString()
