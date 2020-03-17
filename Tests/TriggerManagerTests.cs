@@ -11,7 +11,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace Tests
 {
-    public class TriggerManagerTest
+    public class TriggerManagerTests
     {
         [Test]
         public void registerTest()

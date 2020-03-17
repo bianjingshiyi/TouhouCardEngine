@@ -10,7 +10,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace Tests
 {
-    public class AnswerManagerTest
+    public class AnswerManagerTests
     {
         [UnityTest]
         public IEnumerator askAndGetRequestTest()
