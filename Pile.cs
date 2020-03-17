@@ -40,6 +40,10 @@ namespace TouhouCardEngine
                 targetPile.cardList.Insert(position, card);
             }
         }
+        public void moveTo(Card card, Pile targetPile)
+        {
+            moveTo(card, targetPile, targetPile.count);
+        }
         public void moveTo(Card[] cards, Pile targetPile, int position)
         {
             List<Card> removedCardList = new List<Card>(cards.Length);

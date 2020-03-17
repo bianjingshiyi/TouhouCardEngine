@@ -169,6 +169,8 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(eventArg));
             //加入事件链
             EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
+            if (currentEvent != null)
+                currentEvent.addChildEvent(eventArg);
             _eventChainList.Add(eventArgItem);
             _eventRecordList.Add(eventArgItem);
             onEventBefore?.Invoke(eventArg);
@@ -227,6 +229,8 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
+            if (currentEvent != null)
+                currentEvent.addChildEvent(eventArg);
             _eventChainList.Add(eventArgItem);
             _eventRecordList.Add(eventArgItem);
             eventArg.isCanceled = false;
@@ -433,8 +437,21 @@ namespace TouhouCardEngine
 
         public GeneratedEventArg(string[] eventNames, object[] args)
         {
-            this.afterNames = eventNames;
+            afterNames = eventNames;
             this.args = args;
+        }
+        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
+        public void addChildEvent(IEventArg eventArg)
+        {
+            childEventList.Add(eventArg);
+        }
+        public IEventArg[] getChildEvents()
+        {
+            return childEventList.ToArray();
+        }
+        public IEventArg[] children
+        {
+            get { return childEventList.ToArray(); }
         }
     }
     public static class EventArgExtension
