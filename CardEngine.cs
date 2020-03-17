@@ -10,6 +10,7 @@ namespace TouhouCardEngine
     {
         public ITriggerManager triggers { get; set; }
         public IAnswerManager answers { get; set; }
+        public ILogger logger { get; set; }
         public IGameEnvironment env { get; }
         public Rule rule { get; }
         public CardEngine(IGameEnvironment env, Rule rule, int randomSeed, params CardDefine[] defines)
@@ -139,10 +140,6 @@ namespace TouhouCardEngine
         public Player[] getPlayers()
         {
             return playerList.ToArray();
-        }
-        public Player[] players
-        {
-            get { return playerList.ToArray(); }
         }
         public int playerCount
         {

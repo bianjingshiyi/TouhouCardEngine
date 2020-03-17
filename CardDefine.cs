@@ -1,4 +1,5 @@
-﻿using TouhouCardEngine.Interfaces;
+﻿using System.Linq;
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     /// <summary>
@@ -28,5 +29,13 @@ namespace TouhouCardEngine
                 return default(T);
         }
         public abstract string isUsable(CardEngine engine, Player player, Card card);
+        public Effect getEffectOn<T>() where T : IEventArg
+        {
+            return effects.FirstOrDefault(e => e.triggerTimes.Any(t => t is On<T>));
+        }
+        public Effect getEffectAfter<T>() where T : IEventArg
+        {
+            return effects.FirstOrDefault(e => e.triggerTimes.Any(t => t is After<T>));
+        }
     }
 }

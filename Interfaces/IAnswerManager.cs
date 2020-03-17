@@ -23,6 +23,12 @@ namespace TouhouCardEngine.Interfaces
         Task<IResponse> ask(int playerId, IRequest request, float timeout);
         Task<IResponse[]> askAll(int[] playersId, IRequest request, float timeout);
         Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <param name="response"></param>
+        /// <returns>返回值表示这次回应是否有相应的请求。</returns>
         bool answer(int playerId, IResponse response);
         IRequest getLastRequest(int playerId);
         IRequest[] getRequests(int playerId);

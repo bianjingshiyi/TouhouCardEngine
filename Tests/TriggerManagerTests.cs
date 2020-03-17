@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System;
 using System.Collections;
 using UnityEngine.TestTools;
-
+using System.Collections.Generic;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
 
@@ -409,6 +409,23 @@ namespace Tests
                 Debug.LogError(task.Exception);
             Assert.AreEqual(4, value);
         }
+        [Test]
+        public void getChildEventTest()
+        {
+            TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
+            TestEventArg e1 = new TestEventArg();
+            TestEventArg e2 = new TestEventArg();
+            TestEventArg e3 = new TestEventArg();
+            _ = manager.doEvent(e1, arg =>
+            {
+                _ = manager.doEvent(e2);
+                _ = manager.doEvent(e3);
+                return Task.CompletedTask;
+            });
+            Assert.AreEqual(e1, manager.getRecordedEvents()[0]);
+            Assert.AreEqual(e2, e1.getChildEvents()[0]);
+            Assert.AreEqual(e3, e1.getChildEvents()[1]);
+        }
         class TestEventArg : IEventArg
         {
             public int intValue { get; set; } = 0;
@@ -418,6 +435,19 @@ namespace Tests
             public string[] afterNames { get; set; }
             public object[] args { get; set; }
             public string[] beforeNames { get; set; }
+            List<IEventArg> childEventList { get; } = new List<IEventArg>();
+            public void addChildEvent(IEventArg eventArg)
+            {
+                childEventList.Add(eventArg);
+            }
+            public IEventArg[] getChildEvents()
+            {
+                return childEventList.ToArray();
+            }
+            public IEventArg[] children
+            {
+                get { return childEventList.ToArray(); }
+            }
         }
     }
 }
