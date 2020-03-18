@@ -4,7 +4,8 @@ using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-
+using System.Net;
+using System.Net.Sockets;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
 
@@ -60,7 +61,7 @@ namespace Tests
 
             var task = manager.ask(0, request, 3);
             TestResponse response = new TestResponse();
-            Assert.True(manager.answer(0, response));
+            Assert.True(manager.answer(0, response).Result);
 
             Assert.True(task.IsCompleted);
             Assert.AreEqual(response, task.Result);
@@ -75,7 +76,7 @@ namespace Tests
             var task = manager.ask(0, request, 3);
             TestResponse response = new TestResponse();
             yield return new WaitForSeconds(1);
-            Assert.True(manager.answer(0, response));
+            Assert.True(manager.answer(0, response).Result);
 
             Assert.True(task.IsCompleted);
             Assert.AreEqual(response, task.Result);
@@ -90,7 +91,7 @@ namespace Tests
             var task = manager.ask(0, request, 3);
             TestResponse response = new TestResponse() { boolean = true };
             yield return new WaitForSeconds(3);
-            Assert.False(manager.answer(0, response));
+            Assert.False(manager.answer(0, response).Result);
 
             Assert.True(task.IsCompleted);
             Assert.False((task.Result as TestResponse).boolean);
@@ -103,12 +104,12 @@ namespace Tests
             TestRequest request = new TestRequest();
 
             var task = manager.askAny(new int[] { 1, 2, 3 }, request, 3, r => r is TestResponse tr && tr.boolean == true);
-            Assert.False(manager.answer(3, new TestResponse() { boolean = false }));
+            Assert.False(manager.answer(3, new TestResponse() { boolean = false }).Result);
             yield return new WaitForSeconds(1);
             TestResponse response = new TestResponse() { boolean = true };
-            Assert.True(manager.answer(2, response));
+            Assert.True(manager.answer(2, response).Result);
             yield return new WaitForSeconds(1);
-            Assert.False(manager.answer(1, response));
+            Assert.False(manager.answer(1, response).Result);
 
             Assert.True(task.IsCompleted);
             Assert.AreEqual(response, task.Result);
@@ -121,7 +122,7 @@ namespace Tests
 
             var task = manager.askAny(new int[] { 1, 2, 3 }, request, 3, r => r is TestResponse tr && tr.boolean == true);
             yield return new WaitForSeconds(3);
-            Assert.False(manager.answer(1, new TestResponse() { boolean = true }));
+            Assert.False(manager.answer(1, new TestResponse() { boolean = true }).Result);
 
             Assert.True(task.IsCompleted);
             TestResponse response = task.Result as TestResponse;
@@ -134,11 +135,11 @@ namespace Tests
             TestRequest request = new TestRequest();
 
             var task = manager.askAll(new int[] { 1, 2, 3 }, request, 3);
-            Assert.True(manager.answer(1, new TestResponse() { boolean = true }));
+            Assert.True(manager.answer(1, new TestResponse() { boolean = true }).Result);
             yield return new WaitForSeconds(1);
-            Assert.True(manager.answer(3, new TestResponse() { boolean = false }));
+            Assert.True(manager.answer(3, new TestResponse() { boolean = false }).Result);
             yield return new WaitForSeconds(2);
-            Assert.False(manager.answer(2, new TestResponse() { boolean = true }));
+            Assert.False(manager.answer(2, new TestResponse() { boolean = true }).Result);
 
             Assert.True(task.IsCompleted);
             TestResponse[] responses = task.Result.Cast<TestResponse>().ToArray();
@@ -165,68 +166,129 @@ namespace Tests
 
             yield return new WaitForSeconds(2);
             TestResponse responseC = new TestResponse();
-            Assert.True(manager.answer(0, responseC));
+            Assert.True(manager.answer(0, responseC).Result);
             TestResponse responseB = new TestResponse();
-            Assert.True(manager.answer(0, responseB));
+            Assert.True(manager.answer(0, responseB).Result);
             yield return new WaitForSeconds(1);
             TestResponse responseA = new TestResponse();
-            Assert.False(manager.answer(0, responseA));
+            Assert.False(manager.answer(0, responseA).Result);
 
             Assert.AreEqual(responseC, taskC.Result);
             Assert.AreEqual(responseB, taskB.Result);
             Assert.AreNotEqual(responseA, taskA.Result);
         }
-        //TODO:插入询问，远程询问
-        [Serializable]
-        class TestRequest : IRequest
+        [UnityTest]
+        public IEnumerator remoteUnaskedAnswer()
         {
-            [SerializeField]
-            int[] _playersId;
-            public int[] playersId
+            UnityLogger logger = new UnityLogger();
+            HostManager host = new GameObject(nameof(HostManager)).AddComponent<HostManager>();
+            host.logger = logger;
+            host.start();
+            ClientManager c1 = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
+            c1.logger = logger;
+            c1.start();
+            _ = c1.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
+            AnswerManager a1 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            a1.client = c1;
+            yield return new WaitForSeconds(.5f);
+            ClientManager c2 = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
+            c2.logger = logger;
+            c2.start();
+            _ = c2.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
+            AnswerManager a2 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            a2.client = c2;
+            AnswerManager a3 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            yield return new WaitForSeconds(.5f);
+
+            bool r1 = false;
+            bool r2 = false;
+            bool r3 = false;
+            a1.onAnswer += onAnswer1;
+            a2.onAnswer += onAnswer2;
+            a3.onAnswer += onAnswer3;
+            a1.unaskedAnswer(0, new TestResponse() { boolean = true });
+            yield return new WaitForSeconds(.5f);
+            void onAnswer1(IResponse response)
             {
-                get { return _playersId; }
-                set { _playersId = value; }
+                r1 = (response as TestResponse).boolean;
             }
-            [SerializeField]
-            bool _isAny;
-            public bool isAny
+            void onAnswer2(IResponse response)
             {
-                get { return _isAny; }
-                set { _isAny = value; }
+                r2 = (response as TestResponse).boolean;
             }
-            [SerializeField]
-            float _timeout;
-            public float timeout
+            void onAnswer3(IResponse response)
             {
-                get { return _timeout; }
-                set { _timeout = value; }
+                r3 = (response as TestResponse).boolean;
             }
-            public bool isValidResponse(IResponse response)
-            {
-                return response is TestResponse;
-            }
-            public IResponse getDefaultResponse(IGame game)
-            {
-                return new TestResponse();
-            }
+
+            Assert.True(r1);
+            Assert.True(r2);
+            Assert.False(r3);
         }
-        [Serializable]
-        class TestResponse : IResponse
+        [Test]
+        public void getTypeTest()
         {
-            [SerializeField]
-            int _playerId;
-            public int playerId
-            {
-                get { return _playerId; }
-                set { _playerId = value; }
-            }
-            [SerializeField]
-            bool _boolean = false;
-            public bool boolean
-            {
-                get { return _boolean; }
-                set { _boolean = value; }
-            }
+            string typeName = typeof(TestResponse).FullName;
+            Type type = Type.GetType(typeName);
+            Assert.AreEqual(typeof(TestResponse), type);
+        }
+    }
+    [Serializable]
+    public class TestRequest : IRequest
+    {
+        [SerializeField]
+        int[] _playersId;
+        public int[] playersId
+        {
+            get { return _playersId; }
+            set { _playersId = value; }
+        }
+        [SerializeField]
+        bool _isAny;
+        public bool isAny
+        {
+            get { return _isAny; }
+            set { _isAny = value; }
+        }
+        [SerializeField]
+        float _timeout;
+        public float timeout
+        {
+            get { return _timeout; }
+            set { _timeout = value; }
+        }
+        public bool isValidResponse(IResponse response)
+        {
+            return response is TestResponse;
+        }
+        public IResponse getDefaultResponse(IGame game)
+        {
+            return new TestResponse();
+        }
+    }
+    [Serializable]
+    public class TestResponse : IResponse
+    {
+        [SerializeField]
+        int _playerId;
+        public int playerId
+        {
+            get { return _playerId; }
+            set { _playerId = value; }
+        }
+        [SerializeField]
+        bool _isUnasked;
+        public bool isUnasked
+        {
+            get { return _isUnasked; }
+            set { _isUnasked = value; }
+        }
+        [SerializeField]
+        bool _boolean = false;
+        public bool boolean
+        {
+            get { return _boolean; }
+            set { _boolean = value; }
         }
     }
 }

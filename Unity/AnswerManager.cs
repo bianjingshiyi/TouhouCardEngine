@@ -9,6 +9,23 @@ namespace TouhouCardEngine
 {
     public class AnswerManager : MonoBehaviour, IAnswerManager
     {
+        IClientManager _client = null;
+        public IClientManager client
+        {
+            get { return _client; }
+            set
+            {
+                if (_client != null)
+                {
+                    _client.onReceive -= onReceive;
+                }
+                _client = value;
+                if (_client != null)
+                {
+                    _client.onReceive += onReceive;
+                }
+            }
+        }
         [Serializable]
         public class RequestItem
         {
@@ -137,9 +154,16 @@ namespace TouhouCardEngine
             else
                 return null;
         }
-        public bool answer(int playerId, IResponse response)
+        public Task<bool> answer(int playerId, IResponse response)
+        {
+            return answer(playerId, response, client);
+        }
+        private async Task<bool> answer(int playerId, IResponse response, IClientManager client)
         {
             response.playerId = playerId;
+            response.isUnasked = false;
+            if (client != null)
+                response = await client.send(response);
             for (int i = _requestList.Count - 1; i >= 0; i--)
             {
                 var item = _requestList[i];
@@ -160,6 +184,7 @@ namespace TouhouCardEngine
                             Debug.LogError(response + "回应" + request + "发生异常：" + e);
                             return false;
                         }
+                        onAnswer?.Invoke(response);
                         _requestList.RemoveAt(i);
                         return true;
                     }
@@ -177,16 +202,47 @@ namespace TouhouCardEngine
                                 Debug.LogError(response + "回应" + request + "发生异常：" + e);
                                 return false;
                             }
+                            onAnswer?.Invoke(response);
                             _requestList.RemoveAt(i);
                             return true;
                         }
                         else
+                        {
+                            onAnswer?.Invoke(response);
                             return true;
+                        }
                     }
                 }
             }
             return false;
         }
+
+        public void unaskedAnswer(int playerId, IResponse response)
+        {
+            unaskedAnswer(playerId, response, client);
+        }
+        private void unaskedAnswer(int playerId, IResponse response, IClientManager client)
+        {
+            response.playerId = playerId;
+            response.isUnasked = true;
+            if (client != null)
+            {
+                client.send(response);
+                return;
+            }
+            onAnswer?.Invoke(response);
+        }
+        void onReceive(int id, object obj)
+        {
+            if (obj is IResponse response)
+            {
+                if (response.isUnasked)
+                    unaskedAnswer(response.playerId, response, null);
+                else if (id != client.id)//数据可能来自自己，这种情况已经在await send中处理了，就不需要再调用一遍了。
+                    _ = answer(response.playerId, response, null);
+            }
+        }
+        public event Action<IResponse> onAnswer;
         public IRequest getLastRequest(int playerId)
         {
             if (_requestList.LastOrDefault(i => i.request.playersId.Contains(playerId)) is var item)

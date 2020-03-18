@@ -17,6 +17,7 @@ namespace TouhouCardEngine.Interfaces
     public interface IResponse
     {
         int playerId { get; set; }
+        bool isUnasked { get; set; }
     }
     public interface IAnswerManager
     {
@@ -24,12 +25,18 @@ namespace TouhouCardEngine.Interfaces
         Task<IResponse[]> askAll(int[] playersId, IRequest request, float timeout);
         Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter);
         /// <summary>
-        /// 
+        /// 某玩家回应一次请求。
         /// </summary>
         /// <param name="playerId"></param>
         /// <param name="response"></param>
         /// <returns>返回值表示这次回应是否有相应的请求。</returns>
-        bool answer(int playerId, IResponse response);
+        Task<bool> answer(int playerId, IResponse response);
+        /// <summary>
+        /// 单纯的做一次回应，不响应任何请求。
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <returns></returns>
+        void unaskedAnswer(int playerId, IResponse response);
         IRequest getLastRequest(int playerId);
         IRequest[] getRequests(int playerId);
         IRequest[] getAllRequests();
@@ -39,5 +46,6 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="request"></param>
         /// <returns>单位为毫秒</returns>
         float getRemainedTime(IRequest request);
+        event Action<IResponse> onAnswer;
     }
 }

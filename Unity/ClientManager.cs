@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Reflection;
 using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
 using LiteNetLib;
@@ -113,6 +115,8 @@ namespace TouhouCardEngine
         public event Action onConnected;
         public void send(object obj)
         {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
             if (tcs != null)
                 throw new InvalidOperationException("客户端正在执行另一项操作");
             NetDataWriter writer = new NetDataWriter();
@@ -153,7 +157,17 @@ namespace TouhouCardEngine
                     string typeName = reader.GetString();
                     string json = reader.GetString();
                     logger?.log("客户端" + this.id + "收到主机转发的来自客户端" + id + "的数据：（" + typeName + "）" + json);
-                    object obj = BsonSerializer.Deserialize(json, Type.GetType(typeName));
+                    Type objType = Type.GetType(typeName);
+                    if (objType == null)
+                    {
+                        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                        {
+                            objType = assembly.GetType(typeName);
+                            if (objType != null)
+                                break;
+                        }
+                    }
+                    object obj = BsonSerializer.Deserialize(json, objType);
                     if (tcs != null)
                         tcs.SetResult(obj);
                     onReceive?.Invoke(id, obj);
