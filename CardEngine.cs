@@ -9,7 +9,19 @@ namespace TouhouCardEngine
     public partial class CardEngine : IGame
     {
         public ITriggerManager triggers { get; set; }
-        public IAnswerManager answers { get; set; }
+        IAnswerManager _answers;
+        public IAnswerManager answers
+        {
+            get { return _answers; }
+            set
+            {
+                if (_answers != null)
+                    _answers.onAnswer -= onAnswer;
+                _answers = value;
+                if (_answers != null)
+                    _answers.onAnswer += onAnswer;
+            }
+        }
         public ILogger logger { get; set; }
         public IGameEnvironment env { get; }
         public Rule rule { get; }
@@ -22,6 +34,9 @@ namespace TouhouCardEngine
             {
                 addCardDefine(define);
             }
+        }
+        public virtual void onAnswer(IResponse response)
+        {
         }
         public void addCardDefine(CardDefine define)
         {
@@ -51,6 +66,7 @@ namespace TouhouCardEngine
                 throw new NoCardDefineException(id);
             return createCard(define);
         }
+        #region Card
         public Card createCard(CardDefine define)
         {
             int id = cardDic.Count + 1;
@@ -60,7 +76,19 @@ namespace TouhouCardEngine
             cardDic.Add(id, card);
             return card;
         }
+        public Card getCard(int id)
+        {
+            if (cardDic.TryGetValue(id, out var card))
+                return card;
+            else
+                return null;
+        }
+        public Card[] getCards(int[] ids)
+        {
+            return ids.Select(id => getCard(id)).ToArray();
+        }
         Dictionary<int, Card> cardDic { get; } = new Dictionary<int, Card>();
+        #endregion
         public T runFunc<T>(string script, EffectGlobals globals)
         {
             return env.runFunc<T>(script, globals);
@@ -110,14 +138,6 @@ namespace TouhouCardEngine
         public int[] registerCards(Card[] cards)
         {
             return cards.Select(c => { return registerCard(c); }).ToArray();
-        }
-        public Card getCard(int id)
-        {
-            return dicCard[id];
-        }
-        public Card[] getCards(int[] id)
-        {
-            return id.Select(i => { return dicCard[i]; }).ToArray();
         }
         Dictionary<int, Card> dicCard { get; } = new Dictionary<int, Card>();
         public Player getPlayerAt(int playerIndex)

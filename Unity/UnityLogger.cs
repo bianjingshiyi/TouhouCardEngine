@@ -4,14 +4,19 @@ namespace TouhouCardEngine
 {
     public class UnityLogger : Interfaces.ILogger
     {
+        string name { get; }
+        public UnityLogger(string name = null)
+        {
+            this.name = name;
+        }
         public void log(string channel, string msg)
         {
             if (channel == "Debug")
-                Debug.Log(msg);
+                Debug.Log((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
             else if (channel == "Warning")
-                Debug.LogWarning(msg);
+                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
             else if (channel == "Error")
-                Debug.LogError(msg);
+                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
         }
         public void log(string msg)
         {

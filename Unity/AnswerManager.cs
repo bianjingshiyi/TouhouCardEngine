@@ -236,6 +236,8 @@ namespace TouhouCardEngine
         {
             if (obj is IResponse response)
             {
+                if (id != response.playerId)
+                    throw new InvalidOperationException("收到来自客户端" + id + "的玩家" + response.playerId + "的指令" + response);
                 if (response.isUnasked)
                     unaskedAnswer(response.playerId, response, null);
                 else if (id != client.id)//数据可能来自自己，这种情况已经在await send中处理了，就不需要再调用一遍了。
