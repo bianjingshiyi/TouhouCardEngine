@@ -268,5 +268,29 @@ namespace TouhouCardEngine
             else
                 return item.remainedTime;
         }
+        public void cancel(IRequest request)
+        {
+            RequestItem item = _requestList.FirstOrDefault(i => i.request == request);
+            if (item != null)
+            {
+                item.tcs.SetCanceled();
+                _requestList.Remove(item);
+            }
+        }
+        public void cancel(IRequest[] requests)
+        {
+            foreach (IRequest request in requests)
+            {
+                cancel(request);
+            }
+        }
+        public void cancelAll()
+        {
+            foreach (var item in _requestList)
+            {
+                item.tcs.SetCanceled();
+            }
+            _requestList.Clear();
+        }
     }
 }

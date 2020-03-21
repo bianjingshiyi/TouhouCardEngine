@@ -47,5 +47,8 @@ namespace TouhouCardEngine.Interfaces
         /// <returns>单位为毫秒</returns>
         float getRemainedTime(IRequest request);
         event Action<IResponse> onAnswer;
+        void cancel(IRequest request);
+        void cancel(IRequest[] requests);
+        void cancelAll();
     }
 }

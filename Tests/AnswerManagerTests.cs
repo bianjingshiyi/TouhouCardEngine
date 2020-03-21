@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
+using System.Threading.Tasks;
 
 namespace Tests
 {
@@ -225,12 +226,37 @@ namespace Tests
             Assert.True(r2);
             Assert.False(r3);
         }
-        [Test]
-        public void getTypeTest()
+        [UnityTest]
+        public IEnumerator cancelTest()
         {
-            string typeName = typeof(TestResponse).FullName;
-            Type type = Type.GetType(typeName);
-            Assert.AreEqual(typeof(TestResponse), type);
+            AnswerManager manager = new GameObject("AnswerManager").AddComponent<AnswerManager>();
+
+            TestRequest request = new TestRequest();
+            Task task = manager.ask(0, request, 5);
+            yield return new WaitForSeconds(1);
+            manager.cancel(request);
+
+            Assert.True(task.IsCanceled);
+        }
+        [UnityTest]
+        public IEnumerator cancelRequestsTest()
+        {
+            AnswerManager manager = new GameObject("AnswerManager").AddComponent<AnswerManager>();
+
+            TestRequest[] requests = new TestRequest[5];
+            Task[] tasks = new Task[5];
+            for (int i = 0; i < 5; i++)
+            {
+                requests[i] = new TestRequest();
+                tasks[i] = manager.ask(0, requests[i], 5);
+            }
+            yield return new WaitForSeconds(1);
+            manager.cancel(requests);
+
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                Assert.True(tasks[i].IsCanceled);
+            }
         }
     }
     [Serializable]
