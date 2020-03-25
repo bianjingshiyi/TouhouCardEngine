@@ -12,11 +12,7 @@ namespace TouhouCardEngine
         /// </summary>
         public abstract int id { get; set; }
         public abstract CardDefineType type { get; }
-        public abstract Effect[] effects { get; }
-        IEffect[] ICardDefine.effects
-        {
-            get { return effects; }
-        }
+        public abstract IEffect[] effects { get; }
         public object this[string propName]
         {
             get { return getProp<object>(propName); }
@@ -29,13 +25,13 @@ namespace TouhouCardEngine
                 return default(T);
         }
         public abstract string isUsable(CardEngine engine, Player player, Card card);
-        public Effect getEffectOn<T>() where T : IEventArg
+        public IEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
         {
-            return effects.FirstOrDefault(e => e.triggerTimes.Any(t => t is On<T>));
+            return effects.FirstOrDefault(e => e.getEvents(manager).Contains(manager.getName<T>()));
         }
-        public Effect getEffectAfter<T>() where T : IEventArg
+        public IEffect getEffectAfter<T>(ITriggerManager manager) where T : IEventArg
         {
-            return effects.FirstOrDefault(e => e.triggerTimes.Any(t => t is After<T>));
+            return effects.FirstOrDefault(e => e.getEvents(manager).Contains(manager.getNameAfter<T>()));
         }
     }
 }

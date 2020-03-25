@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public abstract class Buff
@@ -29,7 +29,7 @@ namespace TouhouCardEngine
         }
     }
     [Serializable]
-    public class Card
+    public class Card : ICard
     {
         /// <summary>
         /// 卡片的id
@@ -40,6 +40,10 @@ namespace TouhouCardEngine
         /// </summary>
         public Pile pile { get; internal set; } = null;
         public CardDefine define { get; } = null;
+        ICardDefine ICard.define
+        {
+            get { return define; }
+        }
         List<Buff> buffList { get; } = new List<Buff>();
         public Buff[] buffs
         {

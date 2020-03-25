@@ -16,10 +16,10 @@ namespace TouhouCardEngine
             set
             {
                 if (_answers != null)
-                    _answers.onAnswer -= onAnswer;
+                    _answers.onResponse -= onAnswer;
                 _answers = value;
                 if (_answers != null)
-                    _answers.onAnswer += onAnswer;
+                    _answers.onResponse += onAnswer;
             }
         }
         public ILogger logger { get; set; }

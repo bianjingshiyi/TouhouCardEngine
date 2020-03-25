@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class Player
+    public class Player : IPlayer
     {
         public int id { get; }
         public string name { get; set; }

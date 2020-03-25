@@ -26,6 +26,10 @@ namespace TouhouCardEngine
         }
         public Player owner { get; set; } = null;
         public string name { get; } = null;
+        public void insert(Card card, int position)
+        {
+            cardList.Insert(position, card);
+        }
         /// <summary>
         /// 将位于该牌堆中的一张牌移动到其他的牌堆中。
         /// </summary>

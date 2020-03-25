@@ -204,9 +204,9 @@ namespace Tests
             bool r1 = false;
             bool r2 = false;
             bool r3 = false;
-            a1.onAnswer += onAnswer1;
-            a2.onAnswer += onAnswer2;
-            a3.onAnswer += onAnswer3;
+            a1.onResponse += onAnswer1;
+            a2.onResponse += onAnswer2;
+            a3.onResponse += onAnswer3;
             a1.unaskedAnswer(0, new TestResponse() { boolean = true });
             yield return new WaitForSeconds(.5f);
             void onAnswer1(IResponse response)
@@ -287,7 +287,7 @@ namespace Tests
         {
             return response is TestResponse;
         }
-        public IResponse getDefaultResponse(IGame game)
+        public IResponse getDefaultResponse(IGame game, int playerId)
         {
             return new TestResponse();
         }
@@ -308,6 +308,13 @@ namespace Tests
         {
             get { return _isUnasked; }
             set { _isUnasked = value; }
+        }
+        [SerializeField]
+        float _remainedTime = 0;
+        public float remainedTime
+        {
+            get { return _remainedTime; }
+            set { _remainedTime = value; }
         }
         [SerializeField]
         bool _boolean = false;

@@ -12,17 +12,25 @@ namespace TouhouCardEngine.Interfaces
         bool isAny { get; set; }
         float timeout { get; set; }
         bool isValidResponse(IResponse response);
-        IResponse getDefaultResponse(IGame game);
+        IResponse getDefaultResponse(IGame game, int playerId);
     }
     public interface IResponse
     {
         int playerId { get; set; }
         bool isUnasked { get; set; }
+        float remainedTime { get; set; }
     }
     public interface IAnswerManager
     {
         Task<IResponse> ask(int playerId, IRequest request, float timeout);
-        Task<IResponse[]> askAll(int[] playersId, IRequest request, float timeout);
+        /// <summary>
+        /// 对给出的所有玩家进行询问，直到所有人都进行回应或超时后返回询问结果。
+        /// </summary>
+        /// <param name="playersId"></param>
+        /// <param name="request"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        Task<Dictionary<int, IResponse>> askAll(int[] playersId, IRequest request, float timeout);
         Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter);
         /// <summary>
         /// 某玩家回应一次请求。
@@ -46,7 +54,8 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="request"></param>
         /// <returns>单位为毫秒</returns>
         float getRemainedTime(IRequest request);
-        event Action<IResponse> onAnswer;
+        event Action<IRequest> onRequest;
+        event Action<IResponse> onResponse;
         void cancel(IRequest request);
         void cancel(IRequest[] requests);
         void cancelAll();

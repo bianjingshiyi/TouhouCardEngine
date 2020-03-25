@@ -30,7 +30,7 @@ namespace TouhouCardEngine
         public class RequestItem
         {
             public IRequest request { get; }
-            public TaskCompletionSource<IResponse[]> tcs { get; }
+            public TaskCompletionSource<Dictionary<int, IResponse>> tcs { get; }
             [SerializeField]
             float _remainedTime;
             public float remainedTime
@@ -38,9 +38,9 @@ namespace TouhouCardEngine
                 get { return _remainedTime; }
                 set { _remainedTime = value; }
             }
-            public List<IResponse> responseList { get; } = new List<IResponse>();
+            public Dictionary<int, IResponse> responseDic { get; } = new Dictionary<int, IResponse>();
             public Func<IResponse, bool> responseFilter { get; }
-            public RequestItem(IRequest request, TaskCompletionSource<IResponse[]> tcs, Func<IResponse, bool> responseFilter)
+            public RequestItem(IRequest request, TaskCompletionSource<Dictionary<int, IResponse>> tcs, Func<IResponse, bool> responseFilter)
             {
                 this.request = request;
                 this.tcs = tcs;
@@ -72,7 +72,13 @@ namespace TouhouCardEngine
                     {
                         try
                         {
-                            item.tcs.SetResult(new IResponse[] { item.request.getDefaultResponse(game) });
+                            if (item.request.playersId.Length == 1)
+                                item.tcs.SetResult(new Dictionary<int, IResponse>()
+                                {
+                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
+                                });
+                            else
+                                item.tcs.SetResult(new Dictionary<int, IResponse>());
                         }
                         catch (Exception e)
                         {
@@ -85,15 +91,15 @@ namespace TouhouCardEngine
                         {
                             item.tcs.SetResult(item.request.playersId.Select(p =>
                             {
-                                if (item.responseList.FirstOrDefault(r => r.playerId == p) is IResponse response)
+                                if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
                                     return response;
                                 else
                                 {
-                                    response = item.request.getDefaultResponse(game);
+                                    response = item.request.getDefaultResponse(game, p);
                                     response.playerId = p;
                                     return response;
                                 }
-                            }).ToArray());
+                            }).ToDictionary(r => r.playerId));
                         }
                         catch (Exception e)
                         {
@@ -111,29 +117,31 @@ namespace TouhouCardEngine
             if (timeout < 0)
                 timeout = 0;
             request.timeout = timeout;
-            TaskCompletionSource<IResponse[]> tcs = new TaskCompletionSource<IResponse[]>();
+            TaskCompletionSource<Dictionary<int, IResponse>> tcs = new TaskCompletionSource<Dictionary<int, IResponse>>();
             _requestList.Add(new RequestItem(request, tcs, null)
             {
                 remainedTime = timeout
             });
+            onRequest?.Invoke(request);
             var responses = await tcs.Task;
-            if (responses != null && responses.Length > 0)
-                return responses[0];
+            if (responses != null && responses.Count > 0)
+                return responses[playerId];
             else
                 return null;
         }
-        public Task<IResponse[]> askAll(int[] playersId, IRequest request, float timeout)
+        public Task<Dictionary<int, IResponse>> askAll(int[] playersId, IRequest request, float timeout)
         {
             request.playersId = playersId;
             request.isAny = false;
             if (timeout < 0)
                 timeout = 0;
             request.timeout = timeout;
-            TaskCompletionSource<IResponse[]> tcs = new TaskCompletionSource<IResponse[]>();
+            TaskCompletionSource<Dictionary<int, IResponse>> tcs = new TaskCompletionSource<Dictionary<int, IResponse>>();
             _requestList.Add(new RequestItem(request, tcs, null)
             {
                 remainedTime = timeout
             });
+            onRequest?.Invoke(request);
             return tcs.Task;
         }
         public async Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter = null)
@@ -143,13 +151,14 @@ namespace TouhouCardEngine
             if (timeout < 0)
                 timeout = 0;
             request.timeout = timeout;
-            TaskCompletionSource<IResponse[]> tcs = new TaskCompletionSource<IResponse[]>();
+            TaskCompletionSource<Dictionary<int, IResponse>> tcs = new TaskCompletionSource<Dictionary<int, IResponse>>();
             _requestList.Add(new RequestItem(request, tcs, responseFilter)
             {
                 remainedTime = timeout
             });
+            onRequest?.Invoke(request);
             var responses = await tcs.Task;
-            if (responses != null && responses.Length > 0)
+            if (responses != null && responses.Count > 0)
                 return responses[0];
             else
                 return null;
@@ -169,46 +178,50 @@ namespace TouhouCardEngine
                 var item = _requestList[i];
                 var request = item.request;
                 if (request.playersId.Contains(playerId) &&//问了这个玩家
-                    (request.isAny || !item.responseList.Any(r => r.playerId == playerId)) &&//如果是面对所有玩家的请求，那么玩家不能回应过
+                    (request.isAny || !item.responseDic.Any(r => r.Key == playerId)) &&//如果是面对所有玩家的请求，那么玩家不能回应过
                     (item.responseFilter == null || item.responseFilter(response)) &&//如果有条件，那么要满足条件
                     request.isValidResponse(response))//是合法的回应
                 {
+                    response.remainedTime = item.remainedTime;
                     if (request.isAny)
                     {
                         try
                         {
-                            item.tcs.SetResult(new IResponse[] { response });
+                            item.tcs.SetResult(new Dictionary<int, IResponse>()
+                            {
+                                { playerId, response }
+                            });
                         }
                         catch (Exception e)
                         {
                             Debug.LogError(response + "回应" + request + "发生异常：" + e);
                             return false;
                         }
-                        onAnswer?.Invoke(response);
+                        onResponse?.Invoke(response);
                         _requestList.RemoveAt(i);
                         return true;
                     }
                     else
                     {
-                        item.responseList.Add(response);
-                        if (item.request.playersId.All(p => item.responseList.Any(r => r.playerId == p)))
+                        item.responseDic.Add(playerId, response);
+                        if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
                         {
                             try
                             {
-                                item.tcs.SetResult(item.responseList.ToArray());
+                                item.tcs.SetResult(item.responseDic);
                             }
                             catch (Exception e)
                             {
                                 Debug.LogError(response + "回应" + request + "发生异常：" + e);
                                 return false;
                             }
-                            onAnswer?.Invoke(response);
+                            onResponse?.Invoke(response);
                             _requestList.RemoveAt(i);
                             return true;
                         }
                         else
                         {
-                            onAnswer?.Invoke(response);
+                            onResponse?.Invoke(response);
                             return true;
                         }
                     }
@@ -230,7 +243,7 @@ namespace TouhouCardEngine
                 client.send(response);
                 return;
             }
-            onAnswer?.Invoke(response);
+            onResponse?.Invoke(response);
         }
         void onReceive(int id, object obj)
         {
@@ -244,10 +257,11 @@ namespace TouhouCardEngine
                     _ = answer(response.playerId, response, null);
             }
         }
-        public event Action<IResponse> onAnswer;
+        public event Action<IRequest> onRequest;
+        public event Action<IResponse> onResponse;
         public IRequest getLastRequest(int playerId)
         {
-            if (_requestList.LastOrDefault(i => i.request.playersId.Contains(playerId)) is var item)
+            if (_requestList.LastOrDefault(i => i.request.playersId.Contains(playerId)) is RequestItem item)
                 return item.request;
             else
                 return null;
