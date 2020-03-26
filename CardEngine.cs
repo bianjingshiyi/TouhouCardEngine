@@ -67,7 +67,7 @@ namespace TouhouCardEngine
             return createCard(define);
         }
         #region Card
-        public Card createCard(CardDefine define)
+        public virtual Card createCard(CardDefine define)
         {
             int id = cardDic.Count + 1;
             while (cardDic.ContainsKey(id))

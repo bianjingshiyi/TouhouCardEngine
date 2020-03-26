@@ -22,7 +22,7 @@ namespace TouhouCardEngine
             if (propName == nameof(id))
                 return (T)(object)id;
             else
-                return default(T);
+                return default;
         }
         public abstract string isUsable(CardEngine engine, Player player, Card card);
         public IEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
