@@ -7,6 +7,7 @@ namespace TouhouCardEngine.Interfaces
     {
         string getName<T>() where T : IEventArg;
         void register(string eventName, ITrigger trigger);
+        bool remove(string eventName, ITrigger trigger);
         void register<T>(ITrigger<T> trigger) where T : IEventArg;
         bool remove<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggers<T>() where T : IEventArg;

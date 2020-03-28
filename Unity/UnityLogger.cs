@@ -17,6 +17,8 @@ namespace TouhouCardEngine
                 Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
             else if (channel == "Error")
                 Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+            else
+                Debug.Log((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
         }
         public void log(string msg)
         {

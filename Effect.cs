@@ -8,6 +8,7 @@ namespace TouhouCardEngine
     public abstract class TriggerTime
     {
         public abstract string getEventName(ITriggerManager manager);
+
     }
     public class Before<T> : TriggerTime where T : IEventArg
     {
@@ -126,6 +127,29 @@ namespace TouhouCardEngine
         public virtual void execute(CardEngine engine, Player player, Card card, Card[] targetCards)
         {
             execute(engine, player, card, targetCards.Cast<object>().ToArray());
+        }
+        public void register(IGame game, ICard card)
+        {
+            foreach (TriggerTime time in triggerTimes)
+            {
+                Trigger trigger = new Trigger(args =>
+                {
+                    if ((this as IEffect).checkCondition(game, null, card, args))
+                        return (this as IEffect).execute(game, null, card, args, new object[0]);
+                    else
+                        return Task.CompletedTask;
+                });
+                card.setProp("Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers), trigger);
+                game.triggers.register(time.getEventName(game.triggers), trigger);
+            }
+        }
+        public void unregister(IGame game, ICard card)
+        {
+            foreach (TriggerTime time in triggerTimes)
+            {
+                Trigger trigger = card.getProp<Trigger>("Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers));
+                game.triggers.remove(trigger);
+            }
         }
     }
 }

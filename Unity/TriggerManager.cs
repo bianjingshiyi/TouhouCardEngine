@@ -11,6 +11,7 @@ namespace TouhouCardEngine
 {
     public class TriggerManager : MonoBehaviour, ITriggerManager
     {
+        public Interfaces.ILogger logger { get; set; } = null;
         [Serializable]
         public class EventListItem
         {
@@ -59,7 +60,10 @@ namespace TouhouCardEngine
             {
                 TriggerListItem item = new TriggerListItem(trigger);
                 eventItem.triggerList.Add(item);
-                if (currentEvent != null)
+                logger?.log("Trigger", "注册触发器" + trigger);
+                if (currentEvent != null &&
+                    ((currentEvent.beforeNames != null && currentEvent.beforeNames.Contains(eventName)) ||
+                    (currentEvent.afterNames != null && currentEvent.afterNames.Contains(eventName))))
                 {
                     EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == eventName);
                     if (insertEventItem == null)
@@ -68,6 +72,7 @@ namespace TouhouCardEngine
                         _insertEventList.Add(insertEventItem);
                     }
                     insertEventItem.triggerList.Add(item);
+                    logger?.log("Trigger", "注册插入触发器" + trigger);
                 }
             }
             else
@@ -198,9 +203,15 @@ namespace TouhouCardEngine
                 ITrigger trigger = triggerList[0];
                 triggerList.RemoveAt(0);
                 if (trigger is ITrigger<T> triggerT)
+                {
+                    logger?.log("Trigger", "运行触发器" + triggerT);
                     await triggerT.invoke(eventArg);
+                }
                 else
+                {
+                    logger?.log("Trigger", "运行触发器" + trigger);
                     await trigger.invoke(eventArg);
+                }
                 if (_insertEventList.Count > 0)
                 {
                     foreach (string eventName in eventNames)
@@ -214,6 +225,7 @@ namespace TouhouCardEngine
                             if (eventItem != null)
                                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
                             triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
+                            logger?.log("运行中插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
                             triggerList.Sort((a, b) => a.compare(b, eventArg));
                             _insertEventList.Remove(insertEventItem);
                         }
@@ -264,9 +276,15 @@ namespace TouhouCardEngine
                 if (eventArg.isCanceled)
                     break;
                 if (trigger is ITrigger<T> triggerT)
+                {
+                    logger?.log("Trigger", "运行触发器" + triggerT);
                     await triggerT.invoke(eventArg);
+                }
                 else
+                {
+                    logger?.log("Trigger", "运行触发器" + trigger);
                     await trigger.invoke(eventArg);
+                }
                 if (_insertEventList.Count > 0)
                 {
                     foreach (string beforeName in beforeNames)
@@ -280,6 +298,7 @@ namespace TouhouCardEngine
                             if (eventItem != null)
                                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
                             triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
+                            logger?.log("运行中插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
                             triggerList.Sort((a, b) => a.compare(b, eventArg));
                             _insertEventList.Remove(insertEventItem);
                         }
@@ -321,9 +340,15 @@ namespace TouhouCardEngine
                 if (eventArg.isCanceled)
                     break;
                 if (trigger is ITrigger<T> triggerT)
+                {
+                    logger?.log("Trigger", "运行触发器" + triggerT);
                     await triggerT.invoke(eventArg);
+                }
                 else
+                {
+                    logger?.log("Trigger", "运行触发器" + trigger);
                     await trigger.invoke(eventArg);
+                }
                 if (_insertEventList.Count > 0)
                 {
                     foreach (string afterName in afterNames)
@@ -336,6 +361,7 @@ namespace TouhouCardEngine
                             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == afterName);
                             if (eventItem != null)
                                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
+                            logger?.log("Trigger", "插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
                             triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
                             triggerList.Sort((a, b) => a.compare(b, eventArg));
                             _insertEventList.Remove(insertEventItem);

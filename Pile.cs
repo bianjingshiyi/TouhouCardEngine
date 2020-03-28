@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -12,23 +13,31 @@ namespace TouhouCardEngine
     public class Pile : IEnumerable<Card>
     {
         public int maxCount { get; set; }
-        public Pile(string name = null, Card[] cards = null, int maxCount = -1)
+        public Pile(IGame game, string name = null, Card[] cards = null, int maxCount = -1)
         {
             this.name = name;
             this.maxCount = maxCount;
             if (cards == null)
                 return;
+            cardList.AddRange(cards);
             foreach (Card card in cards)
             {
-                card.pile = this;
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(name))
+                        effect.register(game, card);
+                }
             }
-            cardList.AddRange(cards);
         }
         public Player owner { get; set; } = null;
         public string name { get; } = null;
-        public void insert(Card card, int position)
+        public void insert(IGame game, Card card, int position)
         {
             cardList.Insert(position, card);
+            foreach (IEffect effect in card.define.effects)
+            {
+                effect.register(game, card);
+            }
         }
         /// <summary>
         /// 将位于该牌堆中的一张牌移动到其他的牌堆中。
@@ -36,30 +45,51 @@ namespace TouhouCardEngine
         /// <param name="card"></param>
         /// <param name="targetPile"></param>
         /// <param name="position"></param>
-        public void moveTo(Card card, Pile targetPile, int position)
+        public void moveTo(IGame game, Card card, Pile targetPile, int position)
         {
             if (cardList.Remove(card))
             {
-                card.pile = targetPile;
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(name))
+                        effect.unregister(game, card);
+                }
                 targetPile.cardList.Insert(position, card);
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(targetPile.name))
+                        effect.register(game, card);
+                }
             }
         }
-        public void moveTo(Card card, Pile targetPile)
+        public void moveTo(IGame game, Card card, Pile targetPile)
         {
-            moveTo(card, targetPile, targetPile.count);
+            moveTo(game, card, targetPile, targetPile.count);
         }
-        public void moveTo(Card[] cards, Pile targetPile, int position)
+        public void moveTo(IGame game, Card[] cards, Pile targetPile, int position)
         {
             List<Card> removedCardList = new List<Card>(cards.Length);
             foreach (Card card in cards)
             {
                 if (cardList.Remove(card))
                 {
-                    card.pile = targetPile;
+                    foreach (IEffect effect in card.define.effects)
+                    {
+                        if (effect.piles.Contains(name))
+                            effect.unregister(game, card);
+                    }
                     removedCardList.Add(card);
                 }
             }
             targetPile.cardList.InsertRange(position, removedCardList);
+            foreach (Card card in removedCardList)
+            {
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(targetPile.name))
+                        effect.register(game, card);
+                }
+            }
         }
         /// <summary>
         /// 将该牌堆中的一些卡换成其他牌堆中的另一些卡。
@@ -98,27 +128,46 @@ namespace TouhouCardEngine
             for (int i = 0; i < originalCards.Length; i++)
             {
                 //记录当前牌堆中的空位
-                indexArray[i] = indexOf(originalCards[i]);
+                Card card = originalCards[i];
+                indexArray[i] = indexOf(card);
                 //把牌放回去
-                pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), originalCards[i]);
-                originalCards[i].pile = pile;
+                pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), card);
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(pile.name))
+                        effect.register(engine, card);
+                }
             }
             for (int i = 0; i < indexArray.Length; i++)
             {
                 //将牌堆中的随机卡片填入空位
                 int targetIndex = engine.randomInt(0, pile.count - 1);
                 cardList[indexArray[i]] = pile.cardList[targetIndex];
-                cardList[indexArray[i]].pile = this;
+                Card card = cardList[indexArray[i]];
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(name))
+                        effect.register(engine, card);
+                }
                 //并将其从牌堆中移除
                 pile.cardList.RemoveAt(targetIndex);
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(pile.name))
+                        effect.unregister(engine, card);
+                }
             }
             return indexArray.Select(i => cardList[i]).ToArray();
         }
-        internal void remove(Card card)
+        internal void remove(IGame game, Card card)
         {
             if (cardList.Remove(card))
             {
-                card.pile = null;
+                foreach (IEffect effect in card.define.effects)
+                {
+                    if (effect.piles.Contains(name))
+                        effect.unregister(game, card);
+                }
             }
         }
         public void shuffle(CardEngine engine)

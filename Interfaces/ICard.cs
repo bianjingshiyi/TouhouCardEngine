@@ -14,6 +14,8 @@
     {
         int id { get; }
         ICardDefine define { get; }
+        T getProp<T>(string propName);
+        void setProp<T>(string propName, T value);
     }
     public interface ICardDefine
     {
