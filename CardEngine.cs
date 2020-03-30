@@ -40,6 +40,8 @@ namespace TouhouCardEngine
         }
         public void addCardDefine(CardDefine define)
         {
+            if (cardDefineDic.ContainsKey(define.id))
+                throw new ConflictDefineException(cardDefineDic[define.id], define);
             cardDefineDic.Add(define.id, define);
         }
         public T getCardDefine<T>() where T : CardDefine
@@ -239,5 +241,19 @@ namespace TouhouCardEngine
         logic = 0,
         before,
         after
+    }
+
+    [Serializable]
+    public class ConflictDefineException : Exception
+    {
+        public ConflictDefineException() { }
+        public ConflictDefineException(CardDefine a, CardDefine b) : base(a + "和" + b + "具有相同的ID:" + a.id)
+        {
+        }
+        public ConflictDefineException(string message) : base(message) { }
+        public ConflictDefineException(string message, Exception inner) : base(message, inner) { }
+        protected ConflictDefineException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }

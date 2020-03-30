@@ -150,7 +150,7 @@ namespace TouhouCardEngine
         }
         public override string ToString()
         {
-            return "Card(" + id + ")<" + define.id + ">";
+            return "Card(" + id + ")<" + define.GetType().Name + ">";
         }
         public static implicit operator Card[](Card card)
         {

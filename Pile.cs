@@ -31,6 +31,14 @@ namespace TouhouCardEngine
         }
         public Player owner { get; set; } = null;
         public string name { get; } = null;
+        public void add(IGame game, Card card)
+        {
+            cardList.Add(card);
+            foreach (IEffect effect in card.define.effects)
+            {
+                effect.register(game, card);
+            }
+        }
         public void insert(IGame game, Card card, int position)
         {
             cardList.Insert(position, card);
@@ -66,9 +74,9 @@ namespace TouhouCardEngine
         {
             moveTo(game, card, targetPile, targetPile.count);
         }
-        public void moveTo(IGame game, Card[] cards, Pile targetPile, int position)
+        public void moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile, int position)
         {
-            List<Card> removedCardList = new List<Card>(cards.Length);
+            List<Card> removedCardList = new List<Card>();
             foreach (Card card in cards)
             {
                 if (cardList.Remove(card))
@@ -159,7 +167,7 @@ namespace TouhouCardEngine
             }
             return indexArray.Select(i => cardList[i]).ToArray();
         }
-        internal void remove(IGame game, Card card)
+        public void remove(IGame game, Card card)
         {
             if (cardList.Remove(card))
             {
