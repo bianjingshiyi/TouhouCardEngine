@@ -38,6 +38,7 @@ namespace TouhouCardEngine
         public virtual void onAnswer(IResponse response)
         {
         }
+        #region CardDefine
         public void addCardDefine(CardDefine define)
         {
             if (cardDefineDic.ContainsKey(define.id))
@@ -61,6 +62,7 @@ namespace TouhouCardEngine
                 return null;
         }
         Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
+        #endregion
         public Card createCardById(int id)
         {
             CardDefine define = getCardDefine(id);

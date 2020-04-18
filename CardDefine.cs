@@ -11,7 +11,7 @@ namespace TouhouCardEngine
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
         public abstract int id { get; set; }
-        public abstract CardDefineType type { get; }
+        public abstract CardDefineType type { get; set; }
         public abstract IEffect[] effects { get; }
         public object this[string propName]
         {
@@ -23,6 +23,11 @@ namespace TouhouCardEngine
                 return (T)(object)id;
             else
                 return default;
+        }
+        public virtual void setProp<T>(string propName, T value)
+        {
+            if (propName == nameof(id))
+                id = (int)(object)value;
         }
         public abstract string isUsable(CardEngine engine, Player player, Card card);
         public IEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
