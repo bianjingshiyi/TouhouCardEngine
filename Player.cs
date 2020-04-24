@@ -55,11 +55,15 @@ namespace TouhouCardEngine
         {
             get { return getPile(pileName); }
         }
+        public void addPile(Pile pile)
+        {
+            pile.owner = this;
+        }
         public Pile getPile(string name)
         {
             return pileList.FirstOrDefault(e => { return e.name == name; });
         }
-        protected List<Pile> pileList { get; } = new List<Pile>();
+        private List<Pile> pileList { get; } = new List<Pile>();
         public override string ToString()
         {
             return name;

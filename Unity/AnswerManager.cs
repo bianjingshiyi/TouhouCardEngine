@@ -148,6 +148,14 @@ namespace TouhouCardEngine
             onRequest?.Invoke(request);
             return tcs.Task;
         }
+        /// <summary>
+        /// 询问所有给出的玩家一个request，如果任意玩家回复了满足条件的response，则返回它，否则返回null
+        /// </summary>
+        /// <param name="playersId"></param>
+        /// <param name="request"></param>
+        /// <param name="timeout"></param>
+        /// <param name="responseFilter"></param>
+        /// <returns></returns>
         public async Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter = null)
         {
             game?.logger?.log("Answer", "询问任意玩家（" + string.Join("，", playersId) + "）：" + request);
@@ -164,7 +172,7 @@ namespace TouhouCardEngine
             onRequest?.Invoke(request);
             var responses = await tcs.Task;
             if (responses != null && responses.Count > 0)
-                return responses[0];
+                return responses.First().Value;
             else
                 return null;
         }

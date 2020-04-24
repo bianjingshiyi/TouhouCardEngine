@@ -104,13 +104,13 @@ namespace Tests
             AnswerManager manager = new GameObject("AnswerManager").AddComponent<AnswerManager>();
             TestRequest request = new TestRequest();
 
-            var task = manager.askAny(new int[] { 1, 2, 3 }, request, 3, r => r is TestResponse tr && tr.boolean == true);
-            Assert.False(manager.answer(3, new TestResponse() { boolean = false }).Result);
+            var task = manager.askAny(new int[] { 1, 2, 3 }, request, 3, r => r is TestResponse tr && tr.boolean == true);//询问123，必须回应tr且boolean为true
+            Assert.False(manager.answer(3, new TestResponse() { boolean = false }).Result);//3回复false，不通过
             yield return new WaitForSeconds(1);
             TestResponse response = new TestResponse() { boolean = true };
-            Assert.True(manager.answer(2, response).Result);
+            Assert.True(manager.answer(2, response).Result);//2回复true，通过
             yield return new WaitForSeconds(1);
-            Assert.False(manager.answer(1, response).Result);
+            Assert.False(manager.answer(1, response).Result);//1回复true，但是已经有2回复了
 
             Assert.True(task.IsCompleted);
             Assert.AreEqual(response, task.Result);
@@ -126,8 +126,9 @@ namespace Tests
             Assert.False(manager.answer(1, new TestResponse() { boolean = true }).Result);
 
             Assert.True(task.IsCompleted);
-            TestResponse response = task.Result as TestResponse;
-            Assert.AreEqual(false, response.boolean);
+            Assert.Null(task.Result);
+            //TestResponse response = task.Result as TestResponse;
+            //Assert.AreEqual(false, response.boolean);
         }
         [UnityTest]
         public IEnumerator askAllTest()
@@ -143,7 +144,7 @@ namespace Tests
             Assert.False(manager.answer(2, new TestResponse() { boolean = true }).Result);
 
             Assert.True(task.IsCompleted);
-            TestResponse[] responses = task.Result.Cast<TestResponse>().ToArray();
+            TestResponse[] responses = task.Result.Values.Cast<TestResponse>().ToArray();
             Assert.AreEqual(1, responses[0].playerId);
             Assert.AreEqual(true, responses[0].boolean);
             Assert.AreEqual(2, responses[1].playerId);

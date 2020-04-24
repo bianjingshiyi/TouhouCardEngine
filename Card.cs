@@ -20,6 +20,7 @@ namespace TouhouCardEngine
         /// 卡片的id
         /// </summary>
         public int id { get; internal set; } = 0;
+        public Player owner { get; internal set; } = null;
         /// <summary>
         /// 卡片所在的牌堆
         /// </summary>

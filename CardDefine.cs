@@ -12,7 +12,7 @@ namespace TouhouCardEngine
         /// </summary>
         public abstract int id { get; set; }
         public abstract CardDefineType type { get; set; }
-        public abstract IEffect[] effects { get; }
+        public abstract IEffect[] effects { get; set; }
         public object this[string propName]
         {
             get { return getProp<object>(propName); }
@@ -37,6 +37,16 @@ namespace TouhouCardEngine
         public IEffect getEffectAfter<T>(ITriggerManager manager) where T : IEventArg
         {
             return effects.FirstOrDefault(e => e.getEvents(manager).Contains(manager.getNameAfter<T>()));
+        }
+        public override bool Equals(object obj)
+        {
+            if (obj is CardDefine other)
+                return id == other.id;
+            return base.Equals(obj);
+        }
+        public override int GetHashCode()
+        {
+            return id;
         }
     }
 }

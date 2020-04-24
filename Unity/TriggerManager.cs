@@ -61,9 +61,7 @@ namespace TouhouCardEngine
                 TriggerListItem item = new TriggerListItem(trigger);
                 eventItem.triggerList.Add(item);
                 logger?.log("Trigger", "注册触发器" + trigger);
-                if (currentEvent != null &&
-                    ((currentEvent.beforeNames != null && currentEvent.beforeNames.Contains(eventName)) ||
-                    (currentEvent.afterNames != null && currentEvent.afterNames.Contains(eventName))))
+                if (doEventNames != null && doEventNames.Contains(eventName))
                 {
                     EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == eventName);
                     if (insertEventItem == null)
@@ -103,6 +101,10 @@ namespace TouhouCardEngine
         {
             return typeof(T).FullName;
         }
+        public string getName(IEventArg eventArg)
+        {
+            return eventArg.GetType().FullName;
+        }
         public void register<T>(ITrigger<T> trigger) where T : IEventArg
         {
             register(getName<T>(), trigger);
@@ -119,9 +121,17 @@ namespace TouhouCardEngine
         {
             return "Before" + getName<T>();
         }
+        public string getNameBefore(IEventArg eventArg)
+        {
+            return "Before" + getName(eventArg);
+        }
         public string getNameAfter<T>() where T : IEventArg
         {
             return "After" + getName<T>();
+        }
+        public string getNameAfter(IEventArg eventArg)
+        {
+            return "After" + getName(eventArg);
         }
         public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
         {
@@ -180,15 +190,14 @@ namespace TouhouCardEngine
             _eventRecordList.Add(eventArgItem);
             onEventBefore?.Invoke(eventArg);
             //获取事件名
-            IEnumerable<string> eventNames = eventArg.afterNames;
-            if (eventNames == null)
-                eventNames = new string[] { getName<T>() };
+            doEventNames = eventArg.afterNames;
+            if (doEventNames == null)
+                doEventNames = new string[] { getName<T>() };
             else
-                eventNames = eventNames.Concat(new string[] { getName<T>() });
-            eventNames = eventNames.Distinct().ToArray();
+                doEventNames = doEventNames.Concat(new string[] { getName<T>() }).Distinct().ToArray();
             //对注册事件进行排序
             List<ITrigger> triggerList = new List<ITrigger>();
-            foreach (string eventName in eventNames)
+            foreach (string eventName in doEventNames)
             {
                 EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
                 if (eventItem == null)
@@ -214,7 +223,7 @@ namespace TouhouCardEngine
                 }
                 if (_insertEventList.Count > 0)
                 {
-                    foreach (string eventName in eventNames)
+                    foreach (string eventName in doEventNames)
                     {
                         EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == eventName);
                         if (insertEventItem == null)
@@ -230,12 +239,15 @@ namespace TouhouCardEngine
                             _insertEventList.Remove(insertEventItem);
                         }
                     }
+                    _insertEventList.Clear();
                 }
             }
+            doEventNames = null;
             onEventAfter?.Invoke(eventArg);
             //移出事件链
             _eventChainList.Remove(eventArgItem);
         }
+        string[] doEventNames { get; set; } = null;
         public async Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
         {
             if (eventArg == null)
@@ -253,16 +265,15 @@ namespace TouhouCardEngine
             };
             onEventBefore?.Invoke(eventArg);
             //Before
-            IEnumerable<string> beforeNames = eventArg.beforeNames;
-            if (beforeNames == null)
-                beforeNames = new string[] { getNameBefore<T>() };
+            doEventNames = eventArg.beforeNames;
+            if (doEventNames == null)
+                doEventNames = new string[] { getNameBefore<T>() };
             else
-                beforeNames = beforeNames.Concat(new string[] { getNameBefore<T>() });
-            beforeNames = beforeNames.Distinct();
+                doEventNames = doEventNames.Concat(new string[] { getNameBefore<T>() }).Distinct().ToArray();
             List<ITrigger> triggerList = new List<ITrigger>();
-            foreach (string beforeName in beforeNames)
+            foreach (string eventName in doEventNames)
             {
-                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == beforeName);
+                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
                 if (eventItem == null)
                     continue;
                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
@@ -287,7 +298,7 @@ namespace TouhouCardEngine
                 }
                 if (_insertEventList.Count > 0)
                 {
-                    foreach (string beforeName in beforeNames)
+                    foreach (string beforeName in doEventNames)
                     {
                         EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == beforeName);
                         if (insertEventItem == null)
@@ -303,8 +314,10 @@ namespace TouhouCardEngine
                             _insertEventList.Remove(insertEventItem);
                         }
                     }
+                    _insertEventList.Clear();
                 }
             }
+            doEventNames = null;
             //Event
             int repeatTime = 0;
             do
@@ -317,16 +330,15 @@ namespace TouhouCardEngine
             }
             while (repeatTime <= eventArg.repeatTime);
             //After
-            IEnumerable<string> afterNames = eventArg.afterNames;
-            if (afterNames == null)
-                afterNames = new string[] { getNameAfter<T>() };
+            doEventNames = eventArg.afterNames;
+            if (doEventNames == null)
+                doEventNames = new string[] { getNameAfter<T>() };
             else
-                afterNames = afterNames.Concat(new string[] { getNameAfter<T>() });
-            afterNames = afterNames.Distinct().ToArray();
+                doEventNames = doEventNames.Concat(new string[] { getNameAfter<T>() }).Distinct().ToArray();
             triggerList.Clear();
-            foreach (string afterName in afterNames)
+            foreach (string eventName in doEventNames)
             {
-                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == afterName);
+                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
                 if (eventItem == null)
                     continue;
                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
@@ -351,7 +363,7 @@ namespace TouhouCardEngine
                 }
                 if (_insertEventList.Count > 0)
                 {
-                    foreach (string afterName in afterNames)
+                    foreach (string afterName in doEventNames)
                     {
                         EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == afterName);
                         if (insertEventItem == null)
@@ -367,8 +379,10 @@ namespace TouhouCardEngine
                             _insertEventList.Remove(insertEventItem);
                         }
                     }
+                    _insertEventList.Clear();
                 }
             }
+            doEventNames = null;
             onEventAfter?.Invoke(eventArg);
             _eventChainList.Remove(eventArgItem);
         }

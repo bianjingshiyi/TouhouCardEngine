@@ -12,6 +12,8 @@ namespace TouhouCardEngine
     /// </summary>
     public class Pile : IEnumerable<Card>
     {
+        public string name { get; } = null;
+        public Player owner { get; internal set; } = null;
         public int maxCount { get; set; }
         public Pile(IGame game, string name = null, Card[] cards = null, int maxCount = -1)
         {
@@ -19,33 +21,32 @@ namespace TouhouCardEngine
             this.maxCount = maxCount;
             if (cards == null)
                 return;
-            cardList.AddRange(cards);
             foreach (Card card in cards)
             {
-                foreach (IEffect effect in card.define.effects)
-                {
-                    if (effect.piles.Contains(name))
-                        effect.register(game, card);
-                }
+                add(game, card);
             }
         }
-        public Player owner { get; set; } = null;
-        public string name { get; } = null;
         public void add(IGame game, Card card)
         {
             cardList.Add(card);
             foreach (IEffect effect in card.define.effects)
             {
-                effect.register(game, card);
+                if (effect.piles.Contains(name))
+                    effect.register(game, card);
             }
+            card.pile = this;
+            card.owner = owner;
         }
         public void insert(IGame game, Card card, int position)
         {
             cardList.Insert(position, card);
             foreach (IEffect effect in card.define.effects)
             {
-                effect.register(game, card);
+                if (effect.piles.Contains(name))
+                    effect.register(game, card);
             }
+            card.pile = this;
+            card.owner = owner;
         }
         /// <summary>
         /// 将位于该牌堆中的一张牌移动到其他的牌堆中。
@@ -68,6 +69,8 @@ namespace TouhouCardEngine
                     if (effect.piles.Contains(targetPile.name))
                         effect.register(game, card);
                 }
+                card.pile = targetPile;
+                card.owner = targetPile.owner;
             }
         }
         public void moveTo(IGame game, Card card, Pile targetPile)
@@ -97,6 +100,8 @@ namespace TouhouCardEngine
                     if (effect.piles.Contains(targetPile.name))
                         effect.register(game, card);
                 }
+                card.pile = targetPile;
+                card.owner = targetPile.owner;
             }
         }
         /// <summary>
@@ -104,7 +109,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="originalCards"></param>
         /// <param name="replacedCards"></param>
-        public void replace(Card[] originalCards, Card[] replacedCards)
+        public void replace(IGame game, Card[] originalCards, Card[] replacedCards)
         {
             if (originalCards.Length != replacedCards.Length)
                 throw new IndexOutOfRangeException("originalCards与replacedCards数量不一致");
@@ -116,10 +121,28 @@ namespace TouhouCardEngine
                 else
                 {
                     int replaceIndex = replacedCards[i].pile.indexOf(replacedCards[i]);
+                    foreach (IEffect effect in this[originIndex].define.effects)
+                    {
+                        if (effect.piles.Contains(name))
+                            effect.unregister(game, this[originIndex]);
+                    }
                     this[originIndex] = replacedCards[i];
+                    foreach (IEffect effect in this[originIndex].define.effects)
+                    {
+                        if (effect.piles.Contains(name))
+                            effect.register(game, this[originIndex]);
+                    }
+                    foreach (IEffect effect in replacedCards[i].pile[replaceIndex].define.effects)
+                    {
+                        if (effect.piles.Contains(replacedCards[i].pile.name))
+                            effect.unregister(game, replacedCards[i].pile[replaceIndex]);
+                    }
                     replacedCards[i].pile[replaceIndex] = originalCards[i];
+
                     originalCards[i].pile = replacedCards[i].pile;
+                    originalCards[i].owner = replacedCards[i].pile.owner;
                     replacedCards[i].pile = this;
+                    replacedCards[i].owner = owner;
                 }
             }
         }
