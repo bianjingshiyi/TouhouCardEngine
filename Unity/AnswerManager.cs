@@ -211,6 +211,7 @@ namespace TouhouCardEngine
                     response.remainedTime = item.remainedTime;
                     if (request.isAny)
                     {
+                        _requestList.Remove(item);
                         try
                         {
                             item.tcs.SetResult(new Dictionary<int, IResponse>()
@@ -224,7 +225,6 @@ namespace TouhouCardEngine
                             return false;
                         }
                         onResponse?.Invoke(response);
-                        _requestList.RemoveAt(i);
                         return true;
                     }
                     else
@@ -232,6 +232,7 @@ namespace TouhouCardEngine
                         item.responseDic.Add(playerId, response);
                         if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
                         {
+                            _requestList.Remove(item);
                             try
                             {
                                 item.tcs.SetResult(item.responseDic);
@@ -242,7 +243,6 @@ namespace TouhouCardEngine
                                 return false;
                             }
                             onResponse?.Invoke(response);
-                            _requestList.RemoveAt(i);
                             return true;
                         }
                         else

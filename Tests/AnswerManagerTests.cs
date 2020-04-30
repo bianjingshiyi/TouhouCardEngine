@@ -228,6 +228,52 @@ namespace Tests
             Assert.False(r3);
         }
         [UnityTest]
+        public IEnumerator remoteAskAllTest()
+        {
+            UnityLogger logger = new UnityLogger();
+            HostManager host = new GameObject(nameof(HostManager)).AddComponent<HostManager>();
+            host.logger = logger;
+            host.start();
+            ClientManager c1 = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
+            c1.logger = logger;
+            c1.start();
+            _ = c1.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
+            AnswerManager a1 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            a1.client = c1;
+            yield return new WaitForSeconds(.5f);
+            ClientManager c2 = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
+            c2.logger = logger;
+            c2.start();
+            _ = c2.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
+            AnswerManager a2 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            a2.client = c2;
+            AnswerManager a3 = new GameObject(nameof(AnswerManager)).AddComponent<AnswerManager>();
+            yield return new WaitForSeconds(.5f);
+
+            TestRequest request = new TestRequest();
+            var task1 = a1.askAll(new int[] { c1.id, c2.id }, request, 3);
+            var task2 = a2.askAll(new int[] { c1.id, c2.id }, request, 3);
+            var task3 = a3.askAll(new int[] { c1.id, c2.id }, request, 3);
+            a1.answer(c1.id, new TestResponse() { integer = 0 });
+            yield return new WaitForSeconds(.5f);
+            a2.answer(c2.id, new TestResponse() { integer = 1 });
+            yield return new WaitForSeconds(.5f);
+
+            Assert.True(task1.IsCompleted);
+            foreach (var p in task1.Result)
+            {
+                Debug.Log("玩家" + p.Key + "：" + p.Value + "(PlayerID:" + p.Value.playerId + "，Value:" + (p.Value as TestResponse).integer + ")");
+                Assert.AreEqual(p.Key, p.Value.playerId);
+            }
+            Assert.True(task2.IsCompleted);
+            foreach (var p in task2.Result)
+            {
+                Debug.Log("玩家" + p.Key + "：" + p.Value + "(PlayerID:" + p.Value.playerId + "，Value:" + (p.Value as TestResponse).integer + ")");
+                Assert.AreEqual(p.Key, p.Value.playerId);
+            }
+            Assert.False(task3.IsCompleted);
+        }
+        [UnityTest]
         public IEnumerator cancelTest()
         {
             AnswerManager manager = new GameObject("AnswerManager").AddComponent<AnswerManager>();
@@ -317,6 +363,13 @@ namespace Tests
         {
             get { return _remainedTime; }
             set { _remainedTime = value; }
+        }
+        [SerializeField]
+        int _integer = 0;
+        public int integer
+        {
+            get { return _integer; }
+            set { _integer = value; }
         }
         [SerializeField]
         bool _boolean = false;
