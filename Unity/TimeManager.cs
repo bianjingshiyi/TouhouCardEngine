@@ -28,7 +28,19 @@ namespace TouhouCardEngine
             _timerList.Add(timer);
             return timer;
         }
+
+        public bool cancel(ITimer timer)
+        {
+            if (timer is Timer t && _timerList.Contains(t))
+            {
+                _timerList.Remove(t);
+                return true;
+            }
+            else
+                return false;
+        }
     }
+    [Serializable]
     public class Timer : ITimer
     {
         [SerializeField]
@@ -42,6 +54,10 @@ namespace TouhouCardEngine
         public float time
         {
             get { return _time; }
+        }
+        public float remainedTime
+        {
+            get { return startTime + time - Time.time; }
         }
         public Timer(float startTime, float time)
         {

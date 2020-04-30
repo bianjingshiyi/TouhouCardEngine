@@ -46,6 +46,10 @@ namespace TouhouCardEngine
                 this.tcs = tcs;
                 this.responseFilter = responseFilter;
             }
+            public override string ToString()
+            {
+                return request.ToString();
+            }
         }
         [SerializeField]
         List<RequestItem> _requestList = new List<RequestItem>();
@@ -72,7 +76,7 @@ namespace TouhouCardEngine
                     {
                         try
                         {
-                            game?.logger?.log("Answer", item.request + "超时自动回应");
+                            game?.logger?.log("Answer", "玩家" + string.Join("，", item.request.playersId) + "的询问" + item.request + "超时自动回应");
                             if (item.request.playersId.Length == 1)
                                 item.tcs.SetResult(new Dictionary<int, IResponse>()
                                 {
@@ -109,6 +113,7 @@ namespace TouhouCardEngine
                         }
                     }
                     _requestList.RemoveAt(_requestList.Count - 1);
+                    game?.logger?.log("当前询问：\n" + string.Join("\n", _requestList));
                 }
             }
         }
@@ -121,7 +126,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public async Task<IResponse> ask(int playerId, IRequest request, float timeout)
         {
-            game?.logger?.log("Answer", "询问玩家" + playerId + "：" + request);
+            game?.logger?.log("Answer", "询问玩家" + playerId + "：" + request + "，超时时间：" + timeout);
             request.playersId = new int[] { playerId };
             request.isAny = true;
             if (timeout < 0)

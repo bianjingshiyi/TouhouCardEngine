@@ -8,7 +8,8 @@ namespace TouhouCardEngine
     [Serializable]
     public partial class CardEngine : IGame
     {
-        public ITriggerManager triggers { get; set; }
+        public ITimeManager time { get; set; } = null;
+        public ITriggerManager triggers { get; set; } = null;
         IAnswerManager _answers;
         public IAnswerManager answers
         {

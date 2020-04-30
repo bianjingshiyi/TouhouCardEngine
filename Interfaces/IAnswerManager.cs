@@ -60,13 +60,4 @@ namespace TouhouCardEngine.Interfaces
         void cancel(IRequest[] requests);
         void cancelAll();
     }
-    public interface ITimeManager
-    {
-
-    }
-    public interface ITimer
-    {
-        float time { get; }
-        event Action onExpired;
-    }
 }

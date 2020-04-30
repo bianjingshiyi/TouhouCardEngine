@@ -4,6 +4,7 @@
     {
         ITriggerManager triggers { get; }
         IAnswerManager answers { get; }
+        ITimeManager time { get; }
         ILogger logger { get; }
     }
     public interface IPlayer
