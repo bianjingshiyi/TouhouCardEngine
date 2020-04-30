@@ -161,6 +161,8 @@ namespace TouhouCardEngine
                 //记录当前牌堆中的空位
                 Card card = originalCards[i];
                 indexArray[i] = indexOf(card);
+                if (indexArray[i] < 0)
+                    throw new IndexOutOfRangeException(this + "中不存在" + card + "，" + this + "：" + string.Join("，", cardList));
                 //把牌放回去
                 pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), card);
                 foreach (IEffect effect in card.define.effects)
@@ -264,7 +266,7 @@ namespace TouhouCardEngine
         internal List<Card> cardList { get; } = new List<Card>();
         public override string ToString()
         {
-            return name + "[" + cardList.Count + "]";
+            return owner.name + "[" + name + "]";
         }
         public static implicit operator Pile[](Pile pile)
         {

@@ -112,6 +112,13 @@ namespace TouhouCardEngine
                 }
             }
         }
+        /// <summary>
+        /// 询问指定的玩家一个请求，如果在指定时间内回应则返回回应，超时则返回默认回应，如果调用了Cancel则任务被取消。
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <param name="request"></param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
         public async Task<IResponse> ask(int playerId, IRequest request, float timeout)
         {
             game?.logger?.log("Answer", "询问玩家" + playerId + "：" + request);
@@ -302,8 +309,46 @@ namespace TouhouCardEngine
             RequestItem item = _requestList.FirstOrDefault(i => i.request == request);
             if (item != null)
             {
-
-                item.tcs.SetCanceled();
+                if (item.request.isAny)
+                {
+                    try
+                    {
+                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        if (item.request.playersId.Length == 1)
+                            item.tcs.SetResult(new Dictionary<int, IResponse>()
+                                {
+                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
+                                });
+                        else
+                            item.tcs.SetResult(new Dictionary<int, IResponse>());
+                    }
+                    catch (Exception e)
+                    {
+                        game?.logger?.log("Error", item.request + "取消引发异常：" + e);
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        item.tcs.SetResult(item.request.playersId.Select(p =>
+                        {
+                            if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
+                                return response;
+                            else
+                            {
+                                response = item.request.getDefaultResponse(game, p);
+                                response.playerId = p;
+                                return response;
+                            }
+                        }).ToDictionary(r => r.playerId));
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(item.request + "取消引发异常：" + e);
+                    }
+                }
                 _requestList.Remove(item);
             }
         }
@@ -319,7 +364,46 @@ namespace TouhouCardEngine
             game?.logger?.log("Answer", "取消所有询问");
             foreach (var item in _requestList)
             {
-                item.tcs.SetCanceled();
+                if (item.request.isAny)
+                {
+                    try
+                    {
+                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        if (item.request.playersId.Length == 1)
+                            item.tcs.SetResult(new Dictionary<int, IResponse>()
+                                {
+                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
+                                });
+                        else
+                            item.tcs.SetResult(new Dictionary<int, IResponse>());
+                    }
+                    catch (Exception e)
+                    {
+                        game?.logger?.log("Error", item.request + "取消引发异常：" + e);
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        item.tcs.SetResult(item.request.playersId.Select(p =>
+                        {
+                            if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
+                                return response;
+                            else
+                            {
+                                response = item.request.getDefaultResponse(game, p);
+                                response.playerId = p;
+                                return response;
+                            }
+                        }).ToDictionary(r => r.playerId));
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(item.request + "取消引发异常：" + e);
+                    }
+                }
             }
             _requestList.Clear();
         }

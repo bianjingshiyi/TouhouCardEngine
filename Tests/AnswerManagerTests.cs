@@ -233,11 +233,12 @@ namespace Tests
             AnswerManager manager = new GameObject("AnswerManager").AddComponent<AnswerManager>();
 
             TestRequest request = new TestRequest();
-            Task task = manager.ask(0, request, 5);
+            var task = manager.ask(0, request, 5);
             yield return new WaitForSeconds(1);
             manager.cancel(request);
 
-            Assert.True(task.IsCanceled);
+            Assert.True(task.IsCompleted);
+            Assert.IsInstanceOf<TestResponse>(task.Result);
         }
         [UnityTest]
         public IEnumerator cancelRequestsTest()
@@ -256,7 +257,7 @@ namespace Tests
 
             for (int i = 0; i < tasks.Length; i++)
             {
-                Assert.True(tasks[i].IsCanceled);
+                Assert.True(tasks[i].IsCompleted);
             }
         }
     }

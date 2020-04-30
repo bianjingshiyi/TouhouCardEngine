@@ -9,8 +9,11 @@ namespace TouhouCardEngine
         {
             this.name = name;
         }
+        public bool enable { get; set; } = true;
         public void log(string channel, string msg)
         {
+            if (!enable)
+                return;
             if (channel == "Debug")
                 Debug.Log((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
             else if (channel == "Warning")
@@ -22,6 +25,8 @@ namespace TouhouCardEngine
         }
         public void log(string msg)
         {
+            if (!enable)
+                return;
             log("Debug", msg);
         }
     }
