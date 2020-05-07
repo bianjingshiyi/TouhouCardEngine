@@ -325,7 +325,16 @@ namespace TouhouCardEngine
                 if (eventArg.isCanceled)
                     break;
                 if (eventArg.action != null)
-                    await eventArg.action.Invoke(eventArg);
+                {
+                    try
+                    {
+                        await eventArg.action.Invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.log("Error", "执行" + eventArg + "逻辑发生异常：" + e);
+                    }
+                }
                 repeatTime++;
             }
             while (repeatTime <= eventArg.repeatTime);
