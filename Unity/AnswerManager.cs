@@ -112,7 +112,7 @@ namespace TouhouCardEngine
                             Debug.LogError(item.request + "超时引发异常：" + e);
                         }
                     }
-                    _requestList.RemoveAt(_requestList.Count - 1);
+                    _requestList.Remove(item);
                     game?.logger?.log("当前询问：\n" + string.Join("\n", _requestList));
                 }
             }
