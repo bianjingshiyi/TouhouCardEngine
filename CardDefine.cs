@@ -12,7 +12,7 @@ namespace TouhouCardEngine
         /// </summary>
         public abstract int id { get; set; }
         public abstract string type { get; set; }
-        public abstract IEffect[] effects { get; set; }
+        public virtual IEffect[] effects { get; set; } = new IEffect[0];
         public object this[string propName]
         {
             get { return getProp<object>(propName); }
