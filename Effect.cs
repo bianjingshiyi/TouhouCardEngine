@@ -73,9 +73,9 @@ namespace TouhouCardEngine
         /// <param name="card"></param>
         /// <returns></returns>
         public abstract bool checkCondition(CardEngine engine, Player player, Card card, object[] vars);
-        bool IEffect.checkCondition(IGame game, IPlayer player, ICard card, object[] vars)
+        bool IEffect.checkCondition(IGame game, ICard card, object[] vars)
         {
-            return checkCondition(game as CardEngine, player as Player, card as Card, vars);
+            return checkCondition(game as CardEngine, null, card as Card, vars);
         }
         /// <summary>
         /// 检查效果的目标是否合法
@@ -86,14 +86,14 @@ namespace TouhouCardEngine
         /// <param name="targets"></param>
         /// <returns></returns>
         public abstract bool checkTargets(CardEngine engine, Player player, Card card, object[] targets);
-        bool IEffect.checkTarget(IGame game, IPlayer player, ICard card, object[] targets)
+        bool IEffect.checkTarget(IGame game, ICard card, object[] vars, object[] targets)
         {
-            return checkTargets(game as CardEngine, player as Player, card as Card, targets);
+            return checkTargets(game as CardEngine, null, card as Card, targets);
         }
         public abstract Task execute(CardEngine engine, Player player, Card card, object[] vars, object[] targets);
-        Task IEffect.execute(IGame game, IPlayer player, ICard card, object[] vars, object[] targets)
+        Task IEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
         {
-            return execute(game as CardEngine, player as Player, card as Card, vars, targets);
+            return execute(game as CardEngine, null, card as Card, vars, targets);
         }
         /// <summary>
         /// 发动效果
@@ -134,8 +134,8 @@ namespace TouhouCardEngine
             {
                 Trigger trigger = new Trigger(args =>
                 {
-                    if ((this as IEffect).checkCondition(game, null, card, args))
-                        return (this as IEffect).execute(game, null, card, args, new object[0]);
+                    if ((this as IEffect).checkCondition(game, card, args))
+                        return (this as IEffect).execute(game, card, args, new object[0]);
                     else
                         return Task.CompletedTask;
                 });
