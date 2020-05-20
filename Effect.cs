@@ -34,7 +34,7 @@ namespace TouhouCardEngine
     /// <summary>
     /// 效果
     /// </summary>
-    public abstract class Effect : IEffect
+    public abstract class Effect : IActiveEffect
     {
         /// <summary>
         /// 效果的作用时机
@@ -42,11 +42,11 @@ namespace TouhouCardEngine
         [Obsolete]
         public virtual string trigger { get; } = null;
         public abstract TriggerTime[] triggerTimes { get; }
-        string[] IEffect.events
+        string[] ITriggerEffect.events
         {
             get { return new string[] { trigger }; }
         }
-        string[] IEffect.getEvents(ITriggerManager manager)
+        string[] ITriggerEffect.getEvents(ITriggerManager manager)
         {
             List<string> eventList = new List<string>();
             if (!string.IsNullOrEmpty(trigger))
@@ -73,7 +73,7 @@ namespace TouhouCardEngine
         /// <param name="card"></param>
         /// <returns></returns>
         public abstract bool checkCondition(CardEngine engine, Player player, Card card, object[] vars);
-        bool IEffect.checkCondition(IGame game, ICard card, object[] vars)
+        bool ITriggerEffect.checkCondition(IGame game, ICard card, object[] vars)
         {
             return checkCondition(game as CardEngine, null, card as Card, vars);
         }
@@ -86,12 +86,12 @@ namespace TouhouCardEngine
         /// <param name="targets"></param>
         /// <returns></returns>
         public abstract bool checkTargets(CardEngine engine, Player player, Card card, object[] targets);
-        bool IEffect.checkTarget(IGame game, ICard card, object[] vars, object[] targets)
+        bool IActiveEffect.checkTarget(IGame game, ICard card, object[] vars, object[] targets)
         {
             return checkTargets(game as CardEngine, null, card as Card, targets);
         }
         public abstract Task execute(CardEngine engine, Player player, Card card, object[] vars, object[] targets);
-        Task IEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
+        Task ITriggerEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
         {
             return execute(game as CardEngine, null, card as Card, vars, targets);
         }
@@ -134,8 +134,8 @@ namespace TouhouCardEngine
             {
                 Trigger trigger = new Trigger(args =>
                 {
-                    if ((this as IEffect).checkCondition(game, card, args))
-                        return (this as IEffect).execute(game, card, args, new object[0]);
+                    if ((this as ITriggerEffect).checkCondition(game, card, args))
+                        return (this as ITriggerEffect).execute(game, card, args, new object[0]);
                     else
                         return Task.CompletedTask;
                 });

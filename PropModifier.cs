@@ -2,10 +2,18 @@
 {
     public abstract class PropModifier
     {
-        public abstract void beforeAdd(Card card);
-        public abstract void afterAdd(Card card);
-        public abstract void beforeRemove(Card card);
-        public abstract void afterRemove(Card card);
+        public virtual void beforeAdd(Card card)
+        {
+        }
+        public virtual void afterAdd(Card card)
+        {
+        }
+        public virtual void beforeRemove(Card card)
+        {
+        }
+        public virtual void afterRemove(Card card)
+        {
+        }
     }
     public abstract class PropModifier<T> : PropModifier
     {

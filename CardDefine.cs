@@ -30,13 +30,13 @@ namespace TouhouCardEngine
                 id = (int)(object)value;
         }
         public abstract string isUsable(CardEngine engine, Player player, Card card);
-        public IEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
+        public ITriggerEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
         {
-            return effects.FirstOrDefault(e => e.getEvents(manager).Contains(manager.getName<T>()));
+            return effects.FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getName<T>())) as ITriggerEffect;
         }
-        public IEffect getEffectAfter<T>(ITriggerManager manager) where T : IEventArg
+        public ITriggerEffect getEffectAfter<T>(ITriggerManager manager) where T : IEventArg
         {
-            return effects.FirstOrDefault(e => e.getEvents(manager).Contains(manager.getNameAfter<T>()));
+            return effects.FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getNameAfter<T>())) as ITriggerEffect;
         }
         public override bool Equals(object obj)
         {

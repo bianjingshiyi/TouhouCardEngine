@@ -30,11 +30,8 @@ namespace TouhouCardEngine
         {
             get { return define; }
         }
+        List<PropModifier> modifierList { get; } = new List<PropModifier>();
         List<Buff> buffList { get; } = new List<Buff>();
-        public Buff[] buffs
-        {
-            get { return buffList.ToArray(); }
-        }
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         public Card(CardDefine define)
         {
@@ -54,6 +51,32 @@ namespace TouhouCardEngine
                 this.define = define;
             else
                 throw new ArgumentNullException(nameof(define));
+        }
+        public PropModifier[] getModifiers()
+        {
+            return modifierList.ToArray();
+        }
+        public void addModifier(IGame game, PropModifier modifier)
+        {
+            if (modifier == null)
+                throw new ArgumentNullException(nameof(modifier));
+            game?.logger?.log("PropModifier", this + "获得属性修正" + modifier);
+            modifier.beforeAdd(this);
+            modifierList.Add(modifier);
+            modifier.afterAdd(this);
+        }
+        public bool removeModifier(IGame game, PropModifier modifier)
+        {
+            if (modifierList.Contains(modifier))
+            {
+                game?.logger?.log("PropModifier", this + "移除属性修正" + modifier);
+                modifier.beforeRemove(this);
+                modifierList.Remove(modifier);
+                modifier.afterRemove(this);
+                return true;
+            }
+            else
+                return false;
         }
         public void addBuff(IGame game, Buff buff)
         {
@@ -93,36 +116,19 @@ namespace TouhouCardEngine
         {
             return buffList.ToArray();
         }
-        public void setProp(string propName, PropertyChangeType changeType, string value)
-        {
-            if (changeType == PropertyChangeType.set)
-                propDic[propName] = value;
-            else
-                propDic[propName] = getProp<string>(propName) + value;
-        }
-        public void setProp(string propName, PropertyChangeType changeType, float value)
-        {
-            if (changeType == PropertyChangeType.set)
-                propDic[propName] = value;
-            else
-                propDic[propName] = getProp<float>(propName) + value;
-        }
-        public void setProp(string propName, PropertyChangeType changeType, int value)
-        {
-            if (changeType == PropertyChangeType.set)
-                propDic[propName] = value;
-            else
-                propDic[propName] = getProp<int>(propName) + value;
-        }
         public void setProp<T>(string propName, T value)
         {
             propDic[propName] = value;
         }
         public T getProp<T>(string propName)
         {
-            T value = define != null ? define.getProp<T>(propName) : default;
+            T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
+            foreach (PropModifier<T> modifier in modifierList.Where(m => m is PropModifier<T> mt && mt.propName == propName).Cast<PropModifier<T>>())
+            {
+                value = modifier.calc(this, value);
+            }
             foreach (Buff buff in buffList)
             {
                 foreach (PropModifier<T> modifier in buff.modifiers.Where(m => m is PropModifier<T> mt && mt.propName == propName).Cast<PropModifier<T>>())
