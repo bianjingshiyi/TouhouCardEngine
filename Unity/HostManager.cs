@@ -77,7 +77,9 @@ namespace TouhouCardEngine
         public void OnPeerConnected(NetPeer peer)
         {
             logger?.log("主机被客户端" + peer.Id + "连接");
+            onClientConnected?.Invoke(peer.Id);
         }
+        public event Action<int> onClientConnected;
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
         {
             PacketType type = (PacketType)reader.GetInt();
