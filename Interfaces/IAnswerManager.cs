@@ -49,6 +49,13 @@ namespace TouhouCardEngine.Interfaces
         IRequest[] getRequests(int playerId);
         IRequest[] getAllRequests();
         /// <summary>
+        /// 对于一项正在进行的询问，返回玩家的回应。
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        IResponse getResponse(int playerId, IRequest request);
+        /// <summary>
         /// 获取请求剩余的时间（毫秒）
         /// </summary>
         /// <param name="request"></param>

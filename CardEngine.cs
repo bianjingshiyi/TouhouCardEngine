@@ -62,6 +62,13 @@ namespace TouhouCardEngine
             else
                 return null;
         }
+        public T getCardDefine<T>(int id) where T : CardDefine
+        {
+            if (cardDefineDic.ContainsKey(id) && cardDefineDic[id] is T t)
+                return t;
+            else
+                return null;
+        }
         Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
         #endregion
         public Card createCardById(int id)

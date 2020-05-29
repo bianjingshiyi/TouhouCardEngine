@@ -308,6 +308,16 @@ namespace TouhouCardEngine
             else
                 return item.remainedTime;
         }
+        public IResponse getResponse(int playerId, IRequest request)
+        {
+            var item = _requestList.FirstOrDefault(i => i.request == request);
+            if (item == null)
+                return null;
+            if (item.responseDic.ContainsKey(playerId))
+                return item.responseDic[playerId];
+            else
+                return null;
+        }
         public void cancel(IRequest request)
         {
             game?.logger?.log("Answer", "取消询问" + request);

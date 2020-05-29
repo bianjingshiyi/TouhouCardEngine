@@ -183,6 +183,11 @@ namespace TouhouCardEngine
         }
         public void disconnect()
         {
+            if (tcs != null)
+            {
+                tcs.SetCanceled();
+                tcs = null;
+            }
             host.Disconnect();
         }
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
