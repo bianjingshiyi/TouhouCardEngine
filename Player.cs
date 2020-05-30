@@ -58,6 +58,10 @@ namespace TouhouCardEngine
         public void addPile(Pile pile)
         {
             pile.owner = this;
+            foreach (Card card in pile)
+            {
+                card.owner = this;
+            }
         }
         public Pile getPile(string name)
         {
