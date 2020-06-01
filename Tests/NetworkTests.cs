@@ -132,5 +132,23 @@ namespace Tests
 
             Assert.True(isDisconnected);
         }
+        /// <summary>
+        /// 创建两个Host1,2和一个Client，Client先加入Host1，能正常收发数据，断开连接加入Host2，能与Host2正常收发数据，但是Host1接受不到数据，也不能向Host1发送。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator changeHostTest()
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 创建一个Host和两个Client，Client1先加入Host，验证数据收发正常，断开连接，无法收发数据，Client2加入Host，验证数据收发正常，Client1无法收到数据。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator changeClientTest()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
