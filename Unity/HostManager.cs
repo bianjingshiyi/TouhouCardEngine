@@ -120,6 +120,31 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+        #region Room
+        public void openRoom(RoomInfo roomInfo)
+        {
+            throw new NotImplementedException();
+        }
+        public event Action<RoomPlayerInfo> onPlayerJoin;
+        public event Action<RoomPlayerInfo> onPlayerQuit;
+        public void closeRoom()
+        {
+
+        }
+        #endregion
+    }
+    [Serializable]
+    public class RoomInfo
+    {
+        public string ip;
+        public int port;
+        public List<RoomPlayerInfo> playerList = new List<RoomPlayerInfo>();
+    }
+    [Serializable]
+    public class RoomPlayerInfo
+    {
+        public int id = 0;
+        public string name = null;
     }
     enum PacketType
     {

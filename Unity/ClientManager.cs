@@ -208,5 +208,29 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+        #region Room
+        /// <summary>
+        /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
+        /// </summary>
+        public void findRoom()
+        {
+
+        }
+        public event Action<RoomInfo> onRoomFound;
+        /// <summary>
+        /// 加入指定房间，你必须告诉房主你的个人信息。
+        /// </summary>
+        /// <param name="room"></param>
+        /// <param name="playerInfo"></param>
+        /// <returns></returns>
+        public Task joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
+        {
+            throw new NotImplementedException();
+        }
+        public event Action<RoomInfo> onRoomInfoUpdate;
+        public void quitRoom()
+        {
+        }
+        #endregion
     }
 }

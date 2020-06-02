@@ -151,11 +151,11 @@ namespace Tests
             throw new NotImplementedException();
         }
         /// <summary>
-        /// 创建一个Host和一个Client，Client调用findRoom，没有回应结果。Host调用createRoom，开启局域网发现，Client.findRoom会返回Host的Room信息。
+        /// 创建一个Host和一个Client，Client调用findRoom，没有回应结果。Host调用openRoom，开启局域网发现，Client.findRoom会返回Host的Room信息。
         /// </summary>
         /// <returns></returns>
         [UnityTest]
-        public IEnumerator createRoomAndFindRoomTest()
+        public IEnumerator openRoomAndFindRoomTest()
         {
             throw new NotImplementedException();
         }
@@ -170,13 +170,31 @@ namespace Tests
             throw new NotImplementedException();
         }
         /// <summary>
-        /// 加入房间后，client.quitRoom
+        /// 加入房间后，client.quitRoom，触发client.onQuitRoom(room)事件和host.onClientQuit(player)事件。
         /// </summary>
         /// <returns></returns>
         [UnityTest]
         public IEnumerator clientQuitRoomTest()
         {
-
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 加入房间后，host.closeRoom，触发client.onQuitRoom(room)事件。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator hostCloseRoomTest()
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 当client在房间中的时候，当有其他client加入和退出的时候，应该会触发onRoomInfoUpdate事件。
+        /// </summary>
+        /// <returns></returns>
+        [Test]
+        public IEnumerator roomInfoUpdateTest()
+        {
+            throw new NotImplementedException();
         }
     }
 }
