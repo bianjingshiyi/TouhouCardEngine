@@ -150,5 +150,33 @@ namespace Tests
         {
             throw new NotImplementedException();
         }
+        /// <summary>
+        /// 创建一个Host和一个Client，Client调用findRoom，没有回应结果。Host调用createRoom，开启局域网发现，Client.findRoom会返回Host的Room信息。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator createRoomAndFindRoomTest()
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// client.join(room)，host没有开房则请求没有回应。
+        /// host.createRoom,client.findRoom,client.joinRoom(room)，则加入房间成功，触发client.onJoinRoom(room)事件和host.onClientJoin(player)事件。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator joinRoomTest()
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 加入房间后，client.quitRoom
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator clientQuitRoomTest()
+        {
+
+        }
     }
 }
