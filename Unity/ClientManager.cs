@@ -245,6 +245,8 @@ namespace TouhouCardEngine
 
         }
         public event Action<RoomInfo> onRoomFound;
+        public event Action<RoomInfo> onQuitRoom;
+        public event Action<RoomInfo> onJoinRoom;
         /// <summary>
         /// 加入指定房间，你必须告诉房主你的个人信息。
         /// </summary>
