@@ -6,6 +6,7 @@ using LiteNetLib;
 using LiteNetLib.Utils;
 using System.Net;
 using System.Net.Sockets;
+using System.Linq;
 using System.IO;
 using System.Runtime.Serialization.Json;
 
@@ -18,6 +19,10 @@ namespace TouhouCardEngine
         public int port
         {
             get { return _port; }
+        }
+        public string address
+        {
+            get { return Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString() + ":" + port; }
         }
         [SerializeField]
         bool _autoStart = false;
@@ -54,15 +59,25 @@ namespace TouhouCardEngine
         }
         public void start()
         {
-            net.Start();
-            _port = net.LocalPort;
-            logger?.log("主机初始化，本地端口：" + net.LocalPort);
+            if (!net.IsRunning)
+            {
+                net.Start();
+                _port = net.LocalPort;
+                logger?.log("主机初始化，本地端口：" + net.LocalPort);
+            }
+            else
+                logger?.log("Warning", "主机已经初始化，本地端口：" + net.LocalPort);
         }
         public void start(int port)
         {
-            net.Start(port);
-            _port = net.LocalPort;
-            logger?.log("主机初始化，本地端口：" + net.LocalPort);
+            if (!net.IsRunning)
+            {
+                net.Start(port);
+                _port = net.LocalPort;
+                logger?.log("主机初始化，本地端口：" + net.LocalPort);
+            }
+            else
+                logger?.log("Warning", "主机已经初始化，本地端口：" + net.LocalPort);
         }
         public void OnConnectionRequest(ConnectionRequest request)
         {
@@ -119,6 +134,10 @@ namespace TouhouCardEngine
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
             throw new NotImplementedException();
+        }
+        public void stop()
+        {
+            net.Stop();
         }
         #region Room
         public void openRoom(RoomInfo roomInfo)

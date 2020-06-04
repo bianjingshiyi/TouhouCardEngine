@@ -77,15 +77,25 @@ namespace TouhouCardEngine
         }
         public void start()
         {
-            net.Start();
-            _port = net.LocalPort;
-            logger?.log("客户端初始化，本地端口：" + net.LocalPort);
+            if (!net.IsRunning)
+            {
+                net.Start();
+                _port = net.LocalPort;
+                logger?.log("客户端初始化，本地端口：" + net.LocalPort);
+            }
+            else
+                logger?.log("Warning", "客户端已经初始化，本地端口：" + net.LocalPort);
         }
         public void start(int port)
         {
-            net.Start(port);
-            _port = net.LocalPort;
-            logger?.log("客户端初始化，本地端口：" + net.LocalPort);
+            if (!net.IsRunning)
+            {
+                net.Start(port);
+                _port = net.LocalPort;
+                logger?.log("客户端初始化，本地端口：" + net.LocalPort);
+            }
+            else
+                logger?.log("Warning", "客户端已经初始化，本地端口：" + net.LocalPort);
         }
         TaskCompletionSource<object> tcs { get; set; } = null;
         public async Task<int> join(string ip, int port)
@@ -188,11 +198,21 @@ namespace TouhouCardEngine
                 tcs.SetCanceled();
                 tcs = null;
             }
-            host.Disconnect();
+            if (host != null)
+            {
+                host.Disconnect();
+                host = null;
+            }
         }
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             logger?.log("客户端" + id + "与主机断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
+            if (tcs != null)
+            {
+                tcs.SetCanceled();
+                tcs = null;
+            }
+            host = null;
             onDisconnect?.Invoke();
         }
         public event Action onDisconnect;
@@ -207,6 +227,10 @@ namespace TouhouCardEngine
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
             throw new NotImplementedException();
+        }
+        public void stop()
+        {
+            net.Stop();
         }
         #region Room
         /// <summary>
