@@ -32,6 +32,10 @@ namespace TouhouCardEngine
             set { _autoStart = value; }
         }
         NetManager net { get; set; }
+        public bool isRunning
+        {
+            get { return net != null ? net.IsRunning : false; }
+        }
         Dictionary<int, NetPeer> clientDic { get; } = new Dictionary<int, NetPeer>();
         public Interfaces.ILogger logger { get; set; } = null;
         protected void Awake()

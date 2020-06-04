@@ -29,6 +29,11 @@ namespace TouhouCardEngine
             if (propName == nameof(id))
                 id = (int)(object)value;
         }
+        /// <summary>
+        /// 将读取到的更新的卡牌数据合并到这个卡牌上来。
+        /// </summary>
+        /// <param name="newVersion"></param>
+        public abstract void merge(CardDefine newVersion);
         public abstract string isUsable(CardEngine engine, Player player, Card card);
         public ITriggerEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
         {

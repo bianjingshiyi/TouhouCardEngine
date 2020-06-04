@@ -43,6 +43,10 @@ namespace TouhouCardEngine
             set { _autoStart = value; }
         }
         NetManager net { get; set; } = null;
+        public bool isRunning
+        {
+            get { return net != null ? net.IsRunning : false; }
+        }
         NetPeer host { get; set; } = null;
         public Interfaces.ILogger logger { get; set; } = null;
         [SerializeField]
