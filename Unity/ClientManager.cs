@@ -62,7 +62,7 @@ namespace TouhouCardEngine
             {
                 AutoRecycle = true,
                 UnconnectedMessagesEnabled = true,
-                DisconnectTimeout = (int)(timeout * 1000)
+                DisconnectTimeout = (int)(timeout * 1000),
             };
         }
         protected void Start()
@@ -129,12 +129,16 @@ namespace TouhouCardEngine
         public event Action onConnected;
         public void send(object obj)
         {
+            send(obj, PacketType.sendRequest);
+        }
+        void send(object obj, PacketType packetType)
+        {
             if (obj == null)
                 throw new ArgumentNullException(nameof(obj));
             if (tcs != null)
                 throw new InvalidOperationException("客户端正在执行另一项操作");
             NetDataWriter writer = new NetDataWriter();
-            writer.Put((int)PacketType.sendRequest);
+            writer.Put((int)packetType);
             writer.Put(id);
             writer.Put(obj.GetType().FullName);
             writer.Put(obj.ToJson());
@@ -142,7 +146,11 @@ namespace TouhouCardEngine
         }
         public async Task<T> send<T>(T obj)
         {
-            send(obj as object);
+            return await send<T>(obj, PacketType.sendRequest);
+        }
+        async Task<T> send<T>(T obj, PacketType packetType)
+        {
+            send(obj as object, packetType);
             tcs = new TaskCompletionSource<object>();
             _ = Task.Run(async () =>
             {
@@ -186,6 +194,17 @@ namespace TouhouCardEngine
                         tcs.SetResult(obj);
                     onReceive?.Invoke(id, obj);
                     break;
+                case PacketType.joinResponse:
+                    var info = parseRoomInfo(peer.EndPoint, reader);
+                    if (info != null) onJoinRoom?.Invoke(info);
+                    logger?.log($"客户端 {this.id} 收到了主机的加入响应");
+                    break;
+                case PacketType.roomInfoUpdate:
+                    info = parseRoomInfo(peer.EndPoint, reader);
+                    if (info != null) onRoomInfoUpdate?.Invoke(info);
+                    logger?.log($"客户端 {this.id} 收到了主机的房间更新信息。当前房间人数: {info?.playerList?.Count}");
+                    break;
+
                 default:
                     logger?.log("Warning", "客户端未处理的数据包类型：" + type);
                     break;
@@ -218,6 +237,7 @@ namespace TouhouCardEngine
             }
             host = null;
             onDisconnect?.Invoke();
+            onQuitRoom?.Invoke();
         }
         public event Action onDisconnect;
         public void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
@@ -228,9 +248,26 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+
+
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
-            throw new NotImplementedException();
+            switch (messageType)
+            {
+                case UnconnectedMessageType.DiscoveryResponse:
+                    if (reader.GetInt() == (int)PacketType.discoveryResponse)
+                    {
+                        logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
+                        var roomInfo = parseRoomInfo(remoteEndPoint, reader);
+                        if (roomInfo != null) onRoomFound?.Invoke(roomInfo);
+                    } else
+                    {
+                        logger?.log("消息类型不匹配");
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
         public void stop()
         {
@@ -240,12 +277,32 @@ namespace TouhouCardEngine
         /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
         /// </summary>
-        public void findRoom()
+        /// <param name="port">搜索端口。默认9050</param>
+        public void findRoom(int port = 9050)
         {
-
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.discoveryRequest);
+            // todo: 来一个可以编辑的端口
+            net.SendDiscoveryRequest(writer, port);
+        }
+        RoomInfo parseRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader)
+        {
+            var type = reader.GetString();
+            var json = reader.GetString();
+            if (type != typeof(List<RoomPlayerInfo>).FullName)
+            {
+                logger?.log($"主机房间信息类型错误，收到了 {type}");
+                return null;
+            }
+            return new RoomInfo()
+            {
+                ip = remoteEndPoint.Address.ToString(),
+                port = remoteEndPoint.Port,
+                playerList = BsonSerializer.Deserialize<List<RoomPlayerInfo>>(json)
+            };
         }
         public event Action<RoomInfo> onRoomFound;
-        public event Action<RoomInfo> onQuitRoom;
+        public event Action onQuitRoom;
         public event Action<RoomInfo> onJoinRoom;
         /// <summary>
         /// 加入指定房间，你必须告诉房主你的个人信息。
@@ -253,13 +310,18 @@ namespace TouhouCardEngine
         /// <param name="room"></param>
         /// <param name="playerInfo"></param>
         /// <returns></returns>
-        public Task joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
+        public async Task joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
         {
-            throw new NotImplementedException();
+            var id = await join(room.ip, room.port);
+            if (id == -1)
+                throw new TimeoutException();
+            playerInfo.id = id;
+            send(playerInfo as object, PacketType.joinRequest);
         }
         public event Action<RoomInfo> onRoomInfoUpdate;
         public void quitRoom()
         {
+            host.Disconnect();
         }
         #endregion
     }

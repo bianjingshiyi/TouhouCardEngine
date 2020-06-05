@@ -173,7 +173,9 @@ namespace Tests
             flag = false;
             task = client.send(1);
             yield return new WaitUntil(() => task.IsCompleted);
-            yield return new WaitUntil(() => flag);
+            yield return new WaitForSeconds(1f);
+            if (!flag)
+                throw new TimeoutException("Client1 接收超时。");
 
             client.disconnect();
             yield return new WaitForSeconds(0.5f);
@@ -184,7 +186,9 @@ namespace Tests
             flag = false;
             task = client.send(2);
             yield return new WaitUntil(() => task.IsCompleted);
-            yield return new WaitUntil(() => flag);
+            yield return new WaitForSeconds(1f);
+            if (!flag)
+                throw new TimeoutException("Client2 接收超时。");
 
             client.disconnect();
 
@@ -227,7 +231,9 @@ namespace Tests
             flag = false;
             task = client.send(1);
             yield return new WaitUntil(() => task.IsCompleted);
-            yield return new WaitUntil(() => flag);
+            yield return new WaitForSeconds(1f);
+            if (!flag)
+                throw new TimeoutException("Client1 接收超时。");
 
             client1.disconnect();
             yield return new WaitForSeconds(0.5f);
@@ -238,7 +244,9 @@ namespace Tests
             flag = false;
             task = client.send(2);
             yield return new WaitUntil(() => task.IsCompleted);
-            yield return new WaitUntil(() => flag);
+            yield return new WaitForSeconds(1f);
+            if (!flag)
+                throw new TimeoutException("Client2 接收超时。");
 
             client2.disconnect();
         }
@@ -263,12 +271,9 @@ namespace Tests
             roomOpened = false;
             client.onRoomFound += (info) => {
                 Assert.True(roomOpened);
-                Assert.AreEqual(info.ip, "127.0.0.1");
-                Assert.AreEqual(info.port, host.port);
-
                 flag = true;
             };
-            client.findRoom();
+            client.findRoom(host.port);
             yield return new WaitForSeconds(1f);
 
             roomOpened = true;
@@ -279,7 +284,10 @@ namespace Tests
                 playerList = new List<RoomPlayerInfo>()
             });
 
-            yield return new WaitUntil(() => flag);
+            client.findRoom(host.port);
+            yield return new WaitForSeconds(1);
+            if (!flag)
+                throw new TimeoutException("局域网发现超时");
         }
 
         /// <summary>
@@ -308,9 +316,9 @@ namespace Tests
             bool hostRoomCreated = false, joinSuccessHost = false, joinSuccessClient = false;
 
             host.onPlayerJoin += (p) => {
+                joinSuccessHost = true;
                 Assert.True(hostRoomCreated);
                 Assert.AreEqual(p.name, playerInfo.name);
-                joinSuccessHost = true;
             };
             client.onRoomFound += async (r) =>
             {
@@ -319,9 +327,8 @@ namespace Tests
             
             client.onJoinRoom += (p) =>
             {
-                Assert.AreEqual(p.ip, info.ip);
-                Assert.AreEqual(p.port, info.port);
                 joinSuccessClient = true;
+                Assert.AreEqual(p.port, info.port);
             };
              
             var task = client.joinRoom(info, playerInfo);
@@ -331,10 +338,13 @@ namespace Tests
             host.openRoom(info);
             hostRoomCreated = true;
 
-            client.findRoom();
+            client.findRoom(host.port);
             yield return new WaitForSeconds(1f);
 
-            yield return new WaitUntil(() => joinSuccessClient && joinSuccessHost);
+            if (!joinSuccessClient)
+                throw new TimeoutException("客户端加入超时。");
+            if (!joinSuccessHost)
+                throw new TimeoutException("服务端加入超时。");
         }
         /// <summary>
         /// 加入房间后，client.quitRoom，触发client.onQuitRoom(room)事件和host.onClientQuit(player)事件。
@@ -361,12 +371,10 @@ namespace Tests
             var task = client.joinRoom(roomInfo, playerInfo);
             yield return new WaitUntil(() => task.IsCompleted);
 
-            bool quitHost = false, quitClient = false;
+            bool quitHost = false, quitClient = false, roomJoined = false;
 
-            client.onQuitRoom += (room) =>
+            client.onQuitRoom += () =>
             {
-                Assert.AreEqual(room.ip, roomInfo.ip);
-                Assert.AreEqual(room.port, roomInfo.port);
                 quitClient = true;
             };
             host.onPlayerQuit += (p) =>
@@ -374,11 +382,20 @@ namespace Tests
                 Assert.AreEqual(p.name, playerInfo.name);
                 quitHost = true;
             };
+            client.onJoinRoom += (room) =>
+            {
+                roomJoined = true;
+            };
 
+            yield return new WaitUntil(() => roomJoined);
             client.quitRoom();
 
-            yield return new WaitUntil(() => quitHost && quitClient);
+            yield return new WaitForSeconds(1);
 
+            if (!quitClient)
+                throw new TimeoutException("客户端退出超时。");
+            if (!quitHost)
+                throw new TimeoutException("服务端退出超时。");
         }
         /// <summary>
         /// 加入房间后，host.closeRoom，触发client.onQuitRoom(room)事件。
@@ -406,21 +423,22 @@ namespace Tests
             yield return new WaitUntil(() => task.IsCompleted);
 
             bool quitClient = false;
-            client.onQuitRoom += (room) =>
+            client.onQuitRoom += () =>
             {
-                Assert.AreEqual(room.ip, roomInfo.ip);
-                Assert.AreEqual(room.port, roomInfo.port);
                 quitClient = true;
             };
 
             host.closeRoom();
-            yield return new WaitUntil(() => quitClient);
+            yield return new WaitForSeconds(1);
+
+            if (!quitClient)
+                throw new TimeoutException("客户端退出超时。");
         }
         /// <summary>
         /// 当client在房间中的时候，当有其他client加入和退出的时候，应该会触发onRoomInfoUpdate事件。
         /// </summary>
         /// <returns></returns>
-        [Test]
+        [UnityTest]
         public IEnumerator roomInfoUpdateTest()
         {
             UnityLogger logger = new UnityLogger();
@@ -451,10 +469,13 @@ namespace Tests
                 updateTrigger = true;
             };
 
-            task = client1.joinRoom(roomInfo, playerInfo1);
+            task = client2.joinRoom(roomInfo, playerInfo2);
             yield return new WaitUntil(() => task.IsCompleted);
 
-            yield return new WaitUntil(() => updateTrigger);
+            yield return new WaitForSeconds(1);
+
+            if (!updateTrigger)
+                throw new TimeoutException("信息更新超时。");
         }
     }
 }
