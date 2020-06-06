@@ -24,8 +24,10 @@ namespace TouhouCardEngine
         }
         public string address
         {
-            get { return Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString() + ":" + port; }
+            get { return ip + ":" + port; }
         }
+        public string ip => Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString();
+
         [SerializeField]
         bool _autoStart = false;
         public bool autoStart
@@ -219,13 +221,15 @@ namespace TouhouCardEngine
         #region Room
 
         RoomInfo currentRoom = null;
-        public void openRoom(RoomInfo roomInfo)
+        public RoomInfo openRoom(RoomInfo roomInfo)
         {
             currentRoom = roomInfo;
             if (!net.IsRunning)
             {
                 start(roomInfo.port);
             }
+            roomInfo.ip = ip;
+            return roomInfo;
         }
         private NetDataWriter RoomInfoUpdateWriter()
         {
