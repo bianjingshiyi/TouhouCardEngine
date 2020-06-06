@@ -9,6 +9,8 @@ using System.Net.Sockets;
 using System.Linq;
 using System.IO;
 using System.Runtime.Serialization.Json;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace TouhouCardEngine
 {
@@ -119,17 +121,72 @@ namespace TouhouCardEngine
                         client.Send(writer, DeliveryMethod.ReliableOrdered);
                     }
                     break;
+                case PacketType.joinRequest:
+                    if (currentRoom == null)
+                        break;
+                    id = reader.GetInt();
+                    typeName = reader.GetString();
+                    json = reader.GetString();
+                    if (typeName != typeof(RoomPlayerInfo).FullName)
+                    {
+                        logger?.log($"主机房间信息类型错误，收到了 {typeName}");
+                        break;
+                    }
+                    var info = BsonSerializer.Deserialize<RoomPlayerInfo>(json);
+                    currentRoom.playerList.Add(info);
+                    onPlayerJoin?.Invoke(info);
+                    logger?.log($"主机房间收到了客户端 {info.name} 的加入请求");
+
+                    writer = RoomInfoUpdateWriter();
+
+                    foreach (var client in clientDic.Values)
+                    {
+                        if (client.Id == peer.Id)
+                        {
+                            // 接受加入，返回房间信息
+                            var writer2 = new NetDataWriter();
+                            writer2.Put((int)PacketType.joinResponse);
+                            writer2.Put(typeof(List<RoomPlayerInfo>).FullName);
+                            writer2.Put(currentRoom.playerList.ToJson());
+                            client.Send(writer2, DeliveryMethod.ReliableOrdered);
+                        }
+                        else
+                        {
+                            // 其他的更新房间信息
+                            client.Send(writer, DeliveryMethod.ReliableOrdered);
+                        }
+                    }
+                    break;
                 default:
                     logger?.log("Warning", "服务端未处理的数据包类型：" + type);
                     break;
             }
         }
+
         public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
         {
         }
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             logger?.log("客主机与客户端" + peer.Id + "断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
+            // 处理房间问题
+            var infos = currentRoom?.playerList.Where(c => c.id == peer.Id);
+            if (infos != null && infos.Count() > 0)
+            {
+                var info = infos.First();
+                currentRoom.playerList.Remove(info);
+                onPlayerQuit?.Invoke(info);
+
+                var writer = RoomInfoUpdateWriter();
+                foreach (var client in clientDic.Values)
+                {
+                    if (client.Id != peer.Id)
+                    {
+                        // 其他的更新房间信息
+                        client.Send(writer, DeliveryMethod.ReliableOrdered);
+                    }
+                }
+            }
         }
         public void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
         {
@@ -137,22 +194,54 @@ namespace TouhouCardEngine
         }
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
-            throw new NotImplementedException();
+            switch (messageType)
+            {
+                case UnconnectedMessageType.DiscoveryRequest:
+                    if (currentRoom != null && reader.GetInt() == (int)PacketType.discoveryRequest)
+                    {
+                        logger?.log($"主机房间收到了局域网发现请求");
+
+                        NetDataWriter writer = new NetDataWriter();
+                        writer.Put((int)PacketType.discoveryResponse);
+                        writer.Put(currentRoom.playerList.GetType().FullName);
+                        writer.Put(currentRoom.playerList.ToJson());
+                        net.SendDiscoveryResponse(writer, remoteEndPoint);
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
         public void stop()
         {
             net.Stop();
         }
         #region Room
+
+        RoomInfo currentRoom = null;
         public void openRoom(RoomInfo roomInfo)
         {
-            throw new NotImplementedException();
+            currentRoom = roomInfo;
+            if (!net.IsRunning)
+            {
+                start(roomInfo.port);
+            }
         }
+        private NetDataWriter RoomInfoUpdateWriter()
+        {
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.roomInfoUpdate);
+            writer.Put(typeof(List<RoomPlayerInfo>).FullName);
+            writer.Put(currentRoom.playerList.ToJson());
+            return writer;
+        }
+
         public event Action<RoomPlayerInfo> onPlayerJoin;
         public event Action<RoomPlayerInfo> onPlayerQuit;
         public void closeRoom()
         {
-
+            net.DisconnectAll();
+            currentRoom = null;
         }
         #endregion
     }
@@ -174,5 +263,10 @@ namespace TouhouCardEngine
         connectResponse,
         sendRequest,
         sendResponse,
+        discoveryRequest,
+        discoveryResponse,
+        joinRequest,
+        joinResponse,
+        roomInfoUpdate,
     }
 }
