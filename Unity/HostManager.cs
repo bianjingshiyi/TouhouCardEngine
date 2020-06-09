@@ -47,7 +47,7 @@ namespace TouhouCardEngine
             net = new NetManager(this)
             {
                 AutoRecycle = true,
-                DiscoveryEnabled = true
+                BroadcastReceiveEnabled = true,
             };
 
         }
@@ -198,7 +198,7 @@ namespace TouhouCardEngine
         {
             switch (messageType)
             {
-                case UnconnectedMessageType.DiscoveryRequest:
+                case UnconnectedMessageType.Broadcast:
                     if (currentRoom != null && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
                         logger?.log($"主机房间收到了局域网发现请求");
@@ -207,7 +207,7 @@ namespace TouhouCardEngine
                         writer.Put((int)PacketType.discoveryResponse);
                         writer.Put(currentRoom.playerList.GetType().FullName);
                         writer.Put(currentRoom.playerList.ToJson());
-                        net.SendDiscoveryResponse(writer, remoteEndPoint);
+                        net.SendUnconnectedMessage(writer, remoteEndPoint);
                     }
                     break;
                 default:
@@ -244,20 +244,21 @@ namespace TouhouCardEngine
         /// <summary>
         /// 当前房间信息，在没有打开房间的情况下为空。
         /// </summary>
-        public RoomInfo roomInfo
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public RoomInfo roomInfo => currentRoom;
+
         /// <summary>
         /// 更新房间信息，会在Host保存最新的房间信息和将更新的房间信息发送给所有的Client
         /// </summary>
         /// <param name="roomInfo"></param>
         public void updateRoomInfo(RoomInfo roomInfo)
         {
-            throw new NotImplementedException();
+            currentRoom = roomInfo;
+            var writer = RoomInfoUpdateWriter();
+
+            foreach (var client in clientDic.Values)
+            {
+                client.Send(writer, DeliveryMethod.ReliableOrdered);
+            }
         }
         public event Action<RoomPlayerInfo> onPlayerQuit;
         public void closeRoom()

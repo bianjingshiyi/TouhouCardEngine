@@ -261,7 +261,7 @@ namespace TouhouCardEngine
         {
             switch (messageType)
             {
-                case UnconnectedMessageType.DiscoveryResponse:
+                case UnconnectedMessageType.BasicMessage:
                     if (reader.GetInt() == (int)PacketType.discoveryResponse)
                     {
                         logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
@@ -290,8 +290,7 @@ namespace TouhouCardEngine
         {
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.discoveryRequest);
-            // todo: 来一个可以编辑的端口
-            net.SendDiscoveryRequest(writer, port);
+            net.SendBroadcast(writer, port);
         }
         RoomInfo parseRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader)
         {
