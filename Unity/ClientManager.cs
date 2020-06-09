@@ -315,7 +315,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="roomInfo"></param>
         /// <returns></returns>
-        public RoomInfo checkRoomInfo(RoomInfo roomInfo)
+        public Task<RoomInfo> checkRoomInfo(RoomInfo roomInfo)
         {
             throw new NotImplementedException();
         }
