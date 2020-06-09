@@ -47,7 +47,7 @@ namespace TouhouCardEngine
             net = new NetManager(this)
             {
                 AutoRecycle = true,
-                DiscoveryEnabled = true
+                BroadcastReceiveEnabled = true,
             };
 
         }
@@ -198,7 +198,7 @@ namespace TouhouCardEngine
         {
             switch (messageType)
             {
-                case UnconnectedMessageType.DiscoveryRequest:
+                case UnconnectedMessageType.Broadcast:
                     if (currentRoom != null && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
                         logger?.log($"主机房间收到了局域网发现请求");
@@ -207,7 +207,7 @@ namespace TouhouCardEngine
                         writer.Put((int)PacketType.discoveryResponse);
                         writer.Put(currentRoom.playerList.GetType().FullName);
                         writer.Put(currentRoom.playerList.ToJson());
-                        net.SendDiscoveryResponse(writer, remoteEndPoint);
+                        net.SendUnconnectedMessage(writer, remoteEndPoint);
                     }
                     break;
                 default:

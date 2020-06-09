@@ -314,6 +314,7 @@ namespace Tests
             RoomInfo info = new RoomInfo() { ip = "127.0.0.1", port = host.port, playerList = new List<RoomPlayerInfo>() };
 
             bool hostRoomCreated = false, joinSuccessHost = false, joinSuccessClient = false;
+            bool joinLock = false;
 
             host.onPlayerJoin += (p) => {
                 joinSuccessHost = true;
@@ -322,7 +323,11 @@ namespace Tests
             };
             client.onRoomFound += async (r) =>
             {
-                await client.joinRoom(r, playerInfo);
+                if (!joinLock)
+                {
+                    joinLock = true;
+                    await client.joinRoom(r, playerInfo);
+                }
             };
             
             client.onJoinRoom += (p) =>
