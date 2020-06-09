@@ -267,7 +267,8 @@ namespace TouhouCardEngine
                         logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
                         var roomInfo = parseRoomInfo(remoteEndPoint, reader);
                         if (roomInfo != null) onRoomFound?.Invoke(roomInfo);
-                    } else
+                    }
+                    else
                     {
                         logger?.log("消息类型不匹配");
                     }
@@ -309,6 +310,15 @@ namespace TouhouCardEngine
             };
         }
         public event Action<RoomInfo> onRoomFound;
+        /// <summary>
+        /// 向目标房间请求新的房间信息，如果目标房间已经不存在了，那么会返回空，否则返回更新的房间信息。
+        /// </summary>
+        /// <param name="roomInfo"></param>
+        /// <returns></returns>
+        public RoomInfo checkRoomInfo(RoomInfo roomInfo)
+        {
+            throw new NotImplementedException();
+        }
         public event Action onQuitRoom;
         public event Action<RoomInfo> onJoinRoom;
         /// <summary>

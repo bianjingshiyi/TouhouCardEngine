@@ -486,5 +486,15 @@ namespace Tests
         {
             throw new NotImplementedException();
         }
+        /// <summary>
+        /// 存在Host和ClientA,B，Host新建房间，A发现房间获得房间信息，A.checkRoomInfo返回房间信息不变，
+        /// B加入房间A.checkRoomInfo发现房间里多了B，Host关闭房间，A.checkRoomInfo返回房间为空，表示Host关闭了房间
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator checkRoomInfoTest()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
