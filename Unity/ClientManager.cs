@@ -325,6 +325,13 @@ namespace TouhouCardEngine
             playerInfo.id = id;
             send(playerInfo as object, PacketType.joinRequest);
         }
+        /// <summary>
+        /// 当前所在房间信息，如果不在任何房间中则为空。
+        /// </summary>
+        public RoomInfo roomInfo
+        {
+            get { throw new NotImplementedException(); }
+        }
         public event Action<RoomInfo> onRoomInfoUpdate;
         public void quitRoom()
         {
