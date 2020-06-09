@@ -42,6 +42,13 @@ namespace TouhouCardEngine
             get { return _autoStart; }
             set { _autoStart = value; }
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// Host和Client都有NetManager是因为在同一台电脑上如果要开Host和Client进行网络对战的话，就必须得开两个端口进行通信，出于这样的理由
+        /// Host和Client都必须拥有一个NetManager实例并使用不同的端口。
+        /// </remarks>
         NetManager net { get; set; } = null;
         public bool isRunning
         {

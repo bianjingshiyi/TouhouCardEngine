@@ -439,7 +439,7 @@ namespace Tests
         /// </summary>
         /// <returns></returns>
         [UnityTest]
-        public IEnumerator roomInfoUpdateTest()
+        public IEnumerator roomInfoUpdateTest_WhenPlayerJoinAndQuit()
         {
             UnityLogger logger = new UnityLogger();
             HostManager host = new GameObject(nameof(HostManager) + "1").AddComponent<HostManager>();
@@ -476,6 +476,15 @@ namespace Tests
 
             if (!updateTrigger)
                 throw new TimeoutException("信息更新超时。");
+        }
+        /// <summary>
+        /// Host调用updateRoomInfo，预期Host.roomInfo与传入的roomInfo相同，并且所有Client收到onRoomInfoUpdate(roomInfo)事件
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator roomInfoUpdateTest()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -241,6 +241,24 @@ namespace TouhouCardEngine
         }
 
         public event Action<RoomPlayerInfo> onPlayerJoin;
+        /// <summary>
+        /// 当前房间信息，在没有打开房间的情况下为空。
+        /// </summary>
+        public RoomInfo roomInfo
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+        /// <summary>
+        /// 更新房间信息，会在Host保存最新的房间信息和将更新的房间信息发送给所有的Client
+        /// </summary>
+        /// <param name="roomInfo"></param>
+        public void updateRoomInfo(RoomInfo roomInfo)
+        {
+            throw new NotImplementedException();
+        }
         public event Action<RoomPlayerInfo> onPlayerQuit;
         public void closeRoom()
         {
