@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Runtime.Serialization.Json;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson;
+using System.Threading;
 
 namespace TouhouCardEngine
 {
@@ -204,7 +205,7 @@ namespace TouhouCardEngine
                 case PacketType.joinResponse:
                     var info = parseRoomInfo(peer.EndPoint, reader);
                     if (info != null) onJoinRoom?.Invoke(info);
-                    logger?.log($"客户端 {this.id} 收到了主机的加入响应");
+                    logger?.log($"客户端 {this.id} 收到了主机的加入响应。当前房间人数: {info?.playerList?.Count}");
                     break;
                 case PacketType.roomInfoUpdate:
                     info = parseRoomInfo(peer.EndPoint, reader);
@@ -264,9 +265,26 @@ namespace TouhouCardEngine
                 case UnconnectedMessageType.BasicMessage:
                     if (reader.GetInt() == (int)PacketType.discoveryResponse)
                     {
-                        logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
-                        var roomInfo = parseRoomInfo(remoteEndPoint, reader);
-                        if (roomInfo != null) onRoomFound?.Invoke(roomInfo);
+                        uint reqID;
+                        var roomInfo = parseBoardcastRoomInfo(remoteEndPoint, reader, out reqID);
+                        if (reqID == 0)
+                        {
+                            logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
+                            if (roomInfo != null) onRoomFound?.Invoke(roomInfo);
+                        }
+                        else
+                        {
+                            logger?.log($"获取到主机 {remoteEndPoint.Address}:{remoteEndPoint.Port} 更新的房间信息。");
+                            if (roomCheckTasks.ContainsKey(reqID))
+                            {
+                                roomCheckTasks[reqID].SetResult(roomInfo);
+                                roomCheckTasks.Remove(reqID);
+                            }
+                            else
+                            {
+                                logger?.log($"RequestID {reqID} 不存在。");
+                            }
+                        }
                     }
                     else
                     {
@@ -288,8 +306,7 @@ namespace TouhouCardEngine
         /// <param name="port">搜索端口。默认9050</param>
         public void findRoom(int port = 9050)
         {
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put((int)PacketType.discoveryRequest);
+            var writer = roomDiscoveryRequestWriter(0);
             net.SendBroadcast(writer, port);
         }
         RoomInfo parseRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader)
@@ -308,7 +325,46 @@ namespace TouhouCardEngine
                 playerList = BsonSerializer.Deserialize<List<RoomPlayerInfo>>(json)
             };
         }
+        RoomInfo parseBoardcastRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader, out uint reqid)
+        {
+            reqid = reader.GetUInt();
+            var type = reader.GetString();
+            var json = reader.GetString();
+            if (type != typeof(List<RoomPlayerInfo>).FullName)
+            {
+                logger?.log($"主机房间信息类型错误，收到了 {type}");
+                return null;
+            }
+            return new RoomInfo()
+            {
+                ip = remoteEndPoint.Address.ToString(),
+                port = remoteEndPoint.Port,
+                playerList = BsonSerializer.Deserialize<List<RoomPlayerInfo>>(json)
+            };
+        }
+        NetDataWriter roomDiscoveryRequestWriter(uint reqID)
+        {
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.discoveryRequest);
+            writer.Put(reqID);
+            return writer;
+        }
+
+        Dictionary<uint, TaskCompletionSource<RoomInfo>> roomCheckTasks = new Dictionary<uint, TaskCompletionSource<RoomInfo>>();
+
         public event Action<RoomInfo> onRoomFound;
+
+        void taskChecker(uint id)
+        {
+            Thread.Sleep(5000);
+            logger?.log("操作超时");
+            if (roomCheckTasks.ContainsKey(id) && !roomCheckTasks[id].Task.IsCompleted)
+            {
+                roomCheckTasks[id].SetResult(null);
+                roomCheckTasks.Remove(id);
+            }
+        }
+
         /// <summary>
         /// 向目标房间请求新的房间信息，如果目标房间已经不存在了，那么会返回空，否则返回更新的房间信息。
         /// </summary>
@@ -316,7 +372,27 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task<RoomInfo> checkRoomInfo(RoomInfo roomInfo)
         {
-            throw new NotImplementedException();
+            uint reqID;
+            var random = new System.Random();
+
+            do { reqID = (uint)random.Next(); }
+            while (roomCheckTasks.ContainsKey(reqID) || reqID == 0);
+
+            NetDataWriter writer = roomDiscoveryRequestWriter(reqID);
+            var result = net.SendUnconnectedMessage(writer, new IPEndPoint(IPAddress.Parse(roomInfo.ip), roomInfo.port));
+
+            TaskCompletionSource<RoomInfo> task = new TaskCompletionSource<RoomInfo>();
+            if (result)
+            {
+                roomCheckTasks.Add(reqID, task);
+                var t = new Task(() => taskChecker(reqID));
+                t.Start();
+            }
+            else
+            {
+                task.SetResult(null);
+            }
+            return task.Task;
         }
         public event Action onQuitRoom;
         public event Action<RoomInfo> onJoinRoom;

@@ -48,6 +48,7 @@ namespace TouhouCardEngine
             {
                 AutoRecycle = true,
                 BroadcastReceiveEnabled = true,
+                UnconnectedMessagesEnabled = true
             };
 
         }
@@ -137,7 +138,7 @@ namespace TouhouCardEngine
                     var info = BsonSerializer.Deserialize<RoomPlayerInfo>(json);
                     currentRoom.playerList.Add(info);
                     onPlayerJoin?.Invoke(info);
-                    logger?.log($"主机房间收到了客户端 {info.name} 的加入请求");
+                    logger?.log($"主机房间收到了客户端 {info.name} 的加入请求，当前人数 {currentRoom.playerList.Count}");
 
                     writer = RoomInfoUpdateWriter();
 
@@ -199,12 +200,14 @@ namespace TouhouCardEngine
             switch (messageType)
             {
                 case UnconnectedMessageType.Broadcast:
+                case UnconnectedMessageType.BasicMessage:
                     if (currentRoom != null && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
-                        logger?.log($"主机房间收到了局域网发现请求");
+                        logger?.log($"主机房间收到了局域网发现请求或主机信息更新请求");
 
                         NetDataWriter writer = new NetDataWriter();
                         writer.Put((int)PacketType.discoveryResponse);
+                        writer.Put(reader.GetUInt());
                         writer.Put(currentRoom.playerList.GetType().FullName);
                         writer.Put(currentRoom.playerList.ToJson());
                         net.SendUnconnectedMessage(writer, remoteEndPoint);

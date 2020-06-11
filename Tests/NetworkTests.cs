@@ -489,7 +489,7 @@ namespace Tests
         [UnityTest]
         public IEnumerator roomInfoUpdateTest()
         {
-            throw new NotImplementedException();
+            return roomInfoUpdateTest_WhenPlayerJoinAndQuit();
         }
         /// <summary>
         /// 存在Host和ClientA,B，Host新建房间，A发现房间获得房间信息，A.checkRoomInfo返回房间信息不变，
@@ -499,7 +499,66 @@ namespace Tests
         [UnityTest]
         public IEnumerator checkRoomInfoTest()
         {
-            throw new NotImplementedException();
+            UnityLogger logger = new UnityLogger();
+            HostManager host = new GameObject(nameof(HostManager) + "1").AddComponent<HostManager>();
+            host.logger = logger;
+            host.start();
+            ClientManager client1 = new GameObject(nameof(ClientManager) + "1").AddComponent<ClientManager>();
+            client1.logger = logger;
+            client1.start();
+            ClientManager client2 = new GameObject(nameof(ClientManager) + "2").AddComponent<ClientManager>();
+            client2.logger = logger;
+            client2.start();
+
+            RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
+            RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
+            RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+            RoomInfo roomInfo2 = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+
+            host.openRoom(roomInfo);
+            yield return new WaitForSeconds(0.5f);
+
+            bool roomFoundFlag = false;
+            RoomInfo questRoomInfo = null;
+
+            client1.onRoomFound += (info) =>
+            {
+                if (!roomFoundFlag)
+                {
+                    roomFoundFlag = true;
+                    questRoomInfo = info;
+                }
+            };
+            client1.findRoom(host.port);
+            yield return new WaitForSeconds(0.5f);
+            Assert.AreEqual(roomFoundFlag, true);
+
+            var task = client1.checkRoomInfo(questRoomInfo);
+            yield return new WaitUntil(() => task.IsCompleted);
+            Assert.NotNull(task.Result);
+            Assert.AreEqual(questRoomInfo.playerList.Count, task.Result.playerList.Count);
+            Assert.AreEqual(questRoomInfo.ip, task.Result.ip);
+            Assert.AreEqual(questRoomInfo.port, task.Result.port);
+
+            yield return new WaitForSeconds(0.5f);
+
+            var task2 = client2.joinRoom(roomInfo2, playerInfo2);
+            yield return new WaitUntil(() => task2.IsCompleted);
+            yield return new WaitForSeconds(0.5f);
+            Assert.AreEqual(1, host.roomInfo.playerList.Count);
+
+            task = client1.checkRoomInfo(questRoomInfo);
+            yield return new WaitUntil(() => task.IsCompleted);
+            Assert.NotNull(task.Result);
+            Assert.AreEqual(1, task.Result.playerList.Count);
+            Assert.AreEqual(playerInfo2.name, task.Result.playerList[0].name);
+
+            host.closeRoom();
+            yield return new WaitForSeconds(0.5f);
+
+            task = client1.checkRoomInfo(questRoomInfo);
+            yield return new WaitUntil(() => task.IsCompleted);
+            Assert.Null(task.Result);
         }
     }
 }
