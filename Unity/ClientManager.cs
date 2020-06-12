@@ -265,8 +265,8 @@ namespace TouhouCardEngine
                 case UnconnectedMessageType.BasicMessage:
                     if (reader.GetInt() == (int)PacketType.discoveryResponse)
                     {
-                        uint reqID;
-                        var roomInfo = parseBoardcastRoomInfo(remoteEndPoint, reader, out reqID);
+                        uint reqID = reader.GetUInt();
+                        var roomInfo = parseRoomInfo(remoteEndPoint, reader);
                         if (reqID == 0)
                         {
                             logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
@@ -313,34 +313,15 @@ namespace TouhouCardEngine
         {
             var type = reader.GetString();
             var json = reader.GetString();
-            if (type != typeof(List<RoomPlayerInfo>).FullName)
+            if (type != typeof(RoomInfo).FullName)
             {
                 logger?.log($"主机房间信息类型错误，收到了 {type}");
                 return null;
             }
-            return new RoomInfo()
-            {
-                ip = remoteEndPoint.Address.ToString(),
-                port = remoteEndPoint.Port,
-                playerList = BsonSerializer.Deserialize<List<RoomPlayerInfo>>(json)
-            };
-        }
-        RoomInfo parseBoardcastRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader, out uint reqid)
-        {
-            reqid = reader.GetUInt();
-            var type = reader.GetString();
-            var json = reader.GetString();
-            if (type != typeof(List<RoomPlayerInfo>).FullName)
-            {
-                logger?.log($"主机房间信息类型错误，收到了 {type}");
-                return null;
-            }
-            return new RoomInfo()
-            {
-                ip = remoteEndPoint.Address.ToString(),
-                port = remoteEndPoint.Port,
-                playerList = BsonSerializer.Deserialize<List<RoomPlayerInfo>>(json)
-            };
+            var info = BsonSerializer.Deserialize<RoomInfo>(json);
+            info.ip = remoteEndPoint.Address.ToString();
+            info.port = remoteEndPoint.Port;
+            return info;
         }
         NetDataWriter roomDiscoveryRequestWriter(uint reqID)
         {

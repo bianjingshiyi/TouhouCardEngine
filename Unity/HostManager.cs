@@ -147,10 +147,7 @@ namespace TouhouCardEngine
                         if (client.Id == peer.Id)
                         {
                             // 接受加入，返回房间信息
-                            var writer2 = new NetDataWriter();
-                            writer2.Put((int)PacketType.joinResponse);
-                            writer2.Put(typeof(List<RoomPlayerInfo>).FullName);
-                            writer2.Put(currentRoom.playerList.ToJson());
+                            NetDataWriter writer2 = RoomInfoResponseWriter();
                             client.Send(writer2, DeliveryMethod.ReliableOrdered);
                         }
                         else
@@ -205,11 +202,7 @@ namespace TouhouCardEngine
                     {
                         logger?.log($"主机房间收到了局域网发现请求或主机信息更新请求");
 
-                        NetDataWriter writer = new NetDataWriter();
-                        writer.Put((int)PacketType.discoveryResponse);
-                        writer.Put(reader.GetUInt());
-                        writer.Put(currentRoom.playerList.GetType().FullName);
-                        writer.Put(currentRoom.playerList.ToJson());
+                        NetDataWriter writer = RoomInfoDiscoveryWriter(reader.GetUInt());
                         net.SendUnconnectedMessage(writer, remoteEndPoint);
                     }
                     break;
@@ -217,6 +210,7 @@ namespace TouhouCardEngine
                     break;
             }
         }
+
         public void stop()
         {
             net.Stop();
@@ -238,10 +232,32 @@ namespace TouhouCardEngine
         {
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.roomInfoUpdate);
-            writer.Put(typeof(List<RoomPlayerInfo>).FullName);
-            writer.Put(currentRoom.playerList.ToJson());
+            RoomInfoWriter(writer);
             return writer;
         }
+
+        private NetDataWriter RoomInfoDiscoveryWriter(uint requestID)
+        {
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.discoveryResponse);
+            writer.Put(requestID);
+            RoomInfoWriter(writer);
+            return writer;
+        }
+
+        private void RoomInfoWriter(NetDataWriter writer)
+        {
+            writer.Put(currentRoom.GetType().FullName);
+            writer.Put(currentRoom.ToJson());
+        }
+        private NetDataWriter RoomInfoResponseWriter()
+        {
+            var writer = new NetDataWriter();
+            writer.Put((int)PacketType.joinResponse);
+            RoomInfoWriter(writer);
+            return writer;
+        }
+
 
         public event Action<RoomPlayerInfo> onPlayerJoin;
         /// <summary>
