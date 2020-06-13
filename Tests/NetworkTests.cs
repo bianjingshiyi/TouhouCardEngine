@@ -9,6 +9,10 @@ using TouhouCardEngine;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using System.Reflection;
+using System.Threading;
 namespace Tests
 {
     public class NetworkTests
@@ -269,7 +273,8 @@ namespace Tests
             bool roomOpened, flag = false;
 
             roomOpened = false;
-            client.onRoomFound += (info) => {
+            client.onRoomFound += (info) =>
+            {
                 Assert.True(roomOpened);
                 flag = true;
             };
@@ -316,7 +321,8 @@ namespace Tests
             bool hostRoomCreated = false, joinSuccessHost = false, joinSuccessClient = false;
             bool joinLock = false;
 
-            host.onPlayerJoin += (p) => {
+            host.onPlayerJoin += (p) =>
+            {
                 joinSuccessHost = true;
                 Assert.True(hostRoomCreated);
                 Assert.AreEqual(p.name, playerInfo.name);
@@ -329,13 +335,13 @@ namespace Tests
                     await client.joinRoom(r, playerInfo);
                 }
             };
-            
+
             client.onJoinRoom += (p) =>
             {
                 joinSuccessClient = true;
                 Assert.AreEqual(p.port, info.port);
             };
-             
+
             var task = client.joinRoom(info, playerInfo);
             yield return new WaitUntil(() => task.IsCompleted);
             yield return new WaitForSeconds(0.5f);
@@ -409,14 +415,9 @@ namespace Tests
         [UnityTest]
         public IEnumerator hostCloseRoomTest()
         {
-            UnityLogger logger = new UnityLogger();
-            HostManager host = new GameObject(nameof(HostManager)).AddComponent<HostManager>();
-            host.logger = logger;
-            host.start();
-
-            ClientManager client = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
-            client.logger = logger;
-            client.start();
+            HostManager host;
+            ClientManager client;
+            createHostClient(out host, out client);
 
             RoomPlayerInfo playerInfo = new RoomPlayerInfo() { name = "测试名字" };
             RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
@@ -439,6 +440,19 @@ namespace Tests
             if (!quitClient)
                 throw new TimeoutException("客户端退出超时。");
         }
+
+        private static void createHostClient(out HostManager host, out ClientManager client)
+        {
+            UnityLogger logger = new UnityLogger();
+            host = new GameObject(nameof(HostManager)).AddComponent<HostManager>();
+            host.logger = logger;
+            host.start();
+
+            client = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
+            client.logger = logger;
+            client.start();
+        }
+
         /// <summary>
         /// 当client在房间中的时候，当有其他client加入和退出的时候，应该会触发onRoomInfoUpdate事件。
         /// </summary>
@@ -446,16 +460,9 @@ namespace Tests
         [UnityTest]
         public IEnumerator roomInfoUpdateTest_WhenPlayerJoinAndQuit()
         {
-            UnityLogger logger = new UnityLogger();
-            HostManager host = new GameObject(nameof(HostManager) + "1").AddComponent<HostManager>();
-            host.logger = logger;
-            host.start();
-            ClientManager client1 = new GameObject(nameof(ClientManager) + "1").AddComponent<ClientManager>();
-            client1.logger = logger;
-            client1.start();
-            ClientManager client2 = new GameObject(nameof(ClientManager) + "2").AddComponent<ClientManager>();
-            client2.logger = logger;
-            client2.start();
+            HostManager host;
+            ClientManager client1, client2;
+            createHostClient12(out host, out client1, out client2);
 
             RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
             RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
@@ -469,7 +476,8 @@ namespace Tests
 
             bool updateTrigger = false;
 
-            client1.onRoomInfoUpdate += (r) => {
+            client1.onRoomInfoUpdate += (r) =>
+            {
                 Assert.True(r.playerList.Where(p => p.name == playerInfo2.name).Count() > 0);
                 updateTrigger = true;
             };
@@ -482,6 +490,21 @@ namespace Tests
             if (!updateTrigger)
                 throw new TimeoutException("信息更新超时。");
         }
+
+        private static void createHostClient12(out HostManager host, out ClientManager client1, out ClientManager client2)
+        {
+            UnityLogger logger = new UnityLogger();
+            host = new GameObject(nameof(HostManager) + "1").AddComponent<HostManager>();
+            host.logger = logger;
+            host.start();
+            client1 = new GameObject(nameof(ClientManager) + "1").AddComponent<ClientManager>();
+            client1.logger = logger;
+            client1.start();
+            client2 = new GameObject(nameof(ClientManager) + "2").AddComponent<ClientManager>();
+            client2.logger = logger;
+            client2.start();
+        }
+
         /// <summary>
         /// Host调用updateRoomInfo，预期Host.roomInfo与传入的roomInfo相同，并且所有Client收到onRoomInfoUpdate(roomInfo)事件
         /// </summary>
@@ -559,6 +582,148 @@ namespace Tests
             task = client1.checkRoomInfo(questRoomInfo);
             yield return new WaitUntil(() => task.IsCompleted);
             Assert.Null(task.Result);
+        }
+        [Test]
+        public void roomInfoSerializeTest()
+        {
+            RoomInfo roomInfo = new RoomInfo()
+            {
+                ip = "192.168.0.1",
+                port = 9050,
+                playerList = new List<RoomPlayerInfo>()
+                {
+
+                },
+                propJsonDic = new Dictionary<string, KeyValuePair<string, string>>()
+                {
+                    { "name" , new KeyValuePair<string, string>(typeof(int).FullName, 1.ToJson() ) }
+                }
+            };
+            string json = roomInfo.ToJson();
+            roomInfo = BsonSerializer.Deserialize<RoomInfo>(json);
+
+            Assert.AreEqual("192.168.0.1", roomInfo.ip);
+            Assert.AreEqual(9050, roomInfo.port);
+            Assert.AreEqual(0, roomInfo.playerList.Count);
+            Assert.AreEqual(1, roomInfo.propJsonDic.Count);
+            Assert.AreEqual("name", roomInfo.propJsonDic.FirstOrDefault().Key);
+            Type objType = Type.GetType(roomInfo.propJsonDic.First().Value.Key);
+            if (objType == null)
+            {
+                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    objType = assembly.GetType(roomInfo.propJsonDic.First().Value.Key);
+                    if (objType != null)
+                        break;
+                }
+            }
+            object obj = BsonSerializer.Deserialize(roomInfo.propJsonDic.First().Value.Value, objType);
+            Assert.AreEqual(1, obj);
+        }
+        [UnityTest]
+        public IEnumerator invokeTest()
+        {
+            createHostClient(out var host, out var client);
+
+            client.addInvokeTarget(new InvokeTarget());
+
+            Task task = client.join(host.ip, host.port);
+            yield return waitTask(task);
+            task = host.invoke<bool>(client.id, nameof(InvokeTarget.method), 1);
+            yield return waitTask(task);
+            Assert.AreEqual(true, (task as Task<bool>).Result);
+        }
+        [UnityTest]
+        public IEnumerator invokeTest_Exception()
+        {
+            createHostClient(out var host, out var client);
+
+            client.addInvokeTarget(new InvokeTarget());
+
+            Task task = client.join(host.ip, host.port);
+            yield return waitTask(task);
+            task = host.invoke<object>(client.id, nameof(InvokeTarget.exception));
+            yield return waitTask(task);
+            Assert.True(task.IsFaulted);
+        }
+        [UnityTest]
+        public IEnumerator invokeTest_Timeout()
+        {
+            createHostClient(out var host, out var client);
+
+            host.timeout = 1;
+            client.addInvokeTarget(new InvokeTarget());
+
+            Task task = client.join(host.ip, host.port);
+            yield return waitTask(task);
+            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 500);
+            yield return waitTask(task);
+            Assert.False(task.IsCanceled);
+            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 1001);
+            yield return waitTask(task);
+            Assert.True(task.IsCanceled);
+        }
+        [UnityTest]
+        public IEnumerator invokeTest_Multi()
+        {
+            createHostClient(out var host, out var client);
+            client.addInvokeTarget(new InvokeTarget());
+
+            Task task = client.join(host.ip, host.port);
+            yield return waitTask(task);
+            List<Task> taskList = new List<Task>();
+            for (int i = 0; i < 10; i++)
+            {
+                task = host.invoke<bool>(client.id, nameof(InvokeTarget.method), i);
+                taskList.Add(task);
+            }
+            yield return new WaitUntil(() => taskList.All(t => t.IsCanceled || t.IsFaulted || t.IsCompleted));
+            for (int i = 0; i < taskList.Count; i++)
+            {
+                if (i == 0)
+                    Assert.False((taskList[i] as Task<bool>).Result);
+                else
+                    Assert.True((taskList[i] as Task<bool>).Result);
+            }
+        }
+        class InvokeTarget
+        {
+            public bool method(int i)
+            {
+                return i > 0;
+            }
+            public void exception()
+            {
+                throw new Exception("哦艹");
+            }
+            public void delay(int msec)
+            {
+                Thread.Sleep(msec);
+            }
+        }
+        private static WaitUntil waitTask(Task task)
+        {
+            return new WaitUntil(() => task.IsCompleted || task.IsCanceled || task.IsFaulted);
+        }
+        [UnityTest]
+        public IEnumerator invokeAllTest()
+        {
+            createHostClient12(out var host, out var client1, out var client2);
+
+            host.timeout = 1;
+            client1.addInvokeTarget(new InvokeTarget());
+            client2.addInvokeTarget(new InvokeTarget());
+
+            Task task = client1.join(host.ip, host.port);
+            yield return waitTask(task);
+            task = client2.join(host.ip, host.port);
+            yield return waitTask(task);
+            task = host.invokeAll<bool>(new int[] { client1.id, client2.id }, nameof(InvokeTarget.method), 1);
+            yield return waitTask(task);
+            Dictionary<int, bool> result = (task as Task<Dictionary<int, bool>>).Result;
+            Assert.AreEqual(2, result.Count);
+            Assert.True(result[client1.id]);
+            Assert.True(result[client2.id]);
         }
     }
 }
