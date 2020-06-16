@@ -202,22 +202,44 @@ namespace TouhouCardEngine
             {
                 var item = _requestList[i];
                 var request = item.request;
-                if (request.playersId.Contains(playerId) &&//问了这个玩家
-                    (request.isAny || !item.responseDic.Any(r => r.Key == playerId)) &&//如果是面对所有玩家的请求，那么玩家不能回应过
-                    (item.responseFilter == null || item.responseFilter(response)) &&//如果有条件，那么要满足条件
-                    request.isValidResponse(response))//是合法的回应
+                if (!request.playersId.Contains(playerId))//问了这个玩家
+                    continue;
+                if (request.isAny && item.responseDic.Any(r => r.Key == playerId))//如果是面对所有玩家的请求，那么玩家不能回应过
+                    continue;
+                if (item.responseFilter != null && !item.responseFilter(response))//如果有条件，那么要满足条件
+                    continue;
+                if (!request.isValidResponse(response))//是合法的回应
+                    continue;
+
+                game?.logger?.log("Answer", "玩家" + playerId + "回应请求" + request);
+                response.remainedTime = item.remainedTime;
+                if (request.isAny)
                 {
-                    game?.logger?.log("Answer", "玩家" + playerId + "回应请求" + request);
-                    response.remainedTime = item.remainedTime;
-                    if (request.isAny)
+                    _requestList.Remove(item);
+                    try
+                    {
+                        item.tcs.SetResult(new Dictionary<int, IResponse>()
+                            {
+                                { playerId, response }
+                            });
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(response + "回应" + request + "发生异常：" + e);
+                        return false;
+                    }
+                    onResponse?.Invoke(response);
+                    return true;
+                }
+                else
+                {
+                    item.responseDic.Add(playerId, response);
+                    if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
                     {
                         _requestList.Remove(item);
                         try
                         {
-                            item.tcs.SetResult(new Dictionary<int, IResponse>()
-                            {
-                                { playerId, response }
-                            });
+                            item.tcs.SetResult(item.responseDic);
                         }
                         catch (Exception e)
                         {
@@ -229,27 +251,8 @@ namespace TouhouCardEngine
                     }
                     else
                     {
-                        item.responseDic.Add(playerId, response);
-                        if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
-                        {
-                            _requestList.Remove(item);
-                            try
-                            {
-                                item.tcs.SetResult(item.responseDic);
-                            }
-                            catch (Exception e)
-                            {
-                                Debug.LogError(response + "回应" + request + "发生异常：" + e);
-                                return false;
-                            }
-                            onResponse?.Invoke(response);
-                            return true;
-                        }
-                        else
-                        {
-                            onResponse?.Invoke(response);
-                            return true;
-                        }
+                        onResponse?.Invoke(response);
+                        return true;
                     }
                 }
             }

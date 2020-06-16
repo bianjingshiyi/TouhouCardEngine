@@ -476,9 +476,9 @@ namespace Tests
 
             bool updateTrigger = false;
 
-            client1.onRoomInfoUpdate += (r) =>
+            client1.onRoomInfoUpdate += (before, now) =>
             {
-                Assert.True(r.playerList.Where(p => p.name == playerInfo2.name).Count() > 0);
+                Assert.True(now.playerList.Where(p => p.name == playerInfo2.name).Count() > 0);
                 updateTrigger = true;
             };
 

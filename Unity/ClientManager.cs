@@ -295,8 +295,8 @@ namespace TouhouCardEngine
                     info = parseRoomInfo(peer.EndPoint, reader);
                     if (info != null)
                     {
+                        onRoomInfoUpdate?.Invoke(roomInfo, info);
                         roomInfo = info;
-                        onRoomInfoUpdate?.Invoke(info);
                     }
                     logger?.log($"客户端 {this.id} 收到了主机的房间更新信息。当前房间人数: {info?.playerList?.Count}");
                     break;
@@ -687,7 +687,8 @@ namespace TouhouCardEngine
         {
             get; private set;
         }
-        public event Action<RoomInfo> onRoomInfoUpdate;
+        public delegate void RoomInfoUpdateDelegate(RoomInfo now, RoomInfo updated);
+        public event RoomInfoUpdateDelegate onRoomInfoUpdate;
         public void quitRoom()
         {
             host.Disconnect();
