@@ -123,6 +123,8 @@ namespace TouhouCardEngine
             {
                 pid = peer.Id,
                 rid = ++_lastInvokeId,
+                method = method,
+                args = args,
                 tcs = new TaskCompletionSource<T>()
             };
             _invokeList.Add(invoke);
@@ -171,6 +173,8 @@ namespace TouhouCardEngine
         {
             public int rid;
             public int pid;
+            public string method;
+            public object[] args;
             public abstract void setResult(object obj);
             public abstract void setException(Exception e);
             public abstract void setCancel();
@@ -223,12 +227,12 @@ namespace TouhouCardEngine
                                 _invokeList.Remove(invoke);
                                 if (obj is Exception e)
                                 {
-                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "在客户端发生异常：" + e);
+                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}在客户端发生异常：" + e);
                                     invoke.setException(e);
                                 }
                                 else
                                 {
-                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为" + obj);
+                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}返回为" + obj);
                                     invoke.setResult(obj);
                                 }
                             }
@@ -244,7 +248,7 @@ namespace TouhouCardEngine
                                 break;
                             }
                             _invokeList.Remove(invoke);
-                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为null");
+                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}返回为null");
                             invoke.setResult(null);
                         }
                     }
@@ -329,7 +333,7 @@ namespace TouhouCardEngine
         }
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            logger?.log("客主机与客户端" + peer.Id + "断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
+            logger?.log("主机与客户端" + peer.Id + "断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
             // 处理房间问题
             var infos = currentRoom?.playerList.Where(c => c.id == peer.Id);
             if (infos != null && infos.Count() > 0)
@@ -464,7 +468,7 @@ namespace TouhouCardEngine
         }
         public void setProp(string name, object value)
         {
-            propJsonDic.Add(name, new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson()));
+            propJsonDic[name] = new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson());
         }
         [NonSerialized]
         Dictionary<string, object> cacheDic = new Dictionary<string, object>();

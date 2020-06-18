@@ -286,8 +286,8 @@ namespace TouhouCardEngine
                     var info = parseRoomInfo(peer.EndPoint, reader);
                     if (info != null)
                     {
+                        logger?.log($"客户端 {id} 收到了主机的加入响应：" + info.ToJson());
                         roomInfo = info;
-                        logger?.log($"客户端 {this.id} 收到了主机的加入响应。当前房间人数: {info?.playerList?.Count}");
                         onJoinRoom?.Invoke(info);
                     }
                     break;
@@ -295,10 +295,10 @@ namespace TouhouCardEngine
                     info = parseRoomInfo(peer.EndPoint, reader);
                     if (info != null)
                     {
+                        logger?.log($"客户端 {id} 收到了主机的房间更新信息：" + info.ToJson());
                         onRoomInfoUpdate?.Invoke(roomInfo, info);
                         roomInfo = info;
                     }
-                    logger?.log($"客户端 {this.id} 收到了主机的房间更新信息。当前房间人数: {info?.playerList?.Count}");
                     break;
                 case PacketType.invokeRequest:
                     try
@@ -345,9 +345,23 @@ namespace TouhouCardEngine
                                     args[i] = null;
                             }
                             logger?.log("客户端" + this.id + "执行来自主机的远程调用" + rid + "，方法：" + methodName + "，参数：" + string.Join("，", args));
-                            if (!tryInvoke(returnType, methodName, args, out result))
+                            try
                             {
-                                throw new MissingMethodException("无法找到方法：" + returnTypeName + " " + methodName + "(" + string.Join(",", args.Select(a => a.GetType().Name)) + ")");
+                                if (!tryInvoke(returnType, methodName, args, out result))
+                                {
+                                    throw new MissingMethodException("无法找到方法：" + returnTypeName + " " + methodName + "(" + string.Join(",", args.Select(a => a.GetType().Name)) + ")");
+                                }
+                            }
+                            catch (Exception invokeException)
+                            {
+                                writer.Put((int)PacketType.invokeResponse);
+                                writer.Put(rid);
+                                writer.Put(invokeException.GetType().FullName);
+                                string exceptionJson = invokeException.ToJson();
+                                writer.Put(exceptionJson);
+                                peer.Send(writer, DeliveryMethod.ReliableOrdered);
+                                logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "{" + methodName + "(" + string.Join(",", args) + ")}发生异常：" + invokeException);
+                                break;
                             }
                         }
                         catch (Exception e)
@@ -358,7 +372,7 @@ namespace TouhouCardEngine
                             string exceptionJson = e.ToJson();
                             writer.Put(exceptionJson);
                             peer.Send(writer, DeliveryMethod.ReliableOrdered);
-                            logger?.log("客户端" + this.id + "执行来自主机的远程调用" + rid + "发生异常：" + e);
+                            logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "发生异常：" + e);
                             break;
                         }
                         writer.Put((int)PacketType.invokeResponse);
@@ -691,7 +705,8 @@ namespace TouhouCardEngine
         public event RoomInfoUpdateDelegate onRoomInfoUpdate;
         public void quitRoom()
         {
-            host.Disconnect();
+            if (host != null)
+                host.Disconnect();
         }
         #endregion
     }
