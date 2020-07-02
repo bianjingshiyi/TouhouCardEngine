@@ -6,8 +6,8 @@ namespace TouhouCardEngine.Interfaces
     public interface IEffect
     {
         string[] piles { get; }
-        void register(IGame game, ICard card);
-        void unregister(IGame game, ICard card);
+        void onEnable(IGame game, ICard card);
+        void onDisable(IGame game, ICard card);
     }
     public interface ITriggerEffect : IEffect
     {

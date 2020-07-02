@@ -32,7 +32,7 @@ namespace TouhouCardEngine
             foreach (IEffect effect in card.define.effects)
             {
                 if (effect.piles.Contains(name))
-                    effect.register(game, card);
+                    effect.onEnable(game, card);
             }
             card.pile = this;
             card.owner = owner;
@@ -43,7 +43,7 @@ namespace TouhouCardEngine
             foreach (IEffect effect in card.define.effects)
             {
                 if (effect.piles.Contains(name))
-                    effect.register(game, card);
+                    effect.onEnable(game, card);
             }
             card.pile = this;
             card.owner = owner;
@@ -61,13 +61,13 @@ namespace TouhouCardEngine
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(name))
-                        effect.unregister(game, card);
+                        effect.onDisable(game, card);
                 }
                 targetPile.cardList.Insert(position, card);
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(targetPile.name))
-                        effect.register(game, card);
+                        effect.onEnable(game, card);
                 }
                 card.pile = targetPile;
                 card.owner = targetPile.owner;
@@ -87,7 +87,7 @@ namespace TouhouCardEngine
                     foreach (IEffect effect in card.define.effects)
                     {
                         if (effect.piles.Contains(name))
-                            effect.unregister(game, card);
+                            effect.onDisable(game, card);
                     }
                     removedCardList.Add(card);
                 }
@@ -98,7 +98,7 @@ namespace TouhouCardEngine
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(targetPile.name))
-                        effect.register(game, card);
+                        effect.onEnable(game, card);
                 }
                 card.pile = targetPile;
                 card.owner = targetPile.owner;
@@ -124,18 +124,18 @@ namespace TouhouCardEngine
                     foreach (IEffect effect in this[originIndex].define.effects)
                     {
                         if (effect.piles.Contains(name))
-                            effect.unregister(game, this[originIndex]);
+                            effect.onDisable(game, this[originIndex]);
                     }
                     this[originIndex] = replacedCards[i];
                     foreach (IEffect effect in this[originIndex].define.effects)
                     {
                         if (effect.piles.Contains(name))
-                            effect.register(game, this[originIndex]);
+                            effect.onEnable(game, this[originIndex]);
                     }
                     foreach (IEffect effect in replacedCards[i].pile[replaceIndex].define.effects)
                     {
                         if (effect.piles.Contains(replacedCards[i].pile.name))
-                            effect.unregister(game, replacedCards[i].pile[replaceIndex]);
+                            effect.onDisable(game, replacedCards[i].pile[replaceIndex]);
                     }
                     replacedCards[i].pile[replaceIndex] = originalCards[i];
 
@@ -168,7 +168,7 @@ namespace TouhouCardEngine
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(pile.name))
-                        effect.register(engine, card);
+                        effect.onEnable(engine, card);
                 }
             }
             for (int i = 0; i < indexArray.Length; i++)
@@ -180,14 +180,14 @@ namespace TouhouCardEngine
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(name))
-                        effect.register(engine, card);
+                        effect.onEnable(engine, card);
                 }
                 //并将其从牌堆中移除
                 pile.cardList.RemoveAt(targetIndex);
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(pile.name))
-                        effect.unregister(engine, card);
+                        effect.onDisable(engine, card);
                 }
             }
             return indexArray.Select(i => cardList[i]).ToArray();
@@ -199,7 +199,7 @@ namespace TouhouCardEngine
                 foreach (IEffect effect in card.define.effects)
                 {
                     if (effect.piles.Contains(name))
-                        effect.unregister(game, card);
+                        effect.onDisable(game, card);
                 }
             }
         }
