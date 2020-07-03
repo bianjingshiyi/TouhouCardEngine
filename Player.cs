@@ -57,6 +57,7 @@ namespace TouhouCardEngine
         }
         public void addPile(Pile pile)
         {
+            pileList.Add(pile);
             pile.owner = this;
             foreach (Card card in pile)
             {

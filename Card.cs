@@ -33,6 +33,10 @@ namespace TouhouCardEngine
         List<PropModifier> modifierList { get; } = new List<PropModifier>();
         List<Buff> buffList { get; } = new List<Buff>();
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
+        public Card()
+        {
+
+        }
         public Card(CardDefine define)
         {
             if (define != null)

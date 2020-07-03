@@ -141,6 +141,10 @@ namespace TouhouCardEngine
         {
             register(getNameAfter<T>(), trigger);
         }
+        public void registerAfter<T>(Trigger<T> trigger) where T : IEventArg
+        {
+            registerAfter(trigger as ITrigger<T>);
+        }
         public bool removeBefore<T>(ITrigger<T> trigger) where T : IEventArg
         {
             return remove(getNameBefore<T>(), trigger);

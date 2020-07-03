@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Interfaces;
-
+using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
     /// <summary>
@@ -15,63 +15,123 @@ namespace TouhouCardEngine
         public string name { get; } = null;
         public Player owner { get; internal set; } = null;
         public int maxCount { get; set; }
-        public Pile(IGame game, string name = null, Card[] cards = null, int maxCount = -1)
+        public Pile(IGame game, string name = null, int maxCount = -1)
         {
             this.name = name;
             this.maxCount = maxCount;
-            if (cards == null)
-                return;
-            foreach (Card card in cards)
+        }
+        public Task add(IGame game, Card card)
+        {
+            return insert(game, card, cardList.Count);
+        }
+        public async Task add(IGame game, IEnumerable<Card> cards)
+        {
+            foreach (var card in cards)
             {
-                add(game, card);
+                await add(game, card);
             }
         }
-        public void add(IGame game, Card card)
+        public Task insert(IGame game, Card card, int position)
         {
-            cardList.Add(card);
-            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-            {
-                if (effect.piles.Contains(name))
-                    effect.onEnable(game, card);
-            }
-            card.pile = this;
-            card.owner = owner;
-        }
-        public void insert(IGame game, Card card, int position)
-        {
-            cardList.Insert(position, card);
-            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-            {
-                if (effect.piles.Contains(name))
-                    effect.onEnable(game, card);
-            }
-            card.pile = this;
-            card.owner = owner;
+            return moveTo(game, card, null, this, position);
         }
         /// <summary>
         /// 将位于该牌堆中的一张牌移动到其他的牌堆中。
         /// </summary>
         /// <param name="card"></param>
-        /// <param name="targetPile"></param>
+        /// <param name="to"></param>
         /// <param name="position"></param>
-        public void moveTo(IGame game, Card card, Pile targetPile, int position)
+        public Task moveTo(IGame game, Card card, Pile to, int position)
         {
-            if (cardList.Remove(card))
+            return moveTo(game, card, this, to, position);
+        }
+        public Task moveTo(IGame game, Card card, Pile from, Pile to, int position)
+        {
+            if (game != null)
+                return game.triggers.doEvent(new MoveCardEventArg() { from = this, to = to, card = card, position = position }, arg =>
+                {
+                    from = arg.from;
+                    to = arg.to;
+                    card = arg.card;
+                    position = arg.position;
+                    if (from != null)
+                    {
+                        if (from.cardList.Remove(card))
+                        {
+                            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                            {
+                                if (effect.piles.Contains(from.name))
+                                    effect.onDisable(game, card);
+                            }
+                            if (position < 0)
+                                position = 0;
+                            if (position < to.cardList.Count)
+                                to.cardList.Insert(position, card);
+                            else
+                                to.cardList.Add(card);
+                            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                            {
+                                if (effect.piles.Contains(to.name))
+                                    effect.onEnable(game, card);
+                            }
+                            card.pile = to;
+                            card.owner = to.owner;
+                        }
+                    }
+                    else
+                    {
+                        if (position < 0)
+                            position = 0;
+                        if (position < to.cardList.Count)
+                            to.cardList.Insert(position, card);
+                        else
+                            to.cardList.Add(card);
+                        foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                        {
+                            if (effect.piles.Contains(to.name))
+                                effect.onEnable(game, card);
+                        }
+                        card.pile = to;
+                        card.owner = to.owner;
+                    }
+                    return Task.CompletedTask;
+                });
+            else
             {
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                if (from != null)
                 {
-                    if (effect.piles.Contains(name))
-                        effect.onDisable(game, card);
+                    if (from.cardList.Remove(card))
+                    {
+                        if (position < 0)
+                            position = 0;
+                        if (position < to.cardList.Count)
+                            to.cardList.Insert(position, card);
+                        else
+                            to.cardList.Add(card);
+                        card.pile = to;
+                        card.owner = to.owner;
+                    }
                 }
-                targetPile.cardList.Insert(position, card);
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                else
                 {
-                    if (effect.piles.Contains(targetPile.name))
-                        effect.onEnable(game, card);
+                    if (position < 0)
+                        position = 0;
+                    if (position < to.cardList.Count)
+                        to.cardList.Insert(position, card);
+                    else
+                        to.cardList.Add(card);
+                    card.pile = to;
+                    card.owner = to.owner;
                 }
-                card.pile = targetPile;
-                card.owner = targetPile.owner;
+                return Task.CompletedTask;
             }
+        }
+        public class MoveCardEventArg : EventArg
+        {
+            public Pile from;
+            public Pile to;
+            public Card card;
+            public int position;
         }
         public void moveTo(IGame game, Card card, Pile targetPile)
         {
@@ -79,29 +139,9 @@ namespace TouhouCardEngine
         }
         public void moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile, int position)
         {
-            List<Card> removedCardList = new List<Card>();
-            foreach (Card card in cards)
+            foreach (var card in cards.Reverse())
             {
-                if (cardList.Remove(card))
-                {
-                    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                    {
-                        if (effect.piles.Contains(name))
-                            effect.onDisable(game, card);
-                    }
-                    removedCardList.Add(card);
-                }
-            }
-            targetPile.cardList.InsertRange(position, removedCardList);
-            foreach (Card card in removedCardList)
-            {
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                {
-                    if (effect.piles.Contains(targetPile.name))
-                        effect.onEnable(game, card);
-                }
-                card.pile = targetPile;
-                card.owner = targetPile.owner;
+                moveTo(game, card, this, targetPile, position);
             }
         }
         /// <summary>
