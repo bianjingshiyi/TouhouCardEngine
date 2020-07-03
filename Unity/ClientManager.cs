@@ -516,7 +516,8 @@ namespace TouhouCardEngine
         {
             if (tcs != null)
             {
-                tcs.SetCanceled();
+                if (!tcs.Task.IsCompleted && !tcs.Task.IsCanceled && !tcs.Task.IsFaulted)
+                    tcs.SetCanceled();
                 tcs = null;
             }
             if (host != null)
@@ -530,7 +531,8 @@ namespace TouhouCardEngine
             logger?.log("客户端" + id + "与主机断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
             if (tcs != null)
             {
-                tcs.SetCanceled();
+                if (!tcs.Task.IsCompleted && !tcs.Task.IsCanceled && !tcs.Task.IsFaulted)
+                    tcs.SetCanceled();
                 tcs = null;
             }
             host = null;

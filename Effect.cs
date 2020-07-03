@@ -34,7 +34,7 @@ namespace TouhouCardEngine
     /// <summary>
     /// 效果
     /// </summary>
-    public abstract class Effect : IActiveEffect
+    public abstract class Effect : ITriggerEffect
     {
         /// <summary>
         /// 效果的作用时机
@@ -61,7 +61,7 @@ namespace TouhouCardEngine
         /// 效果的作用域
         /// </summary>
         public abstract string pile { get; }
-        string[] IEffect.piles
+        string[] IPassiveEffect.piles
         {
             get { return new string[] { pile }; }
         }
@@ -86,7 +86,7 @@ namespace TouhouCardEngine
         /// <param name="targets"></param>
         /// <returns></returns>
         public abstract bool checkTargets(CardEngine engine, Player player, Card card, object[] targets);
-        bool IActiveEffect.checkTarget(IGame game, ICard card, object[] vars, object[] targets)
+        bool ITriggerEffect.checkTargets(IGame game, ICard card, object[] vars, object[] targets)
         {
             return checkTargets(game as CardEngine, null, card as Card, targets);
         }

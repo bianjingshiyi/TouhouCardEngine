@@ -29,7 +29,7 @@ namespace TouhouCardEngine
         public void add(IGame game, Card card)
         {
             cardList.Add(card);
-            foreach (IEffect effect in card.define.effects)
+            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
             {
                 if (effect.piles.Contains(name))
                     effect.onEnable(game, card);
@@ -40,7 +40,7 @@ namespace TouhouCardEngine
         public void insert(IGame game, Card card, int position)
         {
             cardList.Insert(position, card);
-            foreach (IEffect effect in card.define.effects)
+            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
             {
                 if (effect.piles.Contains(name))
                     effect.onEnable(game, card);
@@ -58,13 +58,13 @@ namespace TouhouCardEngine
         {
             if (cardList.Remove(card))
             {
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(name))
                         effect.onDisable(game, card);
                 }
                 targetPile.cardList.Insert(position, card);
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(targetPile.name))
                         effect.onEnable(game, card);
@@ -84,7 +84,7 @@ namespace TouhouCardEngine
             {
                 if (cardList.Remove(card))
                 {
-                    foreach (IEffect effect in card.define.effects)
+                    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                     {
                         if (effect.piles.Contains(name))
                             effect.onDisable(game, card);
@@ -95,7 +95,7 @@ namespace TouhouCardEngine
             targetPile.cardList.InsertRange(position, removedCardList);
             foreach (Card card in removedCardList)
             {
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(targetPile.name))
                         effect.onEnable(game, card);
@@ -121,18 +121,18 @@ namespace TouhouCardEngine
                 else
                 {
                     int replaceIndex = replacedCards[i].pile.indexOf(replacedCards[i]);
-                    foreach (IEffect effect in this[originIndex].define.effects)
+                    foreach (IPassiveEffect effect in this[originIndex].define.effects.OfType<IPassiveEffect>())
                     {
                         if (effect.piles.Contains(name))
                             effect.onDisable(game, this[originIndex]);
                     }
                     this[originIndex] = replacedCards[i];
-                    foreach (IEffect effect in this[originIndex].define.effects)
+                    foreach (IPassiveEffect effect in this[originIndex].define.effects.OfType<IPassiveEffect>())
                     {
                         if (effect.piles.Contains(name))
                             effect.onEnable(game, this[originIndex]);
                     }
-                    foreach (IEffect effect in replacedCards[i].pile[replaceIndex].define.effects)
+                    foreach (IPassiveEffect effect in replacedCards[i].pile[replaceIndex].define.effects.OfType<IPassiveEffect>())
                     {
                         if (effect.piles.Contains(replacedCards[i].pile.name))
                             effect.onDisable(game, replacedCards[i].pile[replaceIndex]);
@@ -165,7 +165,7 @@ namespace TouhouCardEngine
                     throw new IndexOutOfRangeException(this + "中不存在" + card + "，" + this + "：" + string.Join("，", cardList));
                 //把牌放回去
                 pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), card);
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(pile.name))
                         effect.onEnable(engine, card);
@@ -177,14 +177,14 @@ namespace TouhouCardEngine
                 int targetIndex = engine.randomInt(0, pile.count - 1);
                 cardList[indexArray[i]] = pile.cardList[targetIndex];
                 Card card = cardList[indexArray[i]];
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(name))
                         effect.onEnable(engine, card);
                 }
                 //并将其从牌堆中移除
                 pile.cardList.RemoveAt(targetIndex);
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(pile.name))
                         effect.onDisable(engine, card);
@@ -196,7 +196,7 @@ namespace TouhouCardEngine
         {
             if (cardList.Remove(card))
             {
-                foreach (IEffect effect in card.define.effects)
+                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                 {
                     if (effect.piles.Contains(name))
                         effect.onDisable(game, card);
@@ -254,6 +254,10 @@ namespace TouhouCardEngine
                     cardList[startIndex + i] = value[i];
                 }
             }
+        }
+        public Card getCard<T>() where T : CardDefine
+        {
+            return cardList.FirstOrDefault(c => c.define is T);
         }
         public IEnumerator<Card> GetEnumerator()
         {

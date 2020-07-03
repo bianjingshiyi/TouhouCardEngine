@@ -35,6 +35,10 @@ namespace TouhouCardEngine
         /// <param name="newVersion"></param>
         public abstract void merge(CardDefine newVersion);
         public abstract string isUsable(CardEngine engine, Player player, Card card);
+        public IActiveEffect getActiveEffect()
+        {
+            return effects.FirstOrDefault(e => e is IActiveEffect) as IActiveEffect;
+        }
         public ITriggerEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
         {
             return effects.FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getName<T>())) as ITriggerEffect;

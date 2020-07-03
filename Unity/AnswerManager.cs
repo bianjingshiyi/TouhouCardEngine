@@ -188,6 +188,12 @@ namespace TouhouCardEngine
             else
                 return null;
         }
+        /// <summary>
+        /// 玩家对当前的请求作出回应，返回这个回应是否生效了。
+        /// </summary>
+        /// <param name="playerId"></param>
+        /// <param name="response"></param>
+        /// <returns></returns>
         public Task<bool> answer(int playerId, IResponse response)
         {
             return answer(playerId, response, client);
