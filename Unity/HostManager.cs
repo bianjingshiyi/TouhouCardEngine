@@ -30,6 +30,10 @@ namespace TouhouCardEngine
         }
         public string ip => Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString();
 
+        public string[] ips => Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(ip => ip.AddressFamily == AddressFamily.InterNetwork).Select(i => i.ToString()).ToArray();
+
+        public string[] addresses => ips.Select(i => i + ":" + port).ToArray();
+
         [SerializeField]
         bool _autoStart = false;
         public bool autoStart
@@ -388,7 +392,7 @@ namespace TouhouCardEngine
             currentRoom = roomInfo;
             if (!net.IsRunning)
             {
-                start();
+                start(roomInfo.port);
             }
             roomInfo.ip = ip;
             roomInfo.port = port;
