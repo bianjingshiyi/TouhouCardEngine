@@ -12,6 +12,15 @@ namespace TouhouCardEngine
         {
             this.modifiers = modifiers;
         }
+        GeneratedBuff(GeneratedBuff origin)
+        {
+            id = origin.id;
+            modifiers = origin.modifiers;
+        }
+        public override Buff clone()
+        {
+            return new GeneratedBuff(this);
+        }
     }
     [Serializable]
     public class Card : ICard

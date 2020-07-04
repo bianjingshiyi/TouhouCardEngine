@@ -45,10 +45,10 @@ namespace TouhouCardEngine
         {
             return moveTo(game, card, this, to, position);
         }
-        public Task moveTo(IGame game, Card card, Pile from, Pile to, int position)
+        public static Task moveTo(IGame game, Card card, Pile from, Pile to, int position)
         {
             if (game != null)
-                return game.triggers.doEvent(new MoveCardEventArg() { from = this, to = to, card = card, position = position }, arg =>
+                return game.triggers.doEvent(new MoveCardEventArg() { from = from, to = to, card = card, position = position }, arg =>
                 {
                     from = arg.from;
                     to = arg.to;
@@ -63,6 +63,33 @@ namespace TouhouCardEngine
                                 if (effect.piles.Contains(from.name))
                                     effect.onDisable(game, card);
                             }
+                            if (to != null)
+                            {
+                                if (position < 0)
+                                    position = 0;
+                                if (position < to.cardList.Count)
+                                    to.cardList.Insert(position, card);
+                                else
+                                    to.cardList.Add(card);
+                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                {
+                                    if (effect.piles.Contains(to.name))
+                                        effect.onEnable(game, card);
+                                }
+                                card.pile = to;
+                                card.owner = to.owner;
+                            }
+                            else
+                            {
+                                card.pile = null;
+                                card.owner = null;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (to != null)
+                        {
                             if (position < 0)
                                 position = 0;
                             if (position < to.cardList.Count)
@@ -77,22 +104,11 @@ namespace TouhouCardEngine
                             card.pile = to;
                             card.owner = to.owner;
                         }
-                    }
-                    else
-                    {
-                        if (position < 0)
-                            position = 0;
-                        if (position < to.cardList.Count)
-                            to.cardList.Insert(position, card);
                         else
-                            to.cardList.Add(card);
-                        foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                         {
-                            if (effect.piles.Contains(to.name))
-                                effect.onEnable(game, card);
+                            card.pile = null;
+                            card.owner = null;
                         }
-                        card.pile = to;
-                        card.owner = to.owner;
                     }
                     return Task.CompletedTask;
                 });
@@ -102,6 +118,28 @@ namespace TouhouCardEngine
                 {
                     if (from.cardList.Remove(card))
                     {
+                        if (to != null)
+                        {
+                            if (position < 0)
+                                position = 0;
+                            if (position < to.cardList.Count)
+                                to.cardList.Insert(position, card);
+                            else
+                                to.cardList.Add(card);
+                            card.pile = to;
+                            card.owner = to.owner;
+                        }
+                        else
+                        {
+                            card.pile = null;
+                            card.owner = null;
+                        }
+                    }
+                }
+                else
+                {
+                    if (to != null)
+                    {
                         if (position < 0)
                             position = 0;
                         if (position < to.cardList.Count)
@@ -111,17 +149,11 @@ namespace TouhouCardEngine
                         card.pile = to;
                         card.owner = to.owner;
                     }
-                }
-                else
-                {
-                    if (position < 0)
-                        position = 0;
-                    if (position < to.cardList.Count)
-                        to.cardList.Insert(position, card);
                     else
-                        to.cardList.Add(card);
-                    card.pile = to;
-                    card.owner = to.owner;
+                    {
+                        card.pile = null;
+                        card.owner = null;
+                    }
                 }
                 return Task.CompletedTask;
             }
@@ -133,9 +165,9 @@ namespace TouhouCardEngine
             public Card card;
             public int position;
         }
-        public void moveTo(IGame game, Card card, Pile targetPile)
+        public Task moveTo(IGame game, Card card, Pile targetPile)
         {
-            moveTo(game, card, targetPile, targetPile.count);
+            return moveTo(game, card, this, targetPile, targetPile.count);
         }
         public void moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile, int position)
         {
@@ -144,47 +176,12 @@ namespace TouhouCardEngine
                 moveTo(game, card, this, targetPile, position);
             }
         }
-        /// <summary>
-        /// 将该牌堆中的一些卡换成其他牌堆中的另一些卡。
-        /// </summary>
-        /// <param name="originalCards"></param>
-        /// <param name="replacedCards"></param>
-        public void replace(IGame game, Card[] originalCards, Card[] replacedCards)
+        public async Task replace(IGame game, Card origin, Card target)
         {
-            if (originalCards.Length != replacedCards.Length)
-                throw new IndexOutOfRangeException("originalCards与replacedCards数量不一致");
-            for (int i = 0; i < originalCards.Length; i++)
-            {
-                int originIndex = indexOf(originalCards[i]);
-                if (originIndex < 0)
-                    throw new InvalidOperationException(originalCards[i] + "不在" + this + "中");
-                else
-                {
-                    int replaceIndex = replacedCards[i].pile.indexOf(replacedCards[i]);
-                    foreach (IPassiveEffect effect in this[originIndex].define.effects.OfType<IPassiveEffect>())
-                    {
-                        if (effect.piles.Contains(name))
-                            effect.onDisable(game, this[originIndex]);
-                    }
-                    this[originIndex] = replacedCards[i];
-                    foreach (IPassiveEffect effect in this[originIndex].define.effects.OfType<IPassiveEffect>())
-                    {
-                        if (effect.piles.Contains(name))
-                            effect.onEnable(game, this[originIndex]);
-                    }
-                    foreach (IPassiveEffect effect in replacedCards[i].pile[replaceIndex].define.effects.OfType<IPassiveEffect>())
-                    {
-                        if (effect.piles.Contains(replacedCards[i].pile.name))
-                            effect.onDisable(game, replacedCards[i].pile[replaceIndex]);
-                    }
-                    replacedCards[i].pile[replaceIndex] = originalCards[i];
-
-                    originalCards[i].pile = replacedCards[i].pile;
-                    originalCards[i].owner = replacedCards[i].pile.owner;
-                    replacedCards[i].pile = this;
-                    replacedCards[i].owner = owner;
-                }
-            }
+            int originIndex = indexOf(origin);
+            int targetIndex = target.pile.indexOf(target);
+            await moveTo(game, origin, this, target.pile, targetIndex);
+            await moveTo(game, target, target.pile, this, originIndex);
         }
         /// <summary>
         /// 将牌堆中的一些牌与目标牌堆中随机的一些牌相替换。
@@ -193,55 +190,63 @@ namespace TouhouCardEngine
         /// <param name="originalCards">要进行替换的卡牌</param>
         /// <param name="pile">目标牌堆</param>
         /// <returns>返回替换原有卡牌的卡牌数组，顺序与替换的顺序相同</returns>
-        public Card[] replaceByRandom(CardEngine engine, Card[] originalCards, Pile pile)
+        public async Task<Card[]> replaceByRandom(CardEngine engine, Card[] originalCards, Pile pile)
         {
-            int[] indexArray = new int[originalCards.Length];
+            Card[] replaced = new Card[originalCards.Length];
             for (int i = 0; i < originalCards.Length; i++)
             {
-                //记录当前牌堆中的空位
-                Card card = originalCards[i];
-                indexArray[i] = indexOf(card);
-                if (indexArray[i] < 0)
-                    throw new IndexOutOfRangeException(this + "中不存在" + card + "，" + this + "：" + string.Join("，", cardList));
-                //把牌放回去
-                pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), card);
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                {
-                    if (effect.piles.Contains(pile.name))
-                        effect.onEnable(engine, card);
-                }
+                replaced[i] = pile.getCardByRandom(engine);
+                await replace(engine, originalCards[i], replaced[i]);
             }
-            for (int i = 0; i < indexArray.Length; i++)
-            {
-                //将牌堆中的随机卡片填入空位
-                int targetIndex = engine.randomInt(0, pile.count - 1);
-                cardList[indexArray[i]] = pile.cardList[targetIndex];
-                Card card = cardList[indexArray[i]];
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                {
-                    if (effect.piles.Contains(name))
-                        effect.onEnable(engine, card);
-                }
-                //并将其从牌堆中移除
-                pile.cardList.RemoveAt(targetIndex);
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                {
-                    if (effect.piles.Contains(pile.name))
-                        effect.onDisable(engine, card);
-                }
-            }
-            return indexArray.Select(i => cardList[i]).ToArray();
+            return replaced;
+            //int[] indexArray = new int[originalCards.Length];
+            //for (int i = 0; i < originalCards.Length; i++)
+            //{
+            //    //记录当前牌堆中的空位
+            //    Card card = originalCards[i];
+            //    indexArray[i] = indexOf(card);
+            //    if (indexArray[i] < 0)
+            //        throw new IndexOutOfRangeException(this + "中不存在" + card + "，" + this + "：" + string.Join("，", cardList));
+            //    //把牌放回去
+            //    pile.cardList.Insert(engine.randomInt(0, pile.cardList.Count), card);
+            //    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+            //    {
+            //        if (effect.piles.Contains(pile.name))
+            //            effect.onEnable(engine, card);
+            //    }
+            //}
+            //for (int i = 0; i < indexArray.Length; i++)
+            //{
+            //    //将牌堆中的随机卡片填入空位
+            //    int targetIndex = engine.randomInt(0, pile.count - 1);
+            //    cardList[indexArray[i]] = pile.cardList[targetIndex];
+            //    Card card = cardList[indexArray[i]];
+            //    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+            //    {
+            //        if (effect.piles.Contains(name))
+            //            effect.onEnable(engine, card);
+            //    }
+            //    //并将其从牌堆中移除
+            //    pile.cardList.RemoveAt(targetIndex);
+            //    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+            //    {
+            //        if (effect.piles.Contains(pile.name))
+            //            effect.onDisable(engine, card);
+            //    }
+            //}
+            //return indexArray.Select(i => cardList[i]).ToArray();
         }
-        public void remove(IGame game, Card card)
+        public Task remove(IGame game, Card card)
         {
-            if (cardList.Remove(card))
-            {
-                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
-                {
-                    if (effect.piles.Contains(name))
-                        effect.onDisable(game, card);
-                }
-            }
+            return moveTo(game, card, this, null, 0);
+            //if (cardList.Remove(card))
+            //{
+            //    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+            //    {
+            //        if (effect.piles.Contains(name))
+            //            effect.onDisable(game, card);
+            //    }
+            //}
         }
         public void shuffle(CardEngine engine)
         {
@@ -258,12 +263,14 @@ namespace TouhouCardEngine
         /// </summary>
         public Card top
         {
-            get
-            {
-                if (cardList.Count < 1)
-                    return null;
-                return cardList[cardList.Count - 1];
-            }
+            get { return cardList.Count < 1 ? null : cardList[cardList.Count - 1]; }
+        }
+        /// <summary>
+        /// 牌堆最右边的那一张，也就是列表中的最后一张。
+        /// </summary>
+        public Card right
+        {
+            get { return cardList.Count < 1 ? null : cardList[cardList.Count - 1]; }
         }
         public int indexOf(Card card)
         {
@@ -298,6 +305,21 @@ namespace TouhouCardEngine
         public Card getCard<T>() where T : CardDefine
         {
             return cardList.FirstOrDefault(c => c.define is T);
+        }
+        public Card[] getCards<T>() where T : CardDefine
+        {
+            return cardList.Where(c => c.define is T).ToArray();
+        }
+        public Card getCardByRandom(IGame game)
+        {
+            if (cardList.Count < 1)
+                return null;
+            else if (cardList.Count == 1)
+                return cardList[0];
+            else
+            {
+                return cardList[game.randomInt(0, cardList.Count - 1)];
+            }
         }
         public IEnumerator<Card> GetEnumerator()
         {

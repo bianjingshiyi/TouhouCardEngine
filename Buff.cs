@@ -4,5 +4,6 @@
     {
         public abstract int id { get; }
         public abstract PropModifier[] modifiers { get; }
+        public abstract Buff clone();
     }
 }

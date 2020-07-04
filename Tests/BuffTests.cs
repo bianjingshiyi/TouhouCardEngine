@@ -27,8 +27,12 @@ namespace Tests
             public override int id { get; } = ID;
             public override PropModifier[] modifiers { get; } = new PropModifier[]
             {
-                new IntModifier("attack",1)
+                new IntPropModifier("attack",1)
             };
+            public override Buff clone()
+            {
+                return new TestBuff();
+            }
         }
     }
 }

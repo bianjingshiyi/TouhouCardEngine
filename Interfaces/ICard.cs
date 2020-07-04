@@ -6,6 +6,7 @@
         IAnswerManager answers { get; }
         ITimeManager time { get; }
         ILogger logger { get; }
+        int randomInt(int min, int max);
     }
     public interface IPlayer
     {
