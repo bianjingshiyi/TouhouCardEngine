@@ -8,8 +8,9 @@ namespace TouhouCardEngine
     {
         public override int id { get; } = 0;
         public override PropModifier[] modifiers { get; }
-        public GeneratedBuff(params PropModifier[] modifiers)
+        public GeneratedBuff(int id, params PropModifier[] modifiers)
         {
+            this.id = id;
             this.modifiers = modifiers;
         }
         GeneratedBuff(GeneratedBuff origin)
