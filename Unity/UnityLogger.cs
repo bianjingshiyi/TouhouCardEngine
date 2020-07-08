@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace TouhouCardEngine
 {
@@ -10,9 +11,14 @@ namespace TouhouCardEngine
             this.name = name;
         }
         public bool enable { get; set; } = true;
+
+        public List<string> blackList { get; set; } = new List<string>();
+
         public void log(string channel, string msg)
         {
             if (!enable)
+                return;
+            if (blackList.Contains(channel))
                 return;
             if (channel == "Debug")
                 Debug.Log((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
@@ -28,6 +34,38 @@ namespace TouhouCardEngine
             if (!enable)
                 return;
             log("Debug", msg);
+        }
+        public void logWarn(string msg)
+        {
+            logWarn(null, msg);
+        }
+        public void logWarn(string channel, string msg)
+        {
+            if (!enable)
+                return;
+            if (blackList.Contains(channel))
+                return;
+            if (string.IsNullOrEmpty(channel))
+                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+            else
+                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
+        }
+
+        public void logError(string msg)
+        {
+            logError(null, msg);
+        }
+
+        public void logError(string channel, string msg)
+        {
+            if (!enable)
+                return;
+            if (blackList.Contains(channel))
+                return;
+            if (string.IsNullOrEmpty(channel))
+                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+            else
+                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
         }
     }
 }
