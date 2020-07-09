@@ -13,7 +13,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Reflection;
 using System.Threading.Tasks;
-
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 namespace TouhouCardEngine
 {
     public class HostManager : MonoBehaviour, IHostManager, INetEventListener
@@ -264,11 +265,13 @@ namespace TouhouCardEngine
                 case PacketType.sendRequest:
                     try
                     {
+                        int rid = reader.GetInt();
                         int id = reader.GetInt();
                         string typeName = reader.GetString();
                         string json = reader.GetString();
                         NetDataWriter writer = new NetDataWriter();
                         writer.Put((int)PacketType.sendResponse);
+                        writer.Put(rid);
                         writer.Put(id);
                         writer.Put(typeName);
                         writer.Put(json);
@@ -286,8 +289,9 @@ namespace TouhouCardEngine
                 case PacketType.joinRequest:
                     try
                     {
-                        if (currentRoom == null)
+                        if (room == null)
                             break;
+                        int rid = reader.GetInt();
                         int id = reader.GetInt();
                         string typeName = reader.GetString();
                         string json = reader.GetString();
@@ -296,9 +300,9 @@ namespace TouhouCardEngine
                             object obj = BsonSerializer.Deserialize(json, objType);
                             if (obj is RoomPlayerInfo info)
                             {
-                                currentRoom.playerList.Add(info);
+                                room.playerList.Add(info);
                                 onPlayerJoin?.Invoke(info);
-                                logger?.log($"主机房间收到了客户端 {info.name} 的加入请求，当前人数 {currentRoom.playerList.Count}");
+                                logger?.log($"主机房间收到了客户端 {info.name} 的加入请求，当前人数 {room.playerList.Count}");
 
                                 NetDataWriter writer = RoomInfoUpdateWriter();
 
@@ -339,11 +343,11 @@ namespace TouhouCardEngine
         {
             logger?.log("主机与客户端" + peer.Id + "断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
             // 处理房间问题
-            var infos = currentRoom?.playerList.Where(c => c.id == peer.Id);
+            var infos = room?.playerList.Where(c => c.id == peer.Id);
             if (infos != null && infos.Count() > 0)
             {
                 var info = infos.First();
-                currentRoom.playerList.Remove(info);
+                room.playerList.Remove(info);
                 onPlayerQuit?.Invoke(info);
 
                 var writer = RoomInfoUpdateWriter();
@@ -368,7 +372,7 @@ namespace TouhouCardEngine
             {
                 case UnconnectedMessageType.Broadcast:
                 case UnconnectedMessageType.BasicMessage:
-                    if (currentRoom != null && reader.GetInt() == (int)PacketType.discoveryRequest)
+                    if (room != null && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
                         logger?.log($"主机房间收到了局域网发现请求或主机信息更新请求");
                         NetDataWriter writer = RoomInfoDiscoveryWriter(reader.GetUInt());
@@ -385,11 +389,16 @@ namespace TouhouCardEngine
             net.Stop();
         }
         #region Room
-
-        RoomInfo currentRoom = null;
+        [SerializeField]
+        RoomInfo _room = null;
+        public RoomInfo room
+        {
+            get { return _room; }
+            private set { _room = value; }
+        }
         public RoomInfo openRoom(RoomInfo roomInfo)
         {
-            currentRoom = roomInfo;
+            room = roomInfo;
             if (!net.IsRunning)
             {
                 start(roomInfo.port);
@@ -417,8 +426,8 @@ namespace TouhouCardEngine
 
         private void RoomInfoWriter(NetDataWriter writer)
         {
-            writer.Put(currentRoom.GetType().FullName);
-            writer.Put(currentRoom.ToJson());
+            writer.Put(room.GetType().FullName);
+            writer.Put(room.serialize().ToJson());
         }
         private NetDataWriter RoomInfoResponseWriter()
         {
@@ -433,7 +442,7 @@ namespace TouhouCardEngine
         /// <summary>
         /// 当前房间信息，在没有打开房间的情况下为空。
         /// </summary>
-        public RoomInfo roomInfo => currentRoom;
+        public RoomInfo roomInfo => room;
 
         /// <summary>
         /// 更新房间信息，会在Host保存最新的房间信息和将更新的房间信息发送给所有的Client
@@ -441,7 +450,7 @@ namespace TouhouCardEngine
         /// <param name="roomInfo"></param>
         public void updateRoomInfo(RoomInfo roomInfo)
         {
-            currentRoom = roomInfo;
+            room = roomInfo;
             var writer = RoomInfoUpdateWriter();
 
             foreach (var client in clientDic.Values)
@@ -453,7 +462,7 @@ namespace TouhouCardEngine
         public void closeRoom()
         {
             net.DisconnectAll();
-            currentRoom = null;
+            room = null;
         }
         #endregion
     }
@@ -463,7 +472,8 @@ namespace TouhouCardEngine
         public string ip;
         public int port;
         public List<RoomPlayerInfo> playerList = new List<RoomPlayerInfo>();
-        public Dictionary<string, KeyValuePair<string, string>> propJsonDic = new Dictionary<string, KeyValuePair<string, string>>();
+        [SerializeField]
+        List<string> _persistDataList = new List<string>();
         public bool isOne(RoomInfo other)
         {
             if (other == null)
@@ -472,38 +482,23 @@ namespace TouhouCardEngine
         }
         public void setProp(string name, object value)
         {
-            propJsonDic[name] = new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson());
+            runtimeDic[name] = value;
         }
         [NonSerialized]
-        Dictionary<string, object> cacheDic = new Dictionary<string, object>();
+        public Dictionary<string, object> runtimeDic = new Dictionary<string, object>();
         public T getProp<T>(string name)
         {
-            if (cacheDic.ContainsKey(propJsonDic[name].Value) && cacheDic[propJsonDic[name].Value] is T t1)
-                return t1;
-            if (BsonSerializer.Deserialize(propJsonDic[name].Value, getType(propJsonDic[name].Key)) is T t2)
-            {
-                cacheDic.Add(propJsonDic[name].Value, t2);
-                return t2;
-            }
-            else
-                throw new InvalidTypeException(name + "的类型" + propJsonDic[name].Key + "与返回类型" + typeof(T).FullName + "不一致");
+            return (T)runtimeDic[name];
+        }
+        public object getProp(string name)
+        {
+            return runtimeDic[name];
         }
         public bool tryGetProp<T>(string name, out T value)
         {
-            if (!propJsonDic.ContainsKey(name))
-            {
-                value = default;
-                return false;
-            }
-            if (cacheDic.ContainsKey(propJsonDic[name].Value) && cacheDic[propJsonDic[name].Value] is T t1)
+            if (runtimeDic.ContainsKey(name) && runtimeDic[name] is T t1)
             {
                 value = t1;
-                return true;
-            }
-            if (getType(propJsonDic[name].Key) is Type type && BsonSerializer.Deserialize(propJsonDic[name].Value, type) is T t2)
-            {
-                cacheDic.Add(propJsonDic[name].Value, t2);
-                value = t2;
                 return true;
             }
             else
@@ -524,6 +519,29 @@ namespace TouhouCardEngine
                     return type;
             }
             return type;
+        }
+        public RoomInfo serialize()
+        {
+            _persistDataList.Clear();
+            foreach (var pair in runtimeDic)
+            {
+                _persistDataList.Add(pair.Key + ":(" + pair.Value.GetType().FullName + ")" + JsonConvert.SerializeObject(pair.Value));
+            }
+            return this;
+        }
+        public RoomInfo deserialize()
+        {
+            runtimeDic.Clear();
+            foreach (string data in _persistDataList)
+            {
+                if (Regex.Match(data, @"(?<name>.+):\((?<type>.+)\)(?<json>.+)") is var m && m.Success)
+                {
+                    runtimeDic.Add(m.Groups["name"].Value, JsonConvert.DeserializeObject(m.Groups["json"].Value, getType(m.Groups["type"].Value)));
+                }
+                else
+                    throw new FormatException("错误的序列化格式：" + data);
+            }
+            return this;
         }
     }
     [Serializable]

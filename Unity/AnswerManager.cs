@@ -32,6 +32,10 @@ namespace TouhouCardEngine
             public IRequest request { get; }
             public TaskCompletionSource<Dictionary<int, IResponse>> tcs { get; }
             [SerializeField]
+            string _name;
+            [SerializeField]
+            int[] _players;
+            [SerializeField]
             float _remainedTime;
             public float remainedTime
             {
@@ -43,6 +47,8 @@ namespace TouhouCardEngine
             public RequestItem(IRequest request, TaskCompletionSource<Dictionary<int, IResponse>> tcs, Func<IResponse, bool> responseFilter)
             {
                 this.request = request;
+                _name = request.GetType().Name;
+                _players = request.playersId;
                 this.tcs = tcs;
                 this.responseFilter = responseFilter;
             }

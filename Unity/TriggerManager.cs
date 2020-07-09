@@ -187,7 +187,7 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             //加入事件链
-            EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
+            EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 currentEvent.addChildEvent(eventArg);
             _eventChainList.Add(eventArgItem);
@@ -256,7 +256,7 @@ namespace TouhouCardEngine
         {
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
-            EventArgItem eventArgItem = new EventArgItem() { eventArg = eventArg };
+            EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 currentEvent.addChildEvent(eventArg);
             _eventChainList.Add(eventArgItem);
@@ -404,7 +404,14 @@ namespace TouhouCardEngine
         [Serializable]
         public class EventArgItem
         {
-            public IEventArg eventArg { get; set; }
+            [SerializeField]
+            string _eventArg;
+            public IEventArg eventArg { get; }
+            public EventArgItem(IEventArg eventArg)
+            {
+                this.eventArg = eventArg;
+                _eventArg = eventArg.GetType().Name;
+            }
         }
         [SerializeField]
         List<EventArgItem> _eventChainList = new List<EventArgItem>();

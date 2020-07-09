@@ -30,9 +30,11 @@ namespace Tests
             client.onConnected += () =>
             {
                 isConnected = true;
+                Debug.Log("测试连接成功");
+                return Task.CompletedTask;
             };
             client.start();
-            Task task = client.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
+            Task task = client.join(host.ip, host.port);
             yield return new WaitUntil(() => task.IsCompleted);
 
             Assert.AreEqual(0, client.id);
@@ -50,7 +52,7 @@ namespace Tests
             yield return new WaitForSeconds(4);
 
             Assert.AreEqual(-1, client.id);
-            Assert.IsInstanceOf<TimeoutException>(task.Exception.InnerException);
+            Assert.True(task.IsCanceled);
         }
         [UnityTest]
         public IEnumerator connectInvalidTest()
@@ -61,9 +63,10 @@ namespace Tests
             client.logger = logger;
             client.start();
             Task task = client.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), 9050);
-            task = client.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), 9050);
-
-            Assert.IsInstanceOf<InvalidOperationException>(task.Exception.InnerException);
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                client.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), 9050);
+            });
             yield break;
         }
         [UnityTest]
@@ -79,9 +82,8 @@ namespace Tests
             _ = client.join(Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork)?.ToString(), host.port);
             yield return new WaitForSeconds(.5f);
             Task<int> task = client.send(1);
-            yield return new WaitForSeconds(.5f);
+            yield return new WaitUntil(() => task.IsCompleted);
 
-            Assert.True(task.IsCompleted);
             Assert.AreEqual(1, task.Result);
         }
         [UnityTest]
@@ -594,9 +596,9 @@ namespace Tests
                 {
 
                 },
-                propJsonDic = new Dictionary<string, KeyValuePair<string, string>>()
+                runtimeDic = new Dictionary<string, object>()
                 {
-                    { "name" , new KeyValuePair<string, string>(typeof(int).FullName, 1.ToJson() ) }
+                    { "name", 1 }
                 }
             };
             string json = roomInfo.ToJson();
@@ -605,19 +607,12 @@ namespace Tests
             Assert.AreEqual("192.168.0.1", roomInfo.ip);
             Assert.AreEqual(9050, roomInfo.port);
             Assert.AreEqual(0, roomInfo.playerList.Count);
-            Assert.AreEqual(1, roomInfo.propJsonDic.Count);
-            Assert.AreEqual("name", roomInfo.propJsonDic.FirstOrDefault().Key);
-            Type objType = Type.GetType(roomInfo.propJsonDic.First().Value.Key);
-            if (objType == null)
-            {
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    objType = assembly.GetType(roomInfo.propJsonDic.First().Value.Key);
-                    if (objType != null)
-                        break;
-                }
-            }
-            object obj = BsonSerializer.Deserialize(roomInfo.propJsonDic.First().Value.Value, objType);
+            Assert.AreEqual(1, roomInfo.runtimeDic.Count);
+            Assert.AreEqual("name", roomInfo.runtimeDic.FirstOrDefault().Key);
+            roomInfo.serialize();
+            roomInfo.deserialize();
+            object obj = roomInfo.getProp("name");
+            Debug.Log(obj.GetType().Name);
             Assert.AreEqual(1, obj);
         }
         [UnityTest]
