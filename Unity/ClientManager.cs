@@ -310,6 +310,8 @@ namespace TouhouCardEngine
                             }
                         }
                         object obj = BsonSerializer.Deserialize(json, objType);
+                        if (onReceive != null)
+                            await onReceive.Invoke(id, obj);
                         if (id == this.id)
                         {
                             IOperation invoke = _operationList.OfType<IOperation>().FirstOrDefault(i => i.id == rid);
@@ -330,7 +332,6 @@ namespace TouhouCardEngine
                                 invoke.setResult(obj);
                             }
                         }
-                        onReceive?.Invoke(id, obj);
                     }
                     catch (Exception e)
                     {
@@ -562,7 +563,7 @@ namespace TouhouCardEngine
         {
             return invokeTargetList.Remove(obj);
         }
-        public event Action<int, object> onReceive;
+        public event Func<int, object, Task> onReceive;
         public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
         {
         }

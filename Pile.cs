@@ -280,6 +280,10 @@ namespace TouhouCardEngine
         {
             get { return cardList.Count; }
         }
+        public bool isFull
+        {
+            get { return count >= maxCount; }
+        }
         public Card this[int index]
         {
             get { return cardList[index]; }
@@ -309,6 +313,10 @@ namespace TouhouCardEngine
         public Card[] getCards<T>() where T : CardDefine
         {
             return cardList.Where(c => c.define is T).ToArray();
+        }
+        public Card getCard(int id)
+        {
+            return cardList.First(c => c.id == id);
         }
         public Card getCardByRandom(IGame game)
         {

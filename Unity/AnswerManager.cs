@@ -130,7 +130,7 @@ namespace TouhouCardEngine
         /// <param name="request"></param>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public async Task<IResponse> ask(int playerId, IRequest request, float timeout)
+        public async Task<IResponse> ask(int playerId, IRequest request, float timeout = float.MaxValue)
         {
             game?.logger?.log("Answer", "询问玩家" + playerId + "：" + request + "，超时时间：" + timeout);
             request.playersId = new int[] { playerId };
@@ -286,7 +286,7 @@ namespace TouhouCardEngine
             }
             onResponse?.Invoke(response);
         }
-        void onReceive(int id, object obj)
+        Task onReceive(int id, object obj)
         {
             if (obj is IResponse response)
             {
@@ -297,6 +297,7 @@ namespace TouhouCardEngine
                 else if (id != client.id)//数据可能来自自己，这种情况已经在await send中处理了，就不需要再调用一遍了。
                     _ = answer(response.playerId, response, null);
             }
+            return Task.CompletedTask;
         }
         public event Action<IRequest> onRequest;
         public event Action<IResponse> onResponse;
@@ -310,6 +311,10 @@ namespace TouhouCardEngine
         public IRequest[] getRequests(int playerId)
         {
             return _requestList.Where(item => item.request.playersId.Contains(playerId)).Select(item => item.request).ToArray();
+        }
+        public T getRequest<T>(int playerId) where T : IRequest
+        {
+            return getRequests(playerId).OfType<T>().First();
         }
         public IRequest[] getAllRequests()
         {

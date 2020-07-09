@@ -13,7 +13,7 @@ namespace TouhouCardEngine.Interfaces
         event Func<Task> onConnected;
         Task<T> send<T>(T obj);
 
-        event Action<int, object> onReceive;
+        event Func<int, object, Task> onReceive;
         void disconnect();
         event Action onDisconnect;
     }

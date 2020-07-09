@@ -102,6 +102,7 @@ namespace Tests
                 clients[i].onReceive += (id, obj) =>
                 {
                     receivedDic.Add(clients[localI].id, obj);
+                    return Task.CompletedTask;
                 };
                 clients[i].logger = logger;
                 clients[i].start();
@@ -165,8 +166,8 @@ namespace Tests
             int recvCount = 0;
             bool flag = false;
 
-            client1.onReceive += (id, data) => { Assert.AreEqual((int)data, 1); recvCount++; flag = true; };
-            client2.onReceive += (id, data) => { Assert.AreEqual((int)data, 2); recvCount++; flag = true; };
+            client1.onReceive += (id, data) => { Assert.AreEqual((int)data, 1); recvCount++; flag = true; return Task.CompletedTask; };
+            client2.onReceive += (id, data) => { Assert.AreEqual((int)data, 2); recvCount++; flag = true; return Task.CompletedTask; };
 
             var task = client1.join("127.0.0.1", host1.port);
             yield return new WaitUntil(() => task.IsCompleted);
@@ -225,8 +226,8 @@ namespace Tests
             int recvCount = 0;
             bool flag = false;
 
-            client1.onReceive += (id, data) => { Assert.AreEqual((int)data, 1); recvCount++; flag = true; };
-            client2.onReceive += (id, data) => { Assert.AreEqual((int)data, 2); recvCount++; flag = true; };
+            client1.onReceive += (id, data) => { Assert.AreEqual((int)data, 1); recvCount++; flag = true; return Task.CompletedTask; };
+            client2.onReceive += (id, data) => { Assert.AreEqual((int)data, 2); recvCount++; flag = true; return Task.CompletedTask; };
 
             var task = client.join("127.0.0.1", host.port);
             yield return new WaitUntil(() => task.IsCompleted);
