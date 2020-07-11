@@ -24,7 +24,10 @@ namespace TouhouCardEngine.Interfaces
     public interface IActiveEffect : IEffect
     {
         bool checkCondition(IGame game, ICard card, object[] vars);
-        bool checkTargets(IGame game, ICard card, object[] vars, object[] targets);
         Task execute(IGame game, ICard card, object[] vars, object[] targets);
+    }
+    public interface ITargetEffect : IActiveEffect
+    {
+        bool checkTargets(IGame game, ICard card, object[] vars, object[] targets);
     }
 }
