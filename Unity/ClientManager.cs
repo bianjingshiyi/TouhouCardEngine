@@ -344,7 +344,7 @@ namespace TouhouCardEngine
                     {
                         logger?.log($"客户端 {id} 收到了主机的加入响应：" + info.ToJson());
                         roomInfo = info.deserialize();
-                        onJoinRoom?.Invoke(info);
+                        onJoinRoom?.Invoke(roomInfo);
                     }
                     break;
                 case PacketType.roomInfoUpdate:
@@ -352,8 +352,9 @@ namespace TouhouCardEngine
                     if (info != null)
                     {
                         logger?.log($"客户端 {id} 收到了主机的房间更新信息：" + info.ToJson());
-                        onRoomInfoUpdate?.Invoke(roomInfo, info);
-                        roomInfo = info.deserialize();
+                        var newInfo = info.deserialize();
+                        onRoomInfoUpdate?.Invoke(roomInfo, newInfo);
+                        roomInfo = newInfo;
                     }
                     break;
                 case PacketType.invokeRequest:
@@ -661,6 +662,7 @@ namespace TouhouCardEngine
             var type = reader.GetString();
             var json = reader.GetString();
             Type objType = Type.GetType(type);
+            Debug.Log("Recv Json: " + json);
             if (objType == null)
             {
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())

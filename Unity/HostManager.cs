@@ -66,6 +66,7 @@ namespace TouhouCardEngine
                 UnconnectedMessagesEnabled = true,
                 IPv6Enabled = false
             };
+            room = null;
         }
         protected void Start()
         {
@@ -287,7 +288,7 @@ namespace TouhouCardEngine
                 case PacketType.joinRequest:
                     try
                     {
-                        if (room == null)
+                        if (!RoomIsValid)
                             break;
                         int rid = reader.GetInt();
                         int id = reader.GetInt();
@@ -370,7 +371,7 @@ namespace TouhouCardEngine
             {
                 case UnconnectedMessageType.Broadcast:
                 case UnconnectedMessageType.BasicMessage:
-                    if (room != null && reader.GetInt() == (int)PacketType.discoveryRequest)
+                    if (RoomIsValid && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
                         logger?.log($"主机房间收到了局域网发现请求或主机信息更新请求");
                         NetDataWriter writer = RoomInfoDiscoveryWriter(reader.GetUInt());
@@ -388,15 +389,20 @@ namespace TouhouCardEngine
         }
         #region Room
         [SerializeField]
-        RoomInfo _room = null;
+        RoomInfo _room;
+        public bool RoomIsValid => room != null && room.id != Guid.Empty;
         public RoomInfo room
         {
             get { return _room; }
-            private set { _room = value; }
+            private set {
+                _room = value;
+                Debug.Log("Room set to " + _room);
+            }
         }
         public RoomInfo openRoom(RoomInfo roomInfo)
         {
             room = roomInfo;
+
             if (!net.IsRunning)
             {
                 start(roomInfo.port);
@@ -437,10 +443,6 @@ namespace TouhouCardEngine
 
 
         public event Action<RoomPlayerInfo> onPlayerJoin;
-        /// <summary>
-        /// 当前房间信息，在没有打开房间的情况下为空。
-        /// </summary>
-        public RoomInfo roomInfo => room;
 
         /// <summary>
         /// 更新房间信息，会在Host保存最新的房间信息和将更新的房间信息发送给所有的Client
