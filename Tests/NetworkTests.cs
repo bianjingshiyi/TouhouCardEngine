@@ -571,7 +571,7 @@ namespace Tests
             var task2 = client2.joinRoom(roomInfo2, playerInfo2);
             yield return new WaitUntil(() => task2.IsCompleted);
             yield return new WaitForSeconds(0.5f);
-            Assert.AreEqual(1, host.roomInfo.playerList.Count);
+            Assert.AreEqual(1, host.room.playerList.Count);
 
             task = client1.checkRoomInfo(questRoomInfo);
             yield return new WaitUntil(() => task.IsCompleted);

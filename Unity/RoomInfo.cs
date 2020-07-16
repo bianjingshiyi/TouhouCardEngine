@@ -4,6 +4,8 @@ using UnityEngine;
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -11,20 +13,28 @@ namespace TouhouCardEngine
     {
         public string ip;
         public int port;
+        public Guid id = Guid.Empty;
+
         public List<RoomPlayerInfo> playerList = new List<RoomPlayerInfo>();
-        [SerializeField]
-        List<string> _persistDataList = new List<string>();
-        public bool isOne(RoomInfo other)
+        [BsonRequired]
+        public List<string> _persistDataList = new List<string>();
+        
+        /// <summary>
+        /// 是否是同一个房间
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool isSameRoom(RoomInfo other)
         {
             if (other == null)
                 return false;
-            return ip == other.ip && port == other.port;
+            return id == other.id;
         }
         public void setProp(string name, object value)
         {
             runtimeDic[name] = value;
         }
-        [NonSerialized]
+        [BsonIgnore]
         public Dictionary<string, object> runtimeDic = new Dictionary<string, object>();
         public T getProp<T>(string name)
         {
@@ -82,6 +92,12 @@ namespace TouhouCardEngine
                     throw new FormatException("错误的序列化格式：" + data);
             }
             return this;
+        }
+
+        public RoomInfo()
+        {
+            // 自动生成一个id
+            id = Guid.NewGuid();
         }
     }
 }
