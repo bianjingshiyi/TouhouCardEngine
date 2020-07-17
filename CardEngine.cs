@@ -26,7 +26,7 @@ namespace TouhouCardEngine
         public ILogger logger { get; set; }
         public IGameEnvironment env { get; }
         public Rule rule { get; }
-        public CardEngine(IGameEnvironment env, Rule rule, int randomSeed, params CardDefine[] defines)
+        public CardEngine(IGameEnvironment env = null, Rule rule = null, int randomSeed = 0, params CardDefine[] defines)
         {
             this.env = env;
             this.rule = rule;
