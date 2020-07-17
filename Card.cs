@@ -101,6 +101,10 @@ namespace TouhouCardEngine
             {
                 modifier.afterAdd(this);
             }
+            foreach (var efffect in buff.effects)
+            {
+                efffect.onEnable(game, this);
+            }
         }
         public bool removeBuff(IGame game, Buff buff)
         {
@@ -115,6 +119,10 @@ namespace TouhouCardEngine
                 foreach (PropModifier modifier in buff.modifiers)
                 {
                     modifier.afterRemove(this);
+                }
+                foreach (var effect in buff.effects)
+                {
+                    effect.onDisable(game, this);
                 }
                 return true;
             }
