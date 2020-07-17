@@ -2,7 +2,7 @@
 using TouhouCardEngine.Interfaces;
 using System.Collections.Generic;
 using System;
-
+using System.Linq;
 namespace TouhouCardEngine
 {
     public class TimeManager : MonoBehaviour, ITimeManager
@@ -11,15 +11,18 @@ namespace TouhouCardEngine
         List<Timer> _timerList = new List<Timer>();
         private void Update()
         {
-            for (int i = 0; i < _timerList.Count; i++)
+            HashSet<Timer> updatedTimers = new HashSet<Timer>();
+            while (true)
             {
-                var timer = _timerList[i];
+                var timer = _timerList.FirstOrDefault(t => !updatedTimers.Contains(t));
+                if (timer == null)
+                    break;
                 if (timer.startTime + timer.time <= Time.time)
                 {
                     timer.expire();
-                    _timerList.RemoveAt(i);
-                    i--;
+                    _timerList.Remove(timer);
                 }
+                updatedTimers.Add(timer);
             }
         }
         public ITimer startTimer(float time)

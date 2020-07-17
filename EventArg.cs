@@ -7,6 +7,7 @@ namespace TouhouCardEngine
 {
     public class EventArg : IEventArg
     {
+        public IGame game;
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
         public object[] args { get; set; }

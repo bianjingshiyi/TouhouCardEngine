@@ -164,6 +164,10 @@ namespace TouhouCardEngine
             public Pile to;
             public Card card;
             public int position;
+            public override string ToString()
+            {
+                return "将" + card + "从" + from + "移动到" + to + "的" + position;
+            }
         }
         public Task moveTo(IGame game, Card card, Pile targetPile)
         {
@@ -340,7 +344,10 @@ namespace TouhouCardEngine
         internal List<Card> cardList { get; } = new List<Card>();
         public override string ToString()
         {
-            return owner.name + "[" + name + "]";
+            if (owner != null)
+                return owner.name + "[" + name + "]";
+            else
+                return "[" + name + "]";
         }
         public static implicit operator Pile[](Pile pile)
         {

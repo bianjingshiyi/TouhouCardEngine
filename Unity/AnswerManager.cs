@@ -314,7 +314,7 @@ namespace TouhouCardEngine
         }
         public T getRequest<T>(int playerId) where T : IRequest
         {
-            return getRequests(playerId).OfType<T>().First();
+            return getRequests(playerId).OfType<T>().FirstOrDefault();
         }
         public IRequest[] getAllRequests()
         {
@@ -344,16 +344,21 @@ namespace TouhouCardEngine
             RequestItem item = _requestList.FirstOrDefault(i => i.request == request);
             if (item != null)
             {
+                _requestList.Remove(item);
                 if (item.request.isAny)
                 {
                     try
                     {
                         game?.logger?.log("Answer", item.request + "取消自动回应");
                         if (item.request.playersId.Length == 1)
+                        {
+                            IResponse response = item.request.getDefaultResponse(game, item.request.playersId[0]);
                             item.tcs.SetResult(new Dictionary<int, IResponse>()
                                 {
-                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
+                                    { item.request.playersId[0], response }
                                 });
+                            onResponse?.Invoke(response);
+                        }
                         else
                             item.tcs.SetResult(new Dictionary<int, IResponse>());
                     }
@@ -367,7 +372,7 @@ namespace TouhouCardEngine
                     try
                     {
                         game?.logger?.log("Answer", item.request + "取消自动回应");
-                        item.tcs.SetResult(item.request.playersId.Select(p =>
+                        Dictionary<int, IResponse> responses = item.request.playersId.Select(p =>
                         {
                             if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
                                 return response;
@@ -377,14 +382,18 @@ namespace TouhouCardEngine
                                 response.playerId = p;
                                 return response;
                             }
-                        }).ToDictionary(r => r.playerId));
+                        }).ToDictionary(r => r.playerId);
+                        item.tcs.SetResult(responses);
+                        foreach (var response in responses.Values)
+                        {
+                            onResponse?.Invoke(response);
+                        }
                     }
                     catch (Exception e)
                     {
                         Debug.LogError(item.request + "取消引发异常：" + e);
                     }
                 }
-                _requestList.Remove(item);
             }
         }
         public void cancel(IRequest[] requests)
@@ -405,10 +414,14 @@ namespace TouhouCardEngine
                     {
                         game?.logger?.log("Answer", item.request + "取消自动回应");
                         if (item.request.playersId.Length == 1)
+                        {
+                            IResponse response = item.request.getDefaultResponse(game, item.request.playersId[0]);
                             item.tcs.SetResult(new Dictionary<int, IResponse>()
-                                {
-                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
-                                });
+                            {
+                                { item.request.playersId[0], response }
+                            });
+                            onResponse?.Invoke(response);
+                        }
                         else
                             item.tcs.SetResult(new Dictionary<int, IResponse>());
                     }
@@ -422,17 +435,22 @@ namespace TouhouCardEngine
                     try
                     {
                         game?.logger?.log("Answer", item.request + "取消自动回应");
-                        item.tcs.SetResult(item.request.playersId.Select(p =>
-                        {
-                            if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
-                                return response;
-                            else
+                        Dictionary<int, IResponse> responses = item.request.playersId.Select(p =>
                             {
-                                response = item.request.getDefaultResponse(game, p);
-                                response.playerId = p;
-                                return response;
-                            }
-                        }).ToDictionary(r => r.playerId));
+                                if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
+                                    return response;
+                                else
+                                {
+                                    response = item.request.getDefaultResponse(game, p);
+                                    response.playerId = p;
+                                    return response;
+                                }
+                            }).ToDictionary(r => r.playerId);
+                        item.tcs.SetResult(responses);
+                        foreach (var response in responses.Values)
+                        {
+                            onResponse?.Invoke(response);
+                        }
                     }
                     catch (Exception e)
                     {

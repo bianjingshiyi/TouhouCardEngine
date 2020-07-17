@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
+using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -51,16 +52,29 @@ namespace TouhouCardEngine
         {
             return modifierList.ToArray();
         }
-        public void addModifier(IGame game, PropModifier modifier)
+        public Task addModifier(IGame game, PropModifier modifier)
         {
+            return game.triggers.doEvent(new AddModiEventArg() { game = game, card = this, modifier = modifier }, onAddModi);
+        }
+        static Task onAddModi(AddModiEventArg arg)
+        {
+            IGame game = arg.game;
+            Card card = arg.card;
+            PropModifier modifier = arg.modifier;
             if (modifier == null)
                 throw new ArgumentNullException(nameof(modifier));
-            game?.logger?.log("PropModifier", this + "获得属性修正" + modifier);
-            modifier.beforeAdd(this);
-            modifierList.Add(modifier);
-            modifier.afterAdd(this);
+            game?.logger?.log("PropModifier", card + "获得属性修正" + modifier);
+            modifier.beforeAdd(card);
+            card.modifierList.Add(modifier);
+            modifier.afterAdd(card);
+            return Task.CompletedTask;
         }
-        public bool removeModifier(IGame game, PropModifier modifier)
+        public class AddModiEventArg : EventArg
+        {
+            public Card card;
+            public PropModifier modifier;
+        }
+        public Task<bool> removeModifier(IGame game, PropModifier modifier)
         {
             if (modifierList.Contains(modifier))
             {
@@ -68,10 +82,10 @@ namespace TouhouCardEngine
                 modifier.beforeRemove(this);
                 modifierList.Remove(modifier);
                 modifier.afterRemove(this);
-                return true;
+                return Task.FromResult(true);
             }
             else
-                return false;
+                return Task.FromResult(false);
         }
         public void addBuff(IGame game, Buff buff)
         {

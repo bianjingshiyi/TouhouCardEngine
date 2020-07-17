@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
+using MongoDB.Bson;
 
 namespace TouhouCardEngine
 {
@@ -404,13 +405,21 @@ namespace TouhouCardEngine
         [Serializable]
         public class EventArgItem
         {
+#if UNITY_EDITOR
             [SerializeField]
             string _eventArg;
+            [Multiline]
+            [SerializeField]
+            string _string;
+#endif
             public IEventArg eventArg { get; }
             public EventArgItem(IEventArg eventArg)
             {
                 this.eventArg = eventArg;
+#if UNITY_EDITOR
                 _eventArg = eventArg.GetType().Name;
+                _string = eventArg.ToString();
+#endif
             }
         }
         [SerializeField]

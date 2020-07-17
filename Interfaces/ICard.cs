@@ -1,4 +1,5 @@
-﻿namespace TouhouCardEngine.Interfaces
+﻿using System.Threading.Tasks;
+namespace TouhouCardEngine.Interfaces
 {
     public interface IGame
     {
@@ -16,8 +17,8 @@
     {
         int id { get; }
         ICardDefine define { get; }
-        void addModifier(IGame game, PropModifier modifier);
-        bool removeModifier(IGame game, PropModifier modifier);
+        Task addModifier(IGame game, PropModifier modifier);
+        Task<bool> removeModifier(IGame game, PropModifier modifier);
         T getProp<T>(string propName);
         void setProp<T>(string propName, T value);
     }
