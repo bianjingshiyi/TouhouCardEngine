@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using TouhouCardEngine;
+using TouhouCardEngine.Interfaces;
 
 namespace Tests
 {
@@ -29,6 +30,7 @@ namespace Tests
             {
                 new IntPropModifier("attack",1)
             };
+            public override IPassiveEffect[] effects { get; }
             public override Buff clone()
             {
                 return new TestBuff();
