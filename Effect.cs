@@ -147,7 +147,7 @@ namespace TouhouCardEngine
         {
             foreach (TriggerTime time in triggerTimes)
             {
-                Trigger trigger = card.getProp<Trigger>("Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers));
+                Trigger trigger = card.getProp<Trigger>(game, "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers));
                 game.triggers.remove(trigger);
             }
         }

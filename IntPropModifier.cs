@@ -1,4 +1,5 @@
-﻿namespace TouhouCardEngine
+﻿using TouhouCardEngine.Interfaces;
+namespace TouhouCardEngine
 {
     public class IntPropModifier : PropModifier<int>
     {
@@ -23,7 +24,7 @@
             value = origin.value;
             isSet = origin.isSet;
         }
-        public override int calc(Card card, int value)
+        public override int calc(IGame game, Card card, int value)
         {
             if (isSet)
                 return this.value;

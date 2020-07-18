@@ -21,7 +21,7 @@ namespace Tests
         {
             Card card = new Card(0);
             card.addBuff(null, new TestBuff());
-            Assert.AreEqual(1, card.getProp<int>("attack"));
+            Assert.AreEqual(1, card.getProp<int>(null, "attack"));
         }
         [Test]
         public void registerEffectTest()

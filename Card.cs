@@ -54,20 +54,18 @@ namespace TouhouCardEngine
         }
         public Task addModifier(IGame game, PropModifier modifier)
         {
-            return game.triggers.doEvent(new AddModiEventArg() { game = game, card = this, modifier = modifier }, onAddModi);
-        }
-        static Task onAddModi(AddModiEventArg arg)
-        {
-            IGame game = arg.game;
-            Card card = arg.card;
-            PropModifier modifier = arg.modifier;
-            if (modifier == null)
-                throw new ArgumentNullException(nameof(modifier));
-            game?.logger?.log("PropModifier", card + "获得属性修正" + modifier);
-            modifier.beforeAdd(card);
-            card.modifierList.Add(modifier);
-            modifier.afterAdd(card);
-            return Task.CompletedTask;
+            return game.triggers.doEvent(new AddModiEventArg() { game = game, card = this, modifier = modifier }, arg =>
+            {
+                Card card = arg.card;
+                modifier = arg.modifier;
+                if (modifier == null)
+                    throw new ArgumentNullException(nameof(modifier));
+                game?.logger?.log("PropModifier", card + "获得属性修正" + modifier);
+                modifier.beforeAdd(game, card);
+                card.modifierList.Add(modifier);
+                modifier.afterAdd(game, card);
+                return Task.CompletedTask;
+            });
         }
         public class AddModiEventArg : EventArg
         {
@@ -82,9 +80,9 @@ namespace TouhouCardEngine
                 {
                     Card card = arg.card;
                     game?.logger?.log("PropModifier", card + "移除属性修正" + modifier);
-                    modifier.beforeRemove(card);
+                    modifier.beforeRemove(game, card);
                     card.modifierList.Remove(modifier);
-                    modifier.afterRemove(card);
+                    modifier.afterRemove(game, card);
                     return Task.CompletedTask;
                 });
                 return true;
@@ -159,7 +157,7 @@ namespace TouhouCardEngine
                 mt.propName == propName &&
                 (game == null || mt.checkCondition(game, this))).Cast<PropModifier<T>>())
             {
-                value = modifier.calc(this, value);
+                value = modifier.calc(game, this, value);
             }
             return (T)(object)value;
         }
