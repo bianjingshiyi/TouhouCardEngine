@@ -7,16 +7,16 @@ namespace TouhouCardEngine
         {
             return true;
         }
-        public virtual void beforeAdd(Card card)
+        public virtual void beforeAdd(IGame game, Card card)
         {
         }
-        public virtual void afterAdd(Card card)
+        public virtual void afterAdd(IGame game, Card card)
         {
         }
-        public virtual void beforeRemove(Card card)
+        public virtual void beforeRemove(IGame game, Card card)
         {
         }
-        public virtual void afterRemove(Card card)
+        public virtual void afterRemove(IGame game, Card card)
         {
         }
         public abstract PropModifier clone();
@@ -24,6 +24,6 @@ namespace TouhouCardEngine
     public abstract class PropModifier<T> : PropModifier
     {
         public abstract string propName { get; }
-        public abstract T calc(Card card, T value);
+        public abstract T calc(IGame game, Card card, T value);
     }
 }

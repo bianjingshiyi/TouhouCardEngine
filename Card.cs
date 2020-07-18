@@ -154,7 +154,10 @@ namespace TouhouCardEngine
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
-            foreach (PropModifier<T> modifier in modifierList.Where(m => m is PropModifier<T> mt && mt.propName == propName && mt.checkCondition(game, this)).Cast<PropModifier<T>>())
+            foreach (PropModifier<T> modifier in modifierList.Where(m =>
+                m is PropModifier<T> mt &&
+                mt.propName == propName &&
+                (game == null || mt.checkCondition(game, this))).Cast<PropModifier<T>>())
             {
                 value = modifier.calc(this, value);
             }
