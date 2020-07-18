@@ -64,7 +64,7 @@ namespace TouhouCardEngine
                 AutoRecycle = true,
                 BroadcastReceiveEnabled = true,
                 UnconnectedMessagesEnabled = true,
-                IPv6Enabled = false
+                IPv6Enabled = true
             };
             room = null;
         }
@@ -394,10 +394,7 @@ namespace TouhouCardEngine
         public RoomInfo room
         {
             get { return _room; }
-            private set {
-                _room = value;
-                Debug.Log("Room set to " + _room);
-            }
+            private set { _room = value; }
         }
         public RoomInfo openRoom(RoomInfo roomInfo)
         {
