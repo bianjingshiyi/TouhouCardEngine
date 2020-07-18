@@ -16,6 +16,12 @@ namespace TouhouCardEngine
             this.id = id;
             this.effects = effects;
         }
+        public GeneratedBuff(int id, PropModifier modifier, params IPassiveEffect[] effects)
+        {
+            this.id = id;
+            modifiers = new PropModifier[] { modifier };
+            this.effects = effects;
+        }
         GeneratedBuff(GeneratedBuff origin)
         {
             id = origin.id;
