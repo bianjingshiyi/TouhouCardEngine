@@ -173,11 +173,18 @@ namespace TouhouCardEngine
         {
             return moveTo(game, card, this, targetPile, targetPile.count);
         }
-        public void moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile, int position)
+        public async Task moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile)
         {
             foreach (var card in cards.Reverse())
             {
-                moveTo(game, card, this, targetPile, position);
+                await moveTo(game, card, targetPile);
+            }
+        }
+        public async Task moveTo(IGame game, IEnumerable<Card> cards, Pile targetPile, int position)
+        {
+            foreach (var card in cards.Reverse())
+            {
+                await moveTo(game, card, this, targetPile, position);
             }
         }
         public async Task replace(IGame game, Card origin, Card target)
