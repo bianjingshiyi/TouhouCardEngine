@@ -129,6 +129,16 @@ namespace TouhouCardEngine
             else
                 return false;
         }
+        public int removeBuff(IGame game, IEnumerable<Buff> buffs)
+        {
+            int count = 0;
+            foreach (var buff in buffs)
+            {
+                if (removeBuff(game, buff))
+                    count++;
+            }
+            return count;
+        }
         public Buff[] getBuffs()
         {
             return buffList.ToArray();

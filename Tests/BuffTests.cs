@@ -46,41 +46,5 @@ namespace Tests
                 return new TestBuff();
             }
         }
-        class TestTrigger : ITriggerEffect
-        {
-            public string[] events => throw new System.NotImplementedException();
-
-            public string[] piles => throw new System.NotImplementedException();
-
-            public bool checkCondition(IGame game, ICard card, object[] vars)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            public bool checkTargets(IGame game, ICard card, object[] vars, object[] targets)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            public Task execute(IGame game, ICard card, object[] vars, object[] targets)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            public string[] getEvents(ITriggerManager manager)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            public void onDisable(IGame game, ICard card)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            public void onEnable(IGame game, ICard card)
-            {
-                throw new System.NotImplementedException();
-            }
-        }
     }
 }
