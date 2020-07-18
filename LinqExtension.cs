@@ -17,6 +17,10 @@ namespace TouhouCardEngine
             }
             return array;
         }
+        public static T random<T>(this IEnumerable<T> e, CardEngine game)
+        {
+            return e.ElementAt(game.randomInt(0, e.Count() - 1));
+        }
         public static IEnumerable<T> randomTake<T>(this IEnumerable<T> enumrable, CardEngine game, int count)
         {
             List<T> list = enumrable.ToList();

@@ -62,6 +62,10 @@ namespace TouhouCardEngine
             else
                 return null;
         }
+        public CardDefine[] getCardDefines(IEnumerable<int> idCollection)
+        {
+            return idCollection.Select(id => getCardDefine(id)).ToArray();
+        }
         public T getCardDefine<T>(int id) where T : CardDefine
         {
             if (cardDefineDic.ContainsKey(id) && cardDefineDic[id] is T t)
