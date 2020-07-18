@@ -26,10 +26,29 @@ namespace TouhouCardEngine
         {
             id = origin.id;
             modifiers = origin.modifiers;
+            effects = origin.effects;
         }
         public override Buff clone()
         {
             return new GeneratedBuff(this);
+        }
+        public override string ToString()
+        {
+            string s = "Buff(" + id + ")";
+            if ((modifiers != null && modifiers.Length > 0) || (effects != null && effects.Length > 0))
+            {
+                s += "{";
+                if (modifiers != null && modifiers.Length > 0)
+                {
+                    s += "modifier:" + string.Join<PropModifier>(",", modifiers) + ";";
+                }
+                if (effects != null && effects.Length > 0)
+                {
+                    s += "effects:" + string.Join<IPassiveEffect>(",", effects) + ";";
+                }
+                s += "}";
+            }
+            return s;
         }
     }
 }
