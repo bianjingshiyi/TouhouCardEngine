@@ -1,7 +1,12 @@
-﻿namespace TouhouCardEngine
+﻿using TouhouCardEngine.Interfaces;
+namespace TouhouCardEngine
 {
     public abstract class PropModifier
     {
+        public virtual bool checkCondition(IGame game, Card card)
+        {
+            return true;
+        }
         public virtual void beforeAdd(Card card)
         {
         }

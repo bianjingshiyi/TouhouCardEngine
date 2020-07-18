@@ -74,32 +74,38 @@ namespace TouhouCardEngine
             public Card card;
             public PropModifier modifier;
         }
-        public Task<bool> removeModifier(IGame game, PropModifier modifier)
+        public async Task<bool> removeModifier(IGame game, PropModifier modifier)
         {
             if (modifierList.Contains(modifier))
             {
-                game?.logger?.log("PropModifier", this + "移除属性修正" + modifier);
-                modifier.beforeRemove(this);
-                modifierList.Remove(modifier);
-                modifier.afterRemove(this);
-                return Task.FromResult(true);
+                await game.triggers.doEvent(new RemoveModiEventArg() { card = this, modifier = modifier }, arg =>
+                {
+                    Card card = arg.card;
+                    game?.logger?.log("PropModifier", card + "移除属性修正" + modifier);
+                    modifier.beforeRemove(card);
+                    card.modifierList.Remove(modifier);
+                    modifier.afterRemove(card);
+                    return Task.CompletedTask;
+                });
+                return true;
             }
             else
-                return Task.FromResult(false);
+                return false;
+        }
+        public class RemoveModiEventArg : EventArg
+        {
+            public Card card;
+            public PropModifier modifier;
         }
         public void addBuff(IGame game, Buff buff)
         {
             if (buff == null)
                 throw new ArgumentNullException(nameof(buff));
             game?.logger?.log("Buff", this + "获得增益" + buff);
-            foreach (PropModifier modifier in buff.modifiers)
-            {
-                modifier.beforeAdd(this);
-            }
             buffList.Add(buff);
-            foreach (PropModifier modifier in buff.modifiers)
+            foreach (var modifier in buff.modifiers)
             {
-                modifier.afterAdd(this);
+                addModifier(game, modifier);
             }
             foreach (var efffect in buff.effects)
             {
@@ -111,14 +117,10 @@ namespace TouhouCardEngine
             if (buffList.Contains(buff))
             {
                 game?.logger?.log("Buff", this + "移除增益" + buff);
-                foreach (PropModifier modifier in buff.modifiers)
-                {
-                    modifier.beforeRemove(this);
-                }
                 buffList.Remove(buff);
-                foreach (PropModifier modifier in buff.modifiers)
+                foreach (var modifier in buff.modifiers)
                 {
-                    modifier.afterRemove(this);
+                    removeModifier(game, modifier);
                 }
                 foreach (var effect in buff.effects)
                 {
@@ -147,21 +149,14 @@ namespace TouhouCardEngine
         {
             propDic[propName] = value;
         }
-        public T getProp<T>(string propName)
+        public T getProp<T>(IGame game, string propName)
         {
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
-            foreach (PropModifier<T> modifier in modifierList.Where(m => m is PropModifier<T> mt && mt.propName == propName).Cast<PropModifier<T>>())
+            foreach (PropModifier<T> modifier in modifierList.Where(m => m is PropModifier<T> mt && mt.propName == propName && mt.checkCondition(game, this)).Cast<PropModifier<T>>())
             {
                 value = modifier.calc(this, value);
-            }
-            foreach (Buff buff in buffList)
-            {
-                foreach (PropModifier<T> modifier in buff.modifiers.Where(m => m is PropModifier<T> mt && mt.propName == propName).Cast<PropModifier<T>>())
-                {
-                    value = modifier.calc(this, value);
-                }
             }
             return (T)(object)value;
         }
