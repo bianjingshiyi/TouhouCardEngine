@@ -19,7 +19,7 @@ namespace TouhouCardEngine.Interfaces
         ICardDefine define { get; }
         Task addModifier(IGame game, PropModifier modifier);
         Task<bool> removeModifier(IGame game, PropModifier modifier);
-        T getProp<T>(string propName);
+        T getProp<T>(IGame game, string propName);
         void setProp<T>(string propName, T value);
     }
     public interface ICardDefine
