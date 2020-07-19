@@ -5,18 +5,18 @@ namespace TouhouCardEngine
     {
         public override int id { get; } = 0;
         public override PropModifier[] modifiers { get; } = new PropModifier[0];
-        public override IPassiveEffect[] effects { get; } = new IPassiveEffect[0];
+        public override IPileEffect[] effects { get; } = new IPileEffect[0];
         public GeneratedBuff(int id, params PropModifier[] modifiers)
         {
             this.id = id;
             this.modifiers = modifiers;
         }
-        public GeneratedBuff(int id, params IPassiveEffect[] effects)
+        public GeneratedBuff(int id, params IPileEffect[] effects)
         {
             this.id = id;
             this.effects = effects;
         }
-        public GeneratedBuff(int id, PropModifier modifier, params IPassiveEffect[] effects)
+        public GeneratedBuff(int id, PropModifier modifier, params IPileEffect[] effects)
         {
             this.id = id;
             modifiers = new PropModifier[] { modifier };
@@ -44,7 +44,7 @@ namespace TouhouCardEngine
                 }
                 if (effects != null && effects.Length > 0)
                 {
-                    s += "effects:" + string.Join<IPassiveEffect>(",", effects) + ";";
+                    s += "effects:" + string.Join<IPileEffect>(",", effects) + ";";
                 }
                 s += "}";
             }

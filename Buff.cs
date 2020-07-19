@@ -5,7 +5,7 @@ namespace TouhouCardEngine
     {
         public abstract int id { get; }
         public abstract PropModifier[] modifiers { get; }
-        public abstract IPassiveEffect[] effects { get; }
+        public abstract IPileEffect[] effects { get; }
         public abstract Buff clone();
     }
 }

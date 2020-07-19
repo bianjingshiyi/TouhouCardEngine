@@ -58,7 +58,7 @@ namespace TouhouCardEngine
                     {
                         if (from.cardList.Remove(card))
                         {
-                            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                            foreach (IPileEffect effect in card.define.effects.OfType<IPileEffect>())
                             {
                                 if (effect.piles.Contains(from.name))
                                     effect.onDisable(game, card);
