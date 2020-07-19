@@ -72,7 +72,7 @@ namespace TouhouCardEngine
                 AutoRecycle = true,
                 UnconnectedMessagesEnabled = true,
                 DisconnectTimeout = (int)(timeout * 1000),
-                IPv6Enabled = false
+                IPv6Enabled = true,
             };
         }
         protected void Start()
