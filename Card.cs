@@ -95,7 +95,7 @@ namespace TouhouCardEngine
             public Card card;
             public PropModifier modifier;
         }
-        public void addBuff(IGame game, Buff buff)
+        public async Task addBuff(IGame game, Buff buff)
         {
             if (buff == null)
                 throw new ArgumentNullException(nameof(buff));
@@ -103,14 +103,14 @@ namespace TouhouCardEngine
             buffList.Add(buff);
             foreach (var modifier in buff.modifiers)
             {
-                addModifier(game, modifier);
+                await addModifier(game, modifier);
             }
             foreach (var efffect in buff.effects)
             {
                 efffect.onEnable(game, this);
             }
         }
-        public bool removeBuff(IGame game, Buff buff)
+        public async Task<bool> removeBuff(IGame game, Buff buff)
         {
             if (buffList.Contains(buff))
             {
@@ -118,7 +118,7 @@ namespace TouhouCardEngine
                 buffList.Remove(buff);
                 foreach (var modifier in buff.modifiers)
                 {
-                    removeModifier(game, modifier);
+                    await removeModifier(game, modifier);
                 }
                 foreach (var effect in buff.effects)
                 {
@@ -129,12 +129,12 @@ namespace TouhouCardEngine
             else
                 return false;
         }
-        public int removeBuff(IGame game, IEnumerable<Buff> buffs)
+        public async Task<int> removeBuff(IGame game, IEnumerable<Buff> buffs)
         {
             int count = 0;
             foreach (var buff in buffs)
             {
-                if (removeBuff(game, buff))
+                if (await removeBuff(game, buff))
                     count++;
             }
             return count;
