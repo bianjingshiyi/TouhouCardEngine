@@ -152,14 +152,26 @@ namespace TouhouCardEngine
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
-            foreach (PropModifier<T> modifier in modifierList.Where(m =>
-                m is PropModifier<T> mt &&
+            foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
                 mt.propName == propName &&
-                (game == null || mt.checkCondition(game, this))).Cast<PropModifier<T>>())
+                (game == null || mt.checkCondition(game, this))))
             {
                 value = modifier.calc(game, this, value);
             }
             return (T)(object)value;
+        }
+        public object getProp(IGame game, string propName)
+        {
+            object value = default;
+            if (propDic.ContainsKey(propName))
+                value = propDic[propName];
+            foreach (var modifier in modifierList.Where(m =>
+                m.propName == propName &&
+                (game == null || m.checkCondition(game, this))))
+            {
+                value = modifier.calc(game, this, value);
+            }
+            return value;
         }
         public override string ToString()
         {
