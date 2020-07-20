@@ -62,6 +62,10 @@ namespace TouhouCardEngine
             else
                 return null;
         }
+        public CardDefine[] getCardDefines()
+        {
+            return cardDefineDic.Values.ToArray();
+        }
         public CardDefine[] getCardDefines(IEnumerable<int> idCollection)
         {
             return idCollection.Select(id => getCardDefine(id)).ToArray();
