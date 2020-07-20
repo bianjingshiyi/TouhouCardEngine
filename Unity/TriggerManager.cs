@@ -450,9 +450,9 @@ namespace TouhouCardEngine
     }
     public class Trigger<T> : ITrigger<T> where T : IEventArg
     {
-        public Func<ITrigger, ITrigger, IEventArg, int> comparsion { get; }
-        public Func<T, bool> condition { get; }
-        public Func<T, Task> action { get; }
+        public Func<ITrigger, ITrigger, IEventArg, int> comparsion { get; set; }
+        public Func<T, bool> condition { get; set; }
+        public Func<T, Task> action { get; set; }
         public Trigger(Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null)
         {
             this.action = action;
