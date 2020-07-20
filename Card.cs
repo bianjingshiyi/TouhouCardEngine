@@ -107,7 +107,7 @@ namespace TouhouCardEngine
             }
             foreach (var efffect in buff.effects)
             {
-                efffect.onEnable(game, this);
+                efffect.onEnable(game, this, buff);
             }
         }
         public async Task<bool> removeBuff(IGame game, Buff buff)
@@ -122,7 +122,7 @@ namespace TouhouCardEngine
                 }
                 foreach (var effect in buff.effects)
                 {
-                    effect.onDisable(game, this);
+                    effect.onDisable(game, this, buff);
                 }
                 return true;
             }

@@ -61,7 +61,7 @@ namespace TouhouCardEngine
                             foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                             {
                                 if (effect.piles.Contains(from.name) && (to == null || !effect.piles.Contains(to.name)))
-                                    effect.onDisable(game, card);
+                                    effect.onDisable(game, card, null);
                             }
                             if (to != null)
                             {
@@ -74,7 +74,7 @@ namespace TouhouCardEngine
                                 foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                                 {
                                     if ((from == null || !effect.piles.Contains(from.name)) && effect.piles.Contains(to.name))
-                                        effect.onEnable(game, card);
+                                        effect.onEnable(game, card, null);
                                 }
                                 card.pile = to;
                                 card.owner = to.owner;
@@ -99,7 +99,7 @@ namespace TouhouCardEngine
                             foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
                             {
                                 if (effect.piles.Contains(to.name))
-                                    effect.onEnable(game, card);
+                                    effect.onEnable(game, card, null);
                             }
                             card.pile = to;
                             card.owner = to.owner;

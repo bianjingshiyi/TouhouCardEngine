@@ -128,7 +128,7 @@ namespace TouhouCardEngine
         {
             execute(engine, player, card, targetCards.Cast<object>().ToArray());
         }
-        public void onEnable(IGame game, ICard card)
+        public void onEnable(IGame game, ICard card, IBuff buff)
         {
             foreach (TriggerTime time in triggerTimes)
             {
@@ -143,7 +143,7 @@ namespace TouhouCardEngine
                 game.triggers.register(time.getEventName(game.triggers), trigger);
             }
         }
-        public void onDisable(IGame game, ICard card)
+        public void onDisable(IGame game, ICard card, IBuff buff)
         {
             foreach (TriggerTime time in triggerTimes)
             {

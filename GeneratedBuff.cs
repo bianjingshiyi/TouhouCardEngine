@@ -4,6 +4,7 @@ namespace TouhouCardEngine
     public class GeneratedBuff : Buff
     {
         public override int id { get; } = 0;
+        public override int instanceID { get; set; } = -1;
         public override PropModifier[] modifiers { get; } = new PropModifier[0];
         public override IPassiveEffect[] effects { get; } = new IPassiveEffect[0];
         public GeneratedBuff(int id, params PropModifier[] modifiers)

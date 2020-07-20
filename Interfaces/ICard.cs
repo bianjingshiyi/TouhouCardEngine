@@ -22,6 +22,10 @@ namespace TouhouCardEngine.Interfaces
         T getProp<T>(IGame game, string propName);
         void setProp<T>(string propName, T value);
     }
+    public interface IBuff
+    {
+        int instanceID { get; set; }
+    }
     public interface ICardDefine
     {
         int id { get; }

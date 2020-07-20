@@ -41,6 +41,7 @@ namespace Tests
                 new IntPropModifier("attack",1)
             };
             public override IPassiveEffect[] effects { get; }
+            public override int instanceID { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
             public override Buff clone()
             {
                 return new TestBuff();
