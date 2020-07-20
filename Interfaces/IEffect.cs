@@ -12,10 +12,7 @@ namespace TouhouCardEngine.Interfaces
         void onEnable(IGame game, ICard card);
         void onDisable(IGame game, ICard card);
     }
-    public interface IPileEffect : IPassiveEffect
-    {
-    }
-    public interface ITriggerEffect : IPileEffect
+    public interface ITriggerEffect : IPassiveEffect
     {
         [Obsolete]
         string[] events { get; }

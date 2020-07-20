@@ -40,7 +40,7 @@ namespace Tests
             {
                 new IntPropModifier("attack",1)
             };
-            public override IPileEffect[] effects { get; }
+            public override IPassiveEffect[] effects { get; }
             public override Buff clone()
             {
                 return new TestBuff();
