@@ -143,6 +143,10 @@ namespace TouhouCardEngine
         {
             return buffList.ToArray();
         }
+        public bool containBuff(int buffId)
+        {
+            return buffList.Exists(b => b.id == buffId);
+        }
         public void setProp<T>(string propName, T value)
         {
             propDic[propName] = value;
