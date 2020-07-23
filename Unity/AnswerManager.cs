@@ -406,8 +406,9 @@ namespace TouhouCardEngine
         public void cancelAll()
         {
             game?.logger?.log("Answer", "取消所有询问");
-            foreach (var item in _requestList)
+            while (_requestList.Count > 0)
             {
+                var item = _requestList[0];
                 if (item.request.isAny)
                 {
                     try
@@ -436,16 +437,16 @@ namespace TouhouCardEngine
                     {
                         game?.logger?.log("Answer", item.request + "取消自动回应");
                         Dictionary<int, IResponse> responses = item.request.playersId.Select(p =>
+                        {
+                            if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
+                                return response;
+                            else
                             {
-                                if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
-                                    return response;
-                                else
-                                {
-                                    response = item.request.getDefaultResponse(game, p);
-                                    response.playerId = p;
-                                    return response;
-                                }
-                            }).ToDictionary(r => r.playerId);
+                                response = item.request.getDefaultResponse(game, p);
+                                response.playerId = p;
+                                return response;
+                            }
+                        }).ToDictionary(r => r.playerId);
                         item.tcs.SetResult(responses);
                         foreach (var response in responses.Values)
                         {
@@ -457,8 +458,8 @@ namespace TouhouCardEngine
                         Debug.LogError(item.request + "取消引发异常：" + e);
                     }
                 }
+                _requestList.Remove(item);
             }
-            _requestList.Clear();
         }
     }
 }

@@ -60,10 +60,10 @@ namespace TouhouCardEngine
                 modifier = arg.modifier;
                 if (modifier == null)
                     throw new ArgumentNullException(nameof(modifier));
-                game?.logger?.log("PropModifier", card + "获得属性修正" + modifier);
                 modifier.beforeAdd(game, card);
                 card.modifierList.Add(modifier);
                 modifier.afterAdd(game, card);
+                game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + card.getProp(game, modifier.propName));
                 return Task.CompletedTask;
             });
         }
@@ -79,10 +79,10 @@ namespace TouhouCardEngine
                 await game.triggers.doEvent(new RemoveModiEventArg() { card = this, modifier = modifier }, arg =>
                 {
                     Card card = arg.card;
-                    game?.logger?.log("PropModifier", card + "移除属性修正" + modifier);
                     modifier.beforeRemove(game, card);
                     card.modifierList.Remove(modifier);
                     modifier.afterRemove(game, card);
+                    game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + card.getProp(game, modifier.propName));
                     return Task.CompletedTask;
                 });
                 return true;
