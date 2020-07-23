@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 using System.Threading.Tasks;
+using System.Collections;
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -63,7 +64,9 @@ namespace TouhouCardEngine
                 modifier.beforeAdd(game, card);
                 card.modifierList.Add(modifier);
                 modifier.afterAdd(game, card);
-                game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + card.getProp(game, modifier.propName));
+                object prop = card.getProp(game, modifier.propName);
+                string propString = prop is IEnumerable c ? string.Join("，", c) : prop.ToString();
+                game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propString);
                 return Task.CompletedTask;
             });
         }
@@ -82,7 +85,9 @@ namespace TouhouCardEngine
                     modifier.beforeRemove(game, card);
                     card.modifierList.Remove(modifier);
                     modifier.afterRemove(game, card);
-                    game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + card.getProp(game, modifier.propName));
+                    object prop = card.getProp(game, modifier.propName);
+                    string propString = prop is IEnumerable c ? string.Join("，", c) : prop.ToString();
+                    game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propString);
                     return Task.CompletedTask;
                 });
                 return true;
