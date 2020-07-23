@@ -110,6 +110,13 @@ namespace TouhouCardEngine
                 efffect.onEnable(game, this, buff);
             }
         }
+        public async Task removeBuff(IGame game)
+        {
+            while (buffList.Count > 0)
+            {
+                await removeBuff(game, buffList[0]);
+            }
+        }
         public async Task<bool> removeBuff(IGame game, Buff buff)
         {
             if (buffList.Contains(buff))
