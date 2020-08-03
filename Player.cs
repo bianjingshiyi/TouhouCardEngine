@@ -68,6 +68,10 @@ namespace TouhouCardEngine
         {
             return pileList.FirstOrDefault(e => { return e.name == name; });
         }
+        public Pile[] getPiles()
+        {
+            return pileList.ToArray();
+        }
         private List<Pile> pileList { get; } = new List<Pile>();
         public override string ToString()
         {

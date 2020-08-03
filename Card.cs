@@ -141,6 +141,10 @@ namespace TouhouCardEngine
             else
                 return false;
         }
+        public Task<int> removeBuff(IGame game, int buffId)
+        {
+            return removeBuff(game, getBuffs(b => b.id == buffId));
+        }
         public async Task<int> removeBuff(IGame game, IEnumerable<Buff> buffs)
         {
             int count = 0;
@@ -154,6 +158,13 @@ namespace TouhouCardEngine
         public Buff[] getBuffs()
         {
             return buffList.ToArray();
+        }
+        public Buff[] getBuffs(Func<Buff, bool> filter)
+        {
+            if (filter == null)
+                return buffList.ToArray();
+            else
+                return buffList.Where(filter).ToArray();
         }
         public bool containBuff(int buffId)
         {

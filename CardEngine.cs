@@ -232,6 +232,15 @@ namespace TouhouCardEngine
         Event currentEvent { get; set; } = null;
         List<Event> eventList { get; } = new List<Event>();
         /// <summary>
+        /// 随机整数1~max
+        /// </summary>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        public int dice(int max)
+        {
+            return randomInt(1, max);
+        }
+        /// <summary>
         /// 随机整数，注意该函数返回的值可能包括最大值与最小值。
         /// </summary>
         /// <param name="min">最小值</param>
