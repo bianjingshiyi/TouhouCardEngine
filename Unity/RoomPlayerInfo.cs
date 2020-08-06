@@ -10,10 +10,18 @@ namespace TouhouCardEngine
     {
         public int id = 0;
         public string name = null;
+
         public Dictionary<string, KeyValuePair<string, string>> propJsonDic = new Dictionary<string, KeyValuePair<string, string>>();
         public void setProp(string name, object value)
         {
-            propJsonDic.Add(name, new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson()));
+            if (propJsonDic.ContainsKey(name))
+            {
+                propJsonDic[name] = new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson());
+            }
+            else
+            {
+                propJsonDic.Add(name, new KeyValuePair<string, string>(value.GetType().FullName, value.ToJson()));
+            }
         }
         [NonSerialized]
         Dictionary<string, object> cacheDic = new Dictionary<string, object>();
