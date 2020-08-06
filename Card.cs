@@ -65,7 +65,7 @@ namespace TouhouCardEngine
                 card.modifierList.Add(modifier);
                 modifier.afterAdd(game, card);
                 object prop = card.getProp(game, modifier.propName);
-                string propString = prop is IEnumerable c ? string.Join("，", c) : prop.ToString();
+                string propString = prop != null ? (prop is IEnumerable c ? string.Join("，", c) : (prop is Array array ? string.Join("，", array) : prop.ToString())) : "null";
                 game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propString);
                 return Task.CompletedTask;
             });
@@ -86,7 +86,7 @@ namespace TouhouCardEngine
                     card.modifierList.Remove(modifier);
                     modifier.afterRemove(game, card);
                     object prop = card.getProp(game, modifier.propName);
-                    string propString = prop is IEnumerable c ? string.Join("，", c) : prop.ToString();
+                    string propString = prop != null ? (prop is IEnumerable c ? string.Join("，", c) : prop.ToString()) : "null";
                     game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propString);
                     return Task.CompletedTask;
                 });
