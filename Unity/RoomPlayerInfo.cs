@@ -11,6 +11,11 @@ namespace TouhouCardEngine
         public int id = 0;
         public string name = null;
 
+        public RoomPlayerInfo()
+        {
+            id = new Random().Next();
+        }
+
         public Dictionary<string, KeyValuePair<string, string>> propJsonDic = new Dictionary<string, KeyValuePair<string, string>>();
         public void setProp(string name, object value)
         {
