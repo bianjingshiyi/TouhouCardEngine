@@ -56,6 +56,14 @@ namespace TouhouCardEngine
         {
             return c.SkipWhile(e => !func(e));
         }
+        //TODO:public static IEnumerable<T> skipUntilLast<T>(this IEnumerable<T> c, Func<T, bool> func)
+        //{
+        //    List<T> list = new List<T>();
+        //    foreach (var e in c)
+        //    {
+
+        //    }
+        //}
         public static IEnumerable<T> takeUntil<T>(this IEnumerable<T> c, Func<T, bool> func)
         {
             return c.TakeWhile(e => !func(e));
