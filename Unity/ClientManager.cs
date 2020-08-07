@@ -753,6 +753,17 @@ namespace TouhouCardEngine
             playerInfo.id = id;
             send(playerInfo as object, PacketType.joinRequest);
         }
+
+        /// <summary>
+        /// 请求更新
+        /// </summary>
+        /// <param name="playerInfo"></param>
+        /// <returns></returns>
+        public async Task updatePlayerInfo(RoomPlayerInfo playerInfo)
+        {
+            await send(playerInfo as object, PacketType.playerInfoUpdateRequest);
+        }
+         
         /// <summary>
         /// 当前所在房间信息，如果不在任何房间中则为空。
         /// </summary>

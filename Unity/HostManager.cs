@@ -329,9 +329,54 @@ namespace TouhouCardEngine
                         throw e;
                     }
                     break;
+                case PacketType.playerInfoUpdateRequest:
+                    playerInfoUpdateRequestHandler(peer, reader);
+                    break;
                 default:
                     logger?.log("Warning", "服务端未处理的数据包类型：" + type);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// 请求房间信息更新的处理器
+        /// </summary>
+        /// <param name="reader"></param>
+        void playerInfoUpdateRequestHandler(NetPeer peer, NetPacketReader reader)
+        {
+            if (!RoomIsValid)
+                return;
+
+            int rid = reader.GetInt();
+            int id = reader.GetInt();
+            string typeName = reader.GetString();
+            string json = reader.GetString();
+            if (TypeHelper.tryGetType(typeName, out Type objType))
+            {
+                object obj = BsonSerializer.Deserialize(json, objType);
+                if (obj is RoomPlayerInfo info)
+                {
+                    for (int i = 0; i < room.playerList.Count; i++)
+                    {
+                        if (room.playerList[i].id == id)
+                        {
+                            room.playerList[i] = info;
+                            Debug.Log("更新id:" + id + "的玩家信息: " + info.ToJson());
+                        }
+                    }
+
+                    // 发送一个空的响应包
+                    NetDataWriter writer1 = new NetDataWriter();
+                    writer1.Put((int)PacketType.sendResponse);
+                    writer1.Put(rid);
+                    writer1.Put(id);
+                    writer1.Put("".GetType().FullName);
+                    writer1.Put("".ToJson());
+                    peer.Send(writer1, DeliveryMethod.ReliableOrdered);
+
+                    // 通知所有玩家修改
+                    updateRoomInfo(room);
+                }
             }
         }
 
@@ -475,6 +520,7 @@ namespace TouhouCardEngine
         joinRequest,
         joinResponse,
         roomInfoUpdate,
+        playerInfoUpdateRequest
     }
     public class TypeHelper
     {
