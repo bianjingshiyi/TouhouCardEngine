@@ -65,10 +65,46 @@ namespace TouhouCardEngine
                 card.modifierList.Add(modifier);
                 modifier.afterAdd(game, card);
                 object prop = card.getProp(game, modifier.propName);
-                string propString = prop != null ? (prop is IEnumerable c ? string.Join("，", c) : (prop is Array array ? string.Join("，", array) : prop.ToString())) : "null";
+                string propString = propToString(prop);
                 game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propString);
                 return Task.CompletedTask;
             });
+        }
+        string propToString(object prop)
+        {
+            if (prop is string str)
+                return str;
+            else if (prop is Array a)
+            {
+                string s = "[";
+                for (int i = 0; i < a.Length; i++)
+                {
+                    s += propToString(a.GetValue(i));
+                    if (i != a.Length - 1)
+                        s += ",";
+                }
+                s += "]";
+                return s;
+            }
+            else if (prop is IEnumerable e)
+            {
+                string s = "{";
+                bool isFirst = true;
+                foreach (var obj in e)
+                {
+                    if (isFirst)
+                        isFirst = false;
+                    else
+                        s += ",";
+                    s += propToString(obj);
+                }
+                s += "}";
+                return s;
+            }
+            else if (prop == null)
+                return "null";
+            else
+                return prop.ToString();
         }
         public class AddModiEventArg : EventArg
         {
@@ -86,7 +122,7 @@ namespace TouhouCardEngine
                     card.modifierList.Remove(modifier);
                     modifier.afterRemove(game, card);
                     object prop = card.getProp(game, modifier.propName);
-                    string propString = prop != null ? (prop is IEnumerable c ? string.Join("，", c) : prop.ToString()) : "null";
+                    string propString = propToString(prop);
                     game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propString);
                     return Task.CompletedTask;
                 });
