@@ -506,6 +506,17 @@ namespace TouhouCardEngine
             net.DisconnectAll();
             room = null;
         }
+        public void removePlayer(int playerID)
+        {
+            foreach (var player in room.playerList)
+            {
+                if (player.id == playerID)
+                {
+                    // WARNING: 这里的PlayerInfo的ID是直接用的peerID；如果之后改了这种设定，就要改掉这里
+                    net.DisconnectPeer(clientDic[playerID]);
+                }
+            }
+        }
         #endregion
     }
     enum PacketType

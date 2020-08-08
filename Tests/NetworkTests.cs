@@ -494,6 +494,43 @@ namespace Tests
                 throw new TimeoutException("信息更新超时。");
         }
 
+        [UnityTest]
+        public IEnumerator removeTest()
+        {
+            HostManager host;
+            ClientManager client1, client2;
+            createHostClient12(out host, out client1, out client2);
+
+            RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
+            RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
+            RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+
+            host.openRoom(roomInfo);
+            yield return new WaitForSeconds(0.5f);
+
+            var task = client1.joinRoom(roomInfo, playerInfo1);
+            yield return new WaitUntil(() => task.IsCompleted);
+
+            task = client2.joinRoom(roomInfo, playerInfo2);
+            yield return new WaitUntil(() => task.IsCompleted);
+
+            yield return new WaitForSeconds(0.5f);
+
+            bool updateTrigger = false;
+
+            client1.onRoomInfoUpdate += (before, now) =>
+            {
+                Assert.True(now.playerList.Where(p => p.name == playerInfo2.name).Count() == 0);
+                updateTrigger = true;
+            };
+
+            host.removePlayer(playerInfo2.id);
+            yield return new WaitForSeconds(1);
+
+            if (!updateTrigger)
+                throw new TimeoutException("移除超时。");
+        }
+
         /// <summary>
         /// 当客户端请求更新用户信息时，应当触发roomInfoUpdate的事件
         /// </summary>
