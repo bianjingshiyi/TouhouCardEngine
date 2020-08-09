@@ -325,9 +325,23 @@ namespace TouhouCardEngine
         {
             return cardList.Where(c => c.define is T).ToArray();
         }
+        /// <summary>
+        /// 获取卡片实例
+        /// </summary>
+        /// <param name="id">实例ID</param>
+        /// <returns></returns>
         public Card getCard(int id)
         {
-            return cardList.First(c => c.id == id);
+            return cardList.FirstOrDefault(c => c.id == id);
+        }
+        /// <summary>
+        /// 获取指定类型的卡片
+        /// </summary>
+        /// <param name="defineId">类型ID</param>
+        /// <returns></returns>
+        public Card getCardByDefine(int defineId)
+        {
+            return cardList.FirstOrDefault(c => c.define != null && c.define.id == defineId);
         }
         public Card getCardByRandom(IGame game)
         {
