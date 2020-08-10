@@ -1,10 +1,11 @@
 ﻿using TouhouCardEngine.Interfaces;
+using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
     public class IntPropModifier : PropModifier<int>
     {
         public sealed override string propName { get; }
-        public int value { get; }
+        public int value { get; private set; }
         public bool isSet { get; }
         public IntPropModifier(string propName, int value)
         {
@@ -23,6 +24,14 @@ namespace TouhouCardEngine
             propName = origin.propName;
             value = origin.value;
             isSet = origin.isSet;
+        }
+        /// <summary>
+        /// 设置修改器的修改值。注意对于一些修改器来说，这次修改并不会修改它的beforeAdd,afterAdd等方法，请确定你明白你在做什么再调用这个方法。
+        /// </summary>
+        /// <param name="value"></param>
+        public void setValue(int value)
+        {
+            this.value = value;
         }
         public override int calc(IGame game, Card card, int value)
         {
