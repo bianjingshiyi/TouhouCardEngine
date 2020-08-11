@@ -58,4 +58,12 @@ namespace TouhouCardEngine
             return id;
         }
     }
+
+    /// <summary>
+    /// 忽略这张卡
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
+    public class IgnoreCardDefineAttribute : System.Attribute
+    {
+    }
 }
