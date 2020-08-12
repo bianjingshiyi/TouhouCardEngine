@@ -26,12 +26,13 @@ namespace TouhouCardEngine
             isSet = origin.isSet;
         }
         /// <summary>
-        /// 设置修改器的修改值。注意对于一些修改器来说，这次修改并不会修改它的beforeAdd,afterAdd等方法，请确定你明白你在做什么再调用这个方法。
+        /// 设置修改器的修改值。
         /// </summary>
         /// <param name="value"></param>
-        public void setValue(int value)
+        public virtual Task setValue(IGame game, Card card, int value)
         {
             this.value = value;
+            return Task.CompletedTask;
         }
         public override int calc(IGame game, Card card, int value)
         {
