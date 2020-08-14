@@ -190,7 +190,7 @@ namespace TouhouCardEngine
             //加入事件链
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
-                currentEvent.addChildEvent(eventArg);
+                eventArg.parent = currentEvent;
             _eventChainList.Add(eventArgItem);
             _eventRecordList.Add(eventArgItem);
             onEventBefore?.Invoke(eventArg);
@@ -259,7 +259,7 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(eventArg));
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
-                currentEvent.addChildEvent(eventArg);
+                eventArg.parent = currentEvent;
             _eventChainList.Add(eventArgItem);
             _eventRecordList.Add(eventArgItem);
             eventArg.isCanceled = false;
@@ -510,13 +510,20 @@ namespace TouhouCardEngine
             this.args = args;
         }
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public void addChildEvent(IEventArg eventArg)
-        {
-            childEventList.Add(eventArg);
-        }
         public IEventArg[] getChildEvents()
         {
             return childEventList.ToArray();
+        }
+        IEventArg _parnet;
+        public IEventArg parent
+        {
+            get => _parnet;
+            set
+            {
+                _parnet = value;
+                if (value is GeneratedEventArg gea)
+                    gea.childEventList.Add(this);
+            }
         }
         public IEventArg[] children
         {

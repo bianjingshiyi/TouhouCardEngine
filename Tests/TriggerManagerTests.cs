@@ -426,6 +426,26 @@ namespace Tests
             Assert.AreEqual(e2, e1.getChildEvents()[0]);
             Assert.AreEqual(e3, e1.getChildEvents()[1]);
         }
+        [Test]
+        public void getParentEventTest()
+        {
+            ITriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
+            IEventArg e1 = new TestEventArg();
+            IEventArg e2 = new TestEventArg();
+            IEventArg e3 = new TestEventArg();
+            getParentEventTest(manager, e1, e2, e3);
+        }
+        public static void getParentEventTest(ITriggerManager manager, IEventArg e1, IEventArg e2, IEventArg e3)
+        {
+            _ = manager.doEvent(e1, arg =>
+            {
+                _ = manager.doEvent(e2);
+                _ = manager.doEvent(e3);
+                return Task.CompletedTask;
+            });
+            Assert.AreEqual(e1, e2.parent);
+            Assert.AreEqual(e1, e3.parent);
+        }
         class TestEventArg : IEventArg
         {
             public int intValue { get; set; } = 0;
@@ -447,6 +467,17 @@ namespace Tests
             public IEventArg[] children
             {
                 get { return childEventList.ToArray(); }
+            }
+            IEventArg _parent;
+            public IEventArg parent
+            {
+                get => _parent;
+                set
+                {
+                    _parent = value;
+                    if (value is TestEventArg tea)
+                        tea.childEventList.Add(this);
+                }
             }
         }
     }

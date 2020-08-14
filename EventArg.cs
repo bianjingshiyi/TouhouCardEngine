@@ -15,17 +15,20 @@ namespace TouhouCardEngine
         public int repeatTime { get; set; }
         public Func<IEventArg, Task> action { get; set; }
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public void addChildEvent(IEventArg eventArg)
-        {
-            childEventList.Add(eventArg);
-        }
         public IEventArg[] getChildEvents()
         {
             return childEventList.ToArray();
         }
-        public IEventArg[] children
+        IEventArg _parent;
+        public IEventArg parent
         {
-            get { return childEventList.ToArray(); }
+            get => _parent;
+            set
+            {
+                _parent = value;
+                if (value is EventArg ea)
+                    ea.childEventList.Add(this);
+            }
         }
     }
 }

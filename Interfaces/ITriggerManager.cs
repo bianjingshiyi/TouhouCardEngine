@@ -49,8 +49,7 @@ namespace TouhouCardEngine.Interfaces
         bool isCanceled { get; set; }
         int repeatTime { get; set; }
         Func<IEventArg, Task> action { get; set; }
-        void addChildEvent(IEventArg eventArg);
+        IEventArg parent { get; set; }
         IEventArg[] getChildEvents();
-        IEventArg[] children { get; }
     }
 }
