@@ -11,7 +11,7 @@ namespace TouhouCardEngine.Interfaces
         void register<T>(ITrigger<T> trigger) where T : IEventArg;
         bool remove<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggers<T>() where T : IEventArg;
-        Task doEvent<T>(T eventArg) where T : IEventArg;
+        Task<T> doEvent<T>(T eventArg) where T : IEventArg;
         string getNameBefore<T>() where T : IEventArg;
         string getNameAfter<T>() where T : IEventArg;
         void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg;
@@ -20,9 +20,9 @@ namespace TouhouCardEngine.Interfaces
         bool removeAfter<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggersBefore<T>() where T : IEventArg;
         ITrigger<T>[] getTriggersAfter<T>() where T : IEventArg;
-        Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
-        Task doEvent<T>(string[] eventNames, T eventArg, object[] args) where T : IEventArg;
-        Task doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, object[] args) where T : IEventArg;
+        Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
+        Task<T> doEvent<T>(string[] eventNames, T eventArg, object[] args) where T : IEventArg;
+        Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, object[] args) where T : IEventArg;
         event Action<IEventArg> onEventBefore;
         event Action<IEventArg> onEventAfter;
         IEventArg currentEvent { get; }

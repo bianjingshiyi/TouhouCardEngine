@@ -10,7 +10,7 @@ using MongoDB.Bson;
 
 namespace TouhouCardEngine
 {
-    public class TriggerManager : MonoBehaviour, ITriggerManager
+    public class TriggerManager : MonoBehaviour, ITriggerManager, IDisposable
     {
         public Interfaces.ILogger logger { get; set; } = null;
         [Serializable]
@@ -162,28 +162,28 @@ namespace TouhouCardEngine
         {
             return getTriggers(getNameAfter<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
         }
-        public async Task doEvent<T>(string[] eventNames, T eventArg, params object[] args) where T : IEventArg
+        public Task<T> doEvent<T>(string[] eventNames, T eventArg, params object[] args) where T : IEventArg
         {
             eventArg.afterNames = eventNames;
             eventArg.args = args;
-            await doEvent(eventArg);
+            return doEvent(eventArg);
         }
-        public async Task doEvent(string[] eventNames, object[] args)
+        public Task doEvent(string[] eventNames, object[] args)
         {
-            await doEvent(getEventArg(eventNames, args));
+            return doEvent(getEventArg(eventNames, args));
         }
         public Task doEvent(string eventName, params object[] args)
         {
             return doEvent(new string[] { eventName }, args);
         }
-        public async Task doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, params object[] args) where T : IEventArg
+        public Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, params object[] args) where T : IEventArg
         {
             eventArg.beforeNames = beforeNames;
             eventArg.afterNames = afterNames;
             eventArg.args = args;
-            await doEvent(eventArg, action);
+            return doEvent(eventArg, action);
         }
-        public async Task doEvent<T>(T eventArg) where T : IEventArg
+        public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
         {
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
@@ -193,7 +193,14 @@ namespace TouhouCardEngine
                 eventArg.parent = currentEvent;
             _eventChainList.Add(eventArgItem);
             _eventRecordList.Add(eventArgItem);
-            onEventBefore?.Invoke(eventArg);
+            try
+            {
+                onEventBefore?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.logError("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
+            }
             //获取事件名
             doEventNames = eventArg.afterNames;
             if (doEventNames == null)
@@ -219,12 +226,26 @@ namespace TouhouCardEngine
                 if (trigger is ITrigger<T> triggerT)
                 {
                     logger?.log("Trigger", "运行触发器" + triggerT);
-                    await triggerT.invoke(eventArg);
+                    try
+                    {
+                        await triggerT.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                    }
                 }
                 else
                 {
                     logger?.log("Trigger", "运行触发器" + trigger);
-                    await trigger.invoke(eventArg);
+                    try
+                    {
+                        await trigger.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
+                    }
                 }
                 if (_insertEventList.Count > 0)
                 {
@@ -248,12 +269,20 @@ namespace TouhouCardEngine
                 }
             }
             doEventNames = null;
-            onEventAfter?.Invoke(eventArg);
+            try
+            {
+                onEventAfter?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
+            }
             //移出事件链
             _eventChainList.Remove(eventArgItem);
+            return eventArg;
         }
         string[] doEventNames { get; set; } = null;
-        public async Task doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
+        public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
         {
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
@@ -268,7 +297,14 @@ namespace TouhouCardEngine
             {
                 return action.Invoke((T)arg);
             };
-            onEventBefore?.Invoke(eventArg);
+            try
+            {
+                onEventBefore?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
+            }
             //Before
             doEventNames = eventArg.beforeNames;
             if (doEventNames == null)
@@ -294,12 +330,26 @@ namespace TouhouCardEngine
                 if (trigger is ITrigger<T> triggerT)
                 {
                     logger?.log("Trigger", "运行触发器" + triggerT);
-                    await triggerT.invoke(eventArg);
+                    try
+                    {
+                        await triggerT.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                    }
                 }
                 else
                 {
                     logger?.log("Trigger", "运行触发器" + trigger);
-                    await trigger.invoke(eventArg);
+                    try
+                    {
+                        await trigger.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
+                    }
                 }
                 if (_insertEventList.Count > 0)
                 {
@@ -368,12 +418,26 @@ namespace TouhouCardEngine
                 if (trigger is ITrigger<T> triggerT)
                 {
                     logger?.log("Trigger", "运行触发器" + triggerT);
-                    await triggerT.invoke(eventArg);
+                    try
+                    {
+                        await triggerT.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                    }
                 }
                 else
                 {
                     logger?.log("Trigger", "运行触发器" + trigger);
-                    await trigger.invoke(eventArg);
+                    try
+                    {
+                        await trigger.invoke(eventArg);
+                    }
+                    catch (Exception e)
+                    {
+                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
+                    }
                 }
                 if (_insertEventList.Count > 0)
                 {
@@ -397,8 +461,16 @@ namespace TouhouCardEngine
                 }
             }
             doEventNames = null;
-            onEventAfter?.Invoke(eventArg);
+            try
+            {
+                onEventAfter?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
+            }
             _eventChainList.Remove(eventArgItem);
+            return eventArg;
         }
         public event Action<IEventArg> onEventBefore;
         public event Action<IEventArg> onEventAfter;
@@ -434,6 +506,10 @@ namespace TouhouCardEngine
         public IEventArg[] getRecordedEvents()
         {
             return _eventRecordList.Select(ei => ei.eventArg).ToArray();
+        }
+        public void Dispose()
+        {
+            Destroy(gameObject);
         }
     }
     public class Trigger : Trigger<IEventArg>

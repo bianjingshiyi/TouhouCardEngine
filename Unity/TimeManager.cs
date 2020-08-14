@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 namespace TouhouCardEngine
 {
-    public class TimeManager : MonoBehaviour, ITimeManager
+    public class TimeManager : MonoBehaviour, ITimeManager, IDisposable
     {
         [SerializeField]
         List<Timer> _timerList = new List<Timer>();
@@ -41,6 +41,11 @@ namespace TouhouCardEngine
             }
             else
                 return false;
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
     [Serializable]

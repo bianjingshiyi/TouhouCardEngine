@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TouhouCardEngine
 {
-    public class AnswerManager : MonoBehaviour, IAnswerManager
+    public class AnswerManager : MonoBehaviour, IAnswerManager, IDisposable
     {
         IClientManager _client = null;
         public IClientManager client
@@ -460,6 +460,10 @@ namespace TouhouCardEngine
                 }
                 _requestList.Remove(item);
             }
+        }
+        public void Dispose()
+        {
+            Destroy(gameObject);
         }
     }
 }
