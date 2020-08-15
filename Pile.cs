@@ -58,10 +58,17 @@ namespace TouhouCardEngine
                     {
                         if (from.cardList.Remove(card))
                         {
-                            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                            try
                             {
-                                if (effect.piles.Contains(from.name) && (to == null || !effect.piles.Contains(to.name)))
-                                    effect.onDisable(game, card, null);
+                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                {
+                                    if (effect.piles.Contains(from.name) && (to == null || !effect.piles.Contains(to.name)))
+                                        effect.onDisable(game, card, null);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时禁用被动效果引发异常：" + e);
                             }
                             if (to != null)
                             {
@@ -71,10 +78,17 @@ namespace TouhouCardEngine
                                     to.cardList.Insert(position, card);
                                 else
                                     to.cardList.Add(card);
-                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                try
                                 {
-                                    if ((from == null || !effect.piles.Contains(from.name)) && effect.piles.Contains(to.name))
-                                        effect.onEnable(game, card, null);
+                                    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                    {
+                                        if ((from == null || !effect.piles.Contains(from.name)) && effect.piles.Contains(to.name))
+                                            effect.onEnable(game, card, null);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    game.logger.logError("将" + card + "从" + from + "移动到" + to + "时激活被动效果引发异常：" + e);
                                 }
                                 card.pile = to;
                                 card.owner = to.owner;
@@ -96,10 +110,17 @@ namespace TouhouCardEngine
                                 to.cardList.Insert(position, card);
                             else
                                 to.cardList.Add(card);
-                            foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                            try
                             {
-                                if (effect.piles.Contains(to.name))
-                                    effect.onEnable(game, card, null);
+                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                {
+                                    if (effect.piles.Contains(to.name))
+                                        effect.onEnable(game, card, null);
+                                }
+                            }
+                            catch(Exception e)
+                            {
+                                game.logger.logError("将" + card + "从" + from + "中移除时激活被动效果引发异常：" + e);
                             }
                             card.pile = to;
                             card.owner = to.owner;
