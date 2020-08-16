@@ -470,7 +470,10 @@ namespace TouhouCardEngine
                 logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
             }
             _eventChainList.Remove(eventArgItem);
-            return eventArg;
+            if (eventArg.isCanceled)
+                return default;
+            else
+                return eventArg;
         }
         public event Action<IEventArg> onEventBefore;
         public event Action<IEventArg> onEventAfter;
