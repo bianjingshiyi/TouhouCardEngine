@@ -52,4 +52,10 @@ namespace TouhouCardEngine.Interfaces
         IEventArg parent { get; set; }
         IEventArg[] getChildEvents();
     }
+    public interface IDescribableEventArg : IEventArg
+    {
+        ICard getCard(IGame game, IPlayer viewer);
+        ICard[] getTargets(IGame game, IPlayer viewer);
+        string toString(IGame game, IPlayer viewer);
+    }
 }

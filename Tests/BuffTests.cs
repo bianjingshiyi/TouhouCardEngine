@@ -11,7 +11,7 @@ namespace Tests
         public void addAndGetBuffTest()
         {
             Card card = new Card(0);
-            card.addBuff(null, new TestBuff());
+            _ = card.addBuff(null, new TestBuff());
             Buff[] buffs = card.getBuffs();
             Assert.AreEqual(1, buffs.Length);
             Assert.IsInstanceOf<TestBuff>(buffs[0]);
@@ -20,7 +20,7 @@ namespace Tests
         public void modifyIntPropTest()
         {
             Card card = new Card(0);
-            card.addBuff(null, new TestBuff());
+            _ = card.addBuff(null, new TestBuff());
             Assert.AreEqual(1, card.getProp<int>(null, "attack"));
         }
         [Test]
@@ -29,8 +29,7 @@ namespace Tests
             CardEngine game = new CardEngine();
             game.triggers = new GameObject(typeof(TriggerManager).Name).AddComponent<TriggerManager>();
             Card card = new Card();
-            card.addBuff(game, new TestBuff());
-
+            _ = card.addBuff(game, new TestBuff());
         }
         class TestBuff : Buff
         {

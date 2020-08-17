@@ -128,7 +128,7 @@ namespace TouhouCardEngine
         {
             execute(engine, player, card, targetCards.Cast<object>().ToArray());
         }
-        public void onEnable(IGame game, ICard card, IBuff buff)
+        public async Task onEnable(IGame game, ICard card, IBuff buff)
         {
             foreach (TriggerTime time in triggerTimes)
             {
@@ -139,17 +139,18 @@ namespace TouhouCardEngine
                     else
                         return Task.CompletedTask;
                 });
-                card.setProp("Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers), trigger);
+                await card.setProp(game, "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers), trigger);
                 game.triggers.register(time.getEventName(game.triggers), trigger);
             }
         }
-        public void onDisable(IGame game, ICard card, IBuff buff)
+        public Task onDisable(IGame game, ICard card, IBuff buff)
         {
             foreach (TriggerTime time in triggerTimes)
             {
                 Trigger trigger = card.getProp<Trigger>(game, "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers));
                 game.triggers.remove(trigger);
             }
+            return Task.CompletedTask;
         }
     }
 }

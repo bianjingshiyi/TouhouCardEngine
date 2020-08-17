@@ -9,8 +9,8 @@ namespace TouhouCardEngine.Interfaces
     public interface IPassiveEffect : IEffect
     {
         string[] piles { get; }
-        void onEnable(IGame game, ICard card, IBuff buff);
-        void onDisable(IGame game, ICard card, IBuff buff);
+        Task onEnable(IGame game, ICard card, IBuff buff);
+        Task onDisable(IGame game, ICard card, IBuff buff);
     }
     public interface ITriggerEffect : IPassiveEffect
     {

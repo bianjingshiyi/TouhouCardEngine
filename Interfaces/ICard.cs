@@ -17,10 +17,29 @@ namespace TouhouCardEngine.Interfaces
     {
         int id { get; }
         ICardDefine define { get; }
-        Task addModifier(IGame game, PropModifier modifier);
-        Task<bool> removeModifier(IGame game, PropModifier modifier);
+        Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier);
+        Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier);
         T getProp<T>(IGame game, string propName);
-        void setProp<T>(string propName, T value);
+        Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value);
+    }
+    public interface ISetPropEventArg : IEventArg
+    {
+        ICard card { get; }
+        string propName { get; }
+        object value { get; }
+    }
+    public interface IAddModiEventArg : IEventArg
+    {
+        ICard card { get; }
+        IPropModifier modifier { get; }
+    }
+    public interface IRemoveModiEventArg : IEventArg
+    {
+        ICard card { get; }
+        IPropModifier modifier { get; }
+    }
+    public interface IPropModifier
+    {
     }
     public interface IBuff
     {
