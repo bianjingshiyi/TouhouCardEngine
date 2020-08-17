@@ -682,16 +682,14 @@ namespace Tests
                     { "name", 1 }
                 }
             };
-            string json = roomInfo.ToJson();
-            roomInfo = BsonSerializer.Deserialize<RoomInfo>(json);
+            string json = roomInfo.serialize().ToJson();
+            roomInfo = BsonSerializer.Deserialize<RoomInfo>(json).deserialize();
 
             Assert.AreEqual("192.168.0.1", roomInfo.ip);
             Assert.AreEqual(9050, roomInfo.port);
             Assert.AreEqual(0, roomInfo.playerList.Count);
             Assert.AreEqual(1, roomInfo.runtimeDic.Count);
             Assert.AreEqual("name", roomInfo.runtimeDic.FirstOrDefault().Key);
-            roomInfo.serialize();
-            roomInfo.deserialize();
             object obj = roomInfo.getProp("name");
             Debug.Log(obj.GetType().Name);
             Assert.AreEqual(1, obj);
