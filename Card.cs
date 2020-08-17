@@ -245,7 +245,7 @@ namespace TouhouCardEngine
         public Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<ISetPropEventArg>(new SetPropEventArg() { card = this, propName = propName, value = value }, arg =>
+                return game.triggers.doEvent<ISetPropEventArg>(new SetPropEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
                 {
                     Card card = arg.card as Card;
                     propName = arg.propName;
@@ -263,9 +263,11 @@ namespace TouhouCardEngine
         {
             public Card card;
             public string propName;
+            public object beforeValue;
             public object value;
             ICard ISetPropEventArg.card => card;
             string ISetPropEventArg.propName => propName;
+            object ISetPropEventArg.beforeValue => beforeValue;
             object ISetPropEventArg.value => value;
         }
         public T getProp<T>(IGame game, string propName)

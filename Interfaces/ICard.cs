@@ -26,6 +26,7 @@ namespace TouhouCardEngine.Interfaces
     {
         ICard card { get; }
         string propName { get; }
+        object beforeValue { get; }
         object value { get; }
     }
     public interface IAddModiEventArg : IEventArg
