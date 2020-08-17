@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         public List<RoomPlayerInfo> playerList = new List<RoomPlayerInfo>();
         [BsonRequired]
         public List<string> _persistDataList = new List<string>();
-        
+
         /// <summary>
         /// 是否是同一个房间
         /// </summary>
@@ -38,7 +38,15 @@ namespace TouhouCardEngine
         public Dictionary<string, object> runtimeDic = new Dictionary<string, object>();
         public T getProp<T>(string name)
         {
-            return (T)runtimeDic[name];
+            if (runtimeDic.ContainsKey(name))
+            {
+                if (runtimeDic[name] is T t)
+                    return t;
+                else
+                    throw new InvalidCastException(runtimeDic[name] + "无法被转化为类型" + typeof(T).Name);
+            }
+            else
+                throw new KeyNotFoundException(this + "中不存在属性" + name);
         }
         public object getProp(string name)
         {
