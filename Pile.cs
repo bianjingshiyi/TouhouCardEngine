@@ -118,7 +118,7 @@ namespace TouhouCardEngine
                                         effect.onEnable(game, card, null);
                                 }
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
                                 game.logger.logError("将" + card + "从" + from + "中移除时激活被动效果引发异常：" + e);
                             }
@@ -314,7 +314,7 @@ namespace TouhouCardEngine
         }
         public bool isFull
         {
-            get { return count >= maxCount; }
+            get { return maxCount < 0 ? false : count >= maxCount; }
         }
         public Card this[int index]
         {
