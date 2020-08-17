@@ -46,7 +46,7 @@ namespace TouhouCardEngine
                 throw new ConflictDefineException(cardDefineDic[define.id], define);
             cardDefineDic.Add(define.id, define);
         }
-        public T getCardDefine<T>() where T : CardDefine
+        public T getDefine<T>() where T : CardDefine
         {
             foreach (var pair in cardDefineDic)
             {
