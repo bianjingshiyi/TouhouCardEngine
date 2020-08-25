@@ -251,6 +251,7 @@ namespace TouhouCardEngine
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
+                    game.logger?.log("Game", card + "的" + propName + "=>" + v);
                     return Task.CompletedTask;
                 });
             else
