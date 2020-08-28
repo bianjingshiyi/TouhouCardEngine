@@ -750,7 +750,7 @@ namespace TouhouCardEngine
             var id = await join(room.ip, room.port);
             if (id == -1)
                 throw new TimeoutException();
-            playerInfo.id = id;
+            playerInfo.RoomID = id;
             send(playerInfo as object, PacketType.joinRequest);
         }
 

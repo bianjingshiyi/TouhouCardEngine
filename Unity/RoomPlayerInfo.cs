@@ -8,12 +8,23 @@ namespace TouhouCardEngine
     [Serializable]
     public class RoomPlayerInfo
     {
-        public int id = 0;
+        /// <summary>
+        /// 游戏房间中的ID，由房间自行分配
+        /// </summary>
+        public int RoomID { get => id; set => id = value; }
+        /// <summary>
+        /// 玩家自身的ID，唯一不重复
+        /// </summary>
+        public int PlayerID { get => playerID; set => playerID = value; }
+
+        private int id = 0;
+        private int playerID = 0;
         public string name = null;
+        public bool ready = false;
 
         public RoomPlayerInfo()
         {
-            id = new Random().Next();
+            playerID = new Random().Next();
         }
 
         public Dictionary<string, KeyValuePair<string, string>> propJsonDic = new Dictionary<string, KeyValuePair<string, string>>();
@@ -30,6 +41,7 @@ namespace TouhouCardEngine
         }
         [NonSerialized]
         Dictionary<string, object> cacheDic = new Dictionary<string, object>();
+
         public T getProp<T>(string name)
         {
             if (cacheDic.ContainsKey(propJsonDic[name].Value) && cacheDic[propJsonDic[name].Value] is T t1)

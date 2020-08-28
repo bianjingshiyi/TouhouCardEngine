@@ -358,7 +358,7 @@ namespace TouhouCardEngine
                 {
                     for (int i = 0; i < room.playerList.Count; i++)
                     {
-                        if (room.playerList[i].id == id)
+                        if (room.playerList[i].RoomID == id)
                         {
                             room.playerList[i] = info;
                             Debug.Log("更新id:" + id + "的玩家信息: " + info.ToJson());
@@ -387,7 +387,7 @@ namespace TouhouCardEngine
         {
             logger?.log("主机与客户端" + peer.Id + "断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
             // 处理房间问题
-            var infos = room?.playerList.Where(c => c.id == peer.Id);
+            var infos = room?.playerList.Where(c => c.RoomID == peer.Id);
             if (infos != null && infos.Count() > 0)
             {
                 var info = infos.First();
@@ -510,7 +510,7 @@ namespace TouhouCardEngine
         {
             foreach (var player in room.playerList)
             {
-                if (player.id == playerID)
+                if (player.RoomID == playerID)
                 {
                     // WARNING: 这里的PlayerInfo的ID是直接用的peerID；如果之后改了这种设定，就要改掉这里
                     net.DisconnectPeer(clientDic[playerID]);

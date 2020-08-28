@@ -524,7 +524,7 @@ namespace Tests
                 updateTrigger = true;
             };
 
-            host.removePlayer(playerInfo2.id);
+            host.removePlayer(playerInfo2.RoomID);
             yield return new WaitForSeconds(1);
 
             if (!updateTrigger)
@@ -562,7 +562,7 @@ namespace Tests
             playerInfo2.name = "测试名字3";
             client1.onRoomInfoUpdate += (before, now) =>
             {
-                var player = now.playerList.Where(p => p.id == playerInfo2.id).First();
+                var player = now.playerList.Where(p => p.RoomID == playerInfo2.RoomID).First();
                 Assert.AreEqual(playerInfo2.name, player.name);
                 updateTrigger = true;
             };
