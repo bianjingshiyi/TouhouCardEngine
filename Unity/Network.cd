@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="TouhouCardEngine.RoomInfo" Collapsed="true">
+    <Position X="1.5" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAEAAAAQAAAAAAAABAIAAgQQAABAgAQCAgAAAAAgA=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\RoomInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TouhouCardEngine.ClientManager" Collapsed="true">
+    <Position X="1.5" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CQRkCiEBACCCQAhiUIHqKAABAhBgAYiAAAoCQAJEBkE=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="TouhouCardEngine.RPCException" Collapsed="true">
+    <Position X="3.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TouhouCardEngine.HostManager" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="6.25" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAYgSAkAQCCCAAxiTAApAAwQABIgAkgAABIiwAIAZMA=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="TouhouCardEngine.TypeHelper" Collapsed="true">
+    <Position X="8" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="TouhouCardEngine.PacketType" Collapsed="true">
+    <Position X="6.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAEAAAAQAIAgAAABAAAAAAAAgAAACAAQQgAAAAA=</HashCode>
+      <FileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Microsoft YaHei UI" Size="9" />
+</ClassDiagram>
