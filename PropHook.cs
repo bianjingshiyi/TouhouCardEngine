@@ -2,13 +2,36 @@
 using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
+    public abstract class CExpr<T>
+    {
+        public abstract T getValue(IGame game, IPlayer player, ICard card, IBuff buff);
+    }
+    public class CConst<T> : CExpr<T>
+    {
+        T value { get; }
+        public CConst(T value)
+        {
+            this.value = value;
+        }
+        public override T getValue(IGame game, IPlayer player, ICard card, IBuff buff)
+        {
+            return value;
+        }
+    }
     public class PropHook<T> : PropModifier<T>
     {
-        public Card hookCard { get; }
+        public CExpr<Card> hookCard { get; }
         public string hookPropName { get; }
-        public delegate T CalcDelegate(IGame game, Card card, T value);
+        public delegate T CalcDelegate(IGame game, Card card, T originValue, T value);
         CalcDelegate onCalc { get; }
         public PropHook(string targetPropName, string hookPropName, Card hookCard = null, CalcDelegate onCalc = null) : base(targetPropName, default)
+        {
+            propName = targetPropName;
+            this.hookCard = new CConst<Card>(hookCard);
+            this.hookPropName = hookPropName;
+            this.onCalc = onCalc;
+        }
+        public PropHook(string targetPropName, string hookPropName, CExpr<Card> hookCard, CalcDelegate onCalc = null) : base(targetPropName, default)
         {
             propName = targetPropName;
             this.hookCard = hookCard;
@@ -21,6 +44,12 @@ namespace TouhouCardEngine
             hookPropName = origin.hookPropName;
         }
         Trigger<ISetPropEventArg> trigger { get; set; }
+        public override async Task beforeAdd(IGame game, Card card)
+        {
+            Card hookedCard = hookCard.getValue(game, null, card, null) ?? card;
+            await setValue(game, card, hookedCard.getProp<T>(game, hookPropName));
+            await base.beforeAdd(game, card);
+        }
         public override Task afterAdd(IGame game, Card card)
         {
             if (trigger != null)
@@ -30,7 +59,8 @@ namespace TouhouCardEngine
             }
             trigger = new Trigger<ISetPropEventArg>(arg =>
             {
-                if (arg.card == (hookCard != null ? hookCard : card) && arg.propName == hookPropName)
+                Card hookedCard = hookCard.getValue(game, null, card, null) ?? card;
+                if (arg.card == hookCard && arg.propName == hookPropName)
                     return setValue(game, card, (T)arg.value);
                 return Task.CompletedTask;
             });
@@ -40,7 +70,7 @@ namespace TouhouCardEngine
         public override T calc(IGame game, Card card, T value)
         {
             if (onCalc != null)
-                return onCalc(game, card, value);
+                return onCalc(game, card, value, this.value);
             return this.value;
         }
         public override Task afterRemove(IGame game, Card card)
