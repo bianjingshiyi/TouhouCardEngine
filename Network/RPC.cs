@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-namespace TouhouCardEngine
+namespace NitoriNetwork.Common
 {
     /// <summary>
     /// RPC执行器
@@ -192,6 +192,16 @@ namespace TouhouCardEngine
         }
 
         /// <summary>
+        /// 添加指定类中的一个方法
+        /// </summary>
+        /// <typeparam name="T">类</typeparam>
+        /// <param name="expression">方法表达式</param>
+        public void AddTargetMethod<T>(Expression<Action<T>> expression)
+        {
+            AddTargetMethod(TypeHelper.GetMethodInfo<T>(expression));
+        }
+
+        /// <summary>
         /// 添加一个Singleton作为执行环境插入变量
         /// </summary>
         /// <param name="obj"></param>
@@ -329,6 +339,11 @@ namespace TouhouCardEngine
 
     public class RPCRequest<T> : RPCRequest
     {
+        /// <summary>
+        /// 新建一个请求。注意不要用object代替void。
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="args"></param>
         public RPCRequest(string method, params object[] args) : base(typeof(T), method, args) { }
     }
 

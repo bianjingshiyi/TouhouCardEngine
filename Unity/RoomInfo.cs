@@ -11,11 +11,32 @@ namespace TouhouCardEngine
     [Serializable]
     public class RoomInfo
     {
+        /// <summary>
+        /// 房间的IP（加入用）
+        /// </summary>
         public string ip;
+        /// <summary>
+        /// 房间的端口（加入用）
+        /// </summary>
         public int port;
+        /// <summary>
+        /// 房间的ID
+        /// </summary>
         public Guid id = Guid.Empty;
 
+        /// <summary>
+        /// 房主玩家ID
+        /// </summary>
+        public int OwnerID;
+
+        /// <summary>
+        /// 房间用户列表
+        /// </summary>
         public List<RoomPlayerInfo> playerList = new List<RoomPlayerInfo>();
+
+        /// <summary>
+        /// 内部参数列表
+        /// </summary>
         [BsonRequired]
         public List<string> _persistDataList = new List<string>();
 

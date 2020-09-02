@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using TouhouCardEngine;
+using NitoriNetwork.Common;
 
 namespace Tests
 {
@@ -15,7 +16,7 @@ namespace Tests
 
             var cla = new TestClassA();
             env.AddSingleton(cla);
-            env.AddTargetMethod(TypeHelper.GetMethodInfo<TestClassA>(x => x.Add1(1)));
+            env.AddTargetMethod<TestClassA>(x => x.Add1(1));
 
             var req = new RPCRequest(typeof(int), nameof(TestClassA.Add1), 1);
             var result = env.Invoke(req);

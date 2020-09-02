@@ -13,6 +13,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Reflection;
 using System.Threading;
+using NitoriNetwork.Common;
+
 namespace Tests
 {
     public class NetworkTests
@@ -730,10 +732,10 @@ namespace Tests
 
             Task task = client.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 500);
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void),nameof(InvokeTarget.delay), 500));
             yield return waitTask(task);
             Assert.False(task.IsCanceled);
-            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 1001);
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void), nameof(InvokeTarget.delay), 1001));
             yield return waitTask(task);
             Assert.True(task.IsCanceled);
         }

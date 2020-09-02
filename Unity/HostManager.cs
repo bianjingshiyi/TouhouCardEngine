@@ -13,6 +13,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Reflection;
 using System.Threading.Tasks;
+using NitoriNetwork.Common;
+
 namespace TouhouCardEngine
 {
     public class HostManager : MonoBehaviour, IHostManager, INetEventListener
@@ -120,40 +122,56 @@ namespace TouhouCardEngine
             onClientConnected?.Invoke(peer.Id);
         }
         public event Action<int> onClientConnected;
+        #region RPC
+        /// <summary>
+        /// RPC调用指定Client上的方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="id">客户端ID</param>
+        /// <param name="method">方法名称</param>
+        /// <param name="args">参数</param>
+        /// <returns></returns>
+        [Obsolete("use invoke(id, RPCRequest) instead")]
         public Task<T> invoke<T>(int id, string method, params object[] args)
         {
+            var request = new RPCRequest<T>(method, args);
+            return invoke<T>(id, request);
+        }
+
+        /// <summary>
+        /// RPC调用指定Client上的方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public Task<T> invoke<T>(int id, RPCRequest request)
+        {
             NetPeer peer = clientDic[id];
-            InvokeOperation<T> invoke = new InvokeOperation<T>()
-            {
-                pid = peer.Id,
-                rid = ++_lastInvokeId,
-                method = method,
-                args = args,
-                tcs = new TaskCompletionSource<T>()
-            };
-            _invokeList.Add(invoke);
+            InvokeOperation<T> invoke = new InvokeOperation<T>(nameof(invoke), peer.Id, request);
+
+            opList.Add(invoke);
 
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.invokeRequest);
-            writer.Put(invoke.rid);
-            writer.Put(typeof(T).FullName);
-            writer.Put(method);
-            writer.Put(args.Length);
-            foreach (object arg in args)
-            {
-                if (arg != null)
-                {
-                    writer.Put(arg.GetType().FullName);
-                    writer.Put(arg.ToJson());
-                }
-                else
-                    writer.Put(string.Empty);
-            }
+            writer.Put(invoke.id);
+            request.Write(writer);
+
             peer.Send(writer, DeliveryMethod.ReliableOrdered);
-            logger?.log("主机远程调用客户端" + id + "的" + method + "，参数：" + string.Join("，", args));
+            logger?.log("主机远程调用客户端" + id + ": " + request);
             _ = invokeTimeout(invoke);
-            return invoke.tcs.Task;
+            return invoke.task;
         }
+
+        /// <summary>
+        /// RPC调用指定Client上的方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="IdArray">Client列表</param>
+        /// <param name="method">方法名</param>
+        /// <param name="args">参数</param>
+        /// <returns></returns>
+        [Obsolete("Use InvokeALl(rpcRequest) instead")]
         public async Task<Dictionary<int, T>> invokeAll<T>(int[] IdArray, string method, params object[] args)
         {
             Dictionary<int, Task<T>> taskDic = new Dictionary<int, Task<T>>();
@@ -164,48 +182,43 @@ namespace TouhouCardEngine
             await Task.Run(() => Task.WaitAll(taskDic.Values.ToArray()));
             return taskDic.ToDictionary(p => p.Key, p => p.Value.Result);
         }
-        async Task invokeTimeout(InvokeOperation invoke)
+
+        /// <summary>
+        /// RPC调用指定Client上的方法
+        /// </summary>
+        /// <typeparam name="T">返回类型</typeparam>
+        /// <param name="IdArray">Client列表</param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public async Task<Dictionary<int, T>> invokeAll<T>(int[] IdArray, RPCRequest request)
+        {
+            Dictionary<int, Task<T>> taskDic = new Dictionary<int, Task<T>>();
+            foreach (int id in IdArray)
+            {
+                taskDic.Add(id, invoke<T>(id, request));
+            }
+            await Task.Run(() => Task.WaitAll(taskDic.Values.ToArray()));
+            return taskDic.ToDictionary(p => p.Key, p => p.Value.Result);
+        }
+
+        /// <summary>
+        /// 超时
+        /// </summary>
+        /// <param name="invoke"></param>
+        /// <returns></returns>
+        async Task invokeTimeout<T>(InvokeOperation<T> invoke)
         {
             await Task.Delay((int)(timeout * 1000));
-            if (_invokeList.Remove(invoke))
+            if (opList.Remove(invoke))
             {
-                logger?.log("主机请求客户端" + invoke.pid + "远程调用" + invoke.rid + "超时");
+                logger?.log("主机请求客户端" + invoke.pid + "远程调用" + invoke.id + "超时");
                 invoke.setCancel();
             }
         }
-        abstract class InvokeOperation
-        {
-            public int rid;
-            public int pid;
-            public string method;
-            public object[] args;
-            public abstract void setResult(object obj);
-            public abstract void setException(Exception e);
-            public abstract void setCancel();
-        }
-        class InvokeOperation<T> : InvokeOperation
-        {
-            public TaskCompletionSource<T> tcs;
-            public override void setResult(object obj)
-            {
-                if (obj == null)
-                    tcs.SetResult(default);
-                else if (obj is T t)
-                    tcs.SetResult(t);
-                else
-                    throw new InvalidCastException();
-            }
-            public override void setException(Exception e)
-            {
-                tcs.SetException(e);
-            }
-            public override void setCancel()
-            {
-                tcs.SetCanceled();
-            }
-        }
-        int _lastInvokeId = 0;
-        List<InvokeOperation> _invokeList = new List<InvokeOperation>();
+
+        OperationList opList = new OperationList();
+
+        #endregion
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
         {
             PacketType type = (PacketType)reader.GetInt();
@@ -222,21 +235,22 @@ namespace TouhouCardEngine
                             {
                                 string json = reader.GetString();
                                 object obj = BsonSerializer.Deserialize(json, objType);
-                                InvokeOperation invoke = _invokeList.Find(i => i.rid == rid);
+                                var op = opList[rid];
+                                IInvokeOperation invoke = op as IInvokeOperation;
                                 if (invoke == null)
                                 {
                                     logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
                                     break;
                                 }
-                                _invokeList.Remove(invoke);
+                                opList.Remove(op.id);
                                 if (obj is Exception e)
                                 {
-                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}在客户端发生异常：" + e);
+                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "{" + invoke.request + "}在客户端发生异常：" + e);
                                     invoke.setException(e);
                                 }
                                 else
                                 {
-                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}返回为" + obj);
+                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.request + ")" + "}返回为" + obj);
                                     invoke.setResult(obj);
                                 }
                             }
@@ -245,14 +259,15 @@ namespace TouhouCardEngine
                         }
                         else
                         {
-                            InvokeOperation invoke = _invokeList.Find(i => i.rid == rid);
+                            Operation op = opList[rid];
+                            IInvokeOperation invoke = op as IInvokeOperation;
                             if (invoke == null)
                             {
                                 logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
                                 break;
                             }
-                            _invokeList.Remove(invoke);
-                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.method + "(" + string.Join(",", invoke.args) + ")" + "}返回为null");
+                            opList.Remove(rid);
+                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "{" + invoke.request + "}返回为null");
                             invoke.setResult(null);
                         }
                     }
@@ -303,22 +318,11 @@ namespace TouhouCardEngine
                                 onPlayerJoin?.Invoke(info);
                                 logger?.log($"主机房间收到了客户端 {info.name} 的加入请求，当前人数 {room.playerList.Count}");
 
-                                NetDataWriter writer = RoomInfoUpdateWriter();
+                                // 接受加入，返回房间信息
+                                peer.Send(room.Write(PacketType.joinResponse), DeliveryMethod.ReliableOrdered);
 
-                                foreach (var client in clientDic.Values)
-                                {
-                                    if (client.Id == peer.Id)
-                                    {
-                                        // 接受加入，返回房间信息
-                                        NetDataWriter writer2 = RoomInfoResponseWriter();
-                                        client.Send(writer2, DeliveryMethod.ReliableOrdered);
-                                    }
-                                    else
-                                    {
-                                        // 其他的更新房间信息
-                                        client.Send(writer, DeliveryMethod.ReliableOrdered);
-                                    }
-                                }
+                                // 其他的更新房间信息
+                                notifyRoomInfoChange(peer.Id);
                             }
                             else
                                 logger?.log($"主机房间信息类型错误，收到了 {typeName}");
@@ -375,7 +379,7 @@ namespace TouhouCardEngine
                     peer.Send(writer1, DeliveryMethod.ReliableOrdered);
 
                     // 通知所有玩家修改
-                    updateRoomInfo(room);
+                    notifyRoomInfoChange();
                 }
             }
         }
@@ -394,15 +398,8 @@ namespace TouhouCardEngine
                 room.playerList.Remove(info);
                 onPlayerQuit?.Invoke(info);
 
-                var writer = RoomInfoUpdateWriter();
-                foreach (var client in clientDic.Values)
-                {
-                    if (client.Id != peer.Id)
-                    {
-                        // 其他的更新房间信息
-                        client.Send(writer, DeliveryMethod.ReliableOrdered);
-                    }
-                }
+                // 通知其他的客户端更新房间信息
+                notifyRoomInfoChange(peer.Id);
             }
             clientDic.Remove(peer.Id);
         }
@@ -414,12 +411,13 @@ namespace TouhouCardEngine
         {
             switch (messageType)
             {
+                // 处理房间发现请求或主机信息更新请求
                 case UnconnectedMessageType.Broadcast:
                 case UnconnectedMessageType.BasicMessage:
                     if (RoomIsValid && reader.GetInt() == (int)PacketType.discoveryRequest)
                     {
                         logger?.log($"主机房间收到了局域网发现请求或主机信息更新请求");
-                        NetDataWriter writer = RoomInfoDiscoveryWriter(reader.GetUInt());
+                        NetDataWriter writer = room.Write(PacketType.discoveryResponse, reader.GetUInt());
                         net.SendUnconnectedMessage(writer, remoteEndPoint);
                     }
                     break;
@@ -453,36 +451,6 @@ namespace TouhouCardEngine
             roomInfo.port = port;
             return roomInfo;
         }
-        private NetDataWriter RoomInfoUpdateWriter()
-        {
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put((int)PacketType.roomInfoUpdate);
-            RoomInfoWriter(writer);
-            return writer;
-        }
-
-        private NetDataWriter RoomInfoDiscoveryWriter(uint requestID)
-        {
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put((int)PacketType.discoveryResponse);
-            writer.Put(requestID);
-            RoomInfoWriter(writer);
-            return writer;
-        }
-
-        private void RoomInfoWriter(NetDataWriter writer)
-        {
-            writer.Put(room.GetType().FullName);
-            writer.Put(room.serialize().ToJson());
-        }
-        private NetDataWriter RoomInfoResponseWriter()
-        {
-            var writer = new NetDataWriter();
-            writer.Put((int)PacketType.joinResponse);
-            RoomInfoWriter(writer);
-            return writer;
-        }
-
 
         public event Action<RoomPlayerInfo> onPlayerJoin;
 
@@ -490,22 +458,41 @@ namespace TouhouCardEngine
         /// 更新房间信息，会在Host保存最新的房间信息和将更新的房间信息发送给所有的Client
         /// </summary>
         /// <param name="roomInfo"></param>
+        [Obsolete("不可以直接调用这个方法更新信息，必须通过Client更新。")]
         public void updateRoomInfo(RoomInfo roomInfo)
         {
             room = roomInfo;
-            var writer = RoomInfoUpdateWriter();
 
+            // 通知其他所有的Client
+            notifyRoomInfoChange();
+        }
+
+        /// <summary>
+        /// 通知客户端房间信息变更了
+        /// </summary>
+        /// <param name="ignoreID">忽略的ID</param>
+        private void notifyRoomInfoChange(int ignoreID = -1)
+        {
+            var writer = room.Write(PacketType.roomInfoUpdate);
             foreach (var client in clientDic.Values)
             {
-                client.Send(writer, DeliveryMethod.ReliableOrdered);
+                if (client.Id != ignoreID)
+                {
+                    client.Send(writer, DeliveryMethod.ReliableOrdered);
+                }
             }
         }
+
         public event Action<RoomPlayerInfo> onPlayerQuit;
         public void closeRoom()
         {
             net.DisconnectAll();
             room = null;
         }
+        /// <summary>
+        /// 移除一个玩家
+        /// </summary>
+        /// <param name="playerID"></param>
         public void removePlayer(int playerID)
         {
             foreach (var player in room.playerList)
@@ -514,6 +501,7 @@ namespace TouhouCardEngine
                 {
                     // WARNING: 这里的PlayerInfo的ID是直接用的peerID；如果之后改了这种设定，就要改掉这里
                     net.DisconnectPeer(clientDic[playerID]);
+                    // 从网络上断开后，上面的OnDisconnect事件会在房间中删除这个玩家
                 }
             }
         }
@@ -521,35 +509,75 @@ namespace TouhouCardEngine
     }
     enum PacketType
     {
+        /// <summary>
+        /// 连接请求的响应
+        /// </summary>
         connectResponse,
+        /// <summary>
+        /// Client发送游戏数据包
+        /// </summary>
         sendRequest,
+        /// <summary>
+        /// Host收到后转发游戏数据包
+        /// </summary>
         sendResponse,
+        /// <summary>
+        /// RPC请求
+        /// </summary>
         invokeRequest,
+        /// <summary>
+        /// RPC请求结果
+        /// </summary>
         invokeResponse,
+        /// <summary>
+        /// 局域网发现请求
+        /// </summary>
         discoveryRequest,
+        /// <summary>
+        /// 局域网发现响应
+        /// </summary>
         discoveryResponse,
+        /// <summary>
+        /// 加入房间请求
+        /// </summary>
         joinRequest,
+        /// <summary>
+        /// 加入房间响应
+        /// </summary>
         joinResponse,
+        /// <summary>
+        /// 房间信息更新事件
+        /// </summary>
         roomInfoUpdate,
+        /// <summary>
+        /// 更新房间信息请求
+        /// </summary>
         playerInfoUpdateRequest
     }
-    public class TypeHelper
+
+    static class RoomInfoHelper
     {
-        public static bool tryGetType(string typeName, out Type type)
+        public static void Write(this RoomInfo room, NetDataWriter writer)
         {
-            type = Type.GetType(typeName);
-            if (type == null)
-            {
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    type = assembly.GetType(typeName);
-                    if (type != null)
-                        return true;
-                }
-                return false;
-            }
-            else
-                return true;
+            writer.Put(room.GetType().FullName);
+            writer.Put(room.serialize().ToJson());
+        }
+
+        public static NetDataWriter Write(this RoomInfo room, PacketType type)
+        {
+            var writer = new NetDataWriter();
+            writer.Put((int)type);
+            room.Write(writer);
+            return writer;
+        }
+
+        public static NetDataWriter Write(this RoomInfo room, PacketType type, uint requestID)
+        {
+            var writer = new NetDataWriter();
+            writer.Put((int)type);
+            writer.Put(requestID);
+            room.Write(writer);
+            return writer;
         }
     }
 }
