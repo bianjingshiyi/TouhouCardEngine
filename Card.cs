@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         /// 卡片所在的牌堆
         /// </summary>
         public Pile pile { get; internal set; } = null;
-        public CardDefine define { get; } = null;
+        public CardDefine define { get; internal set; } = null;
         ICardDefine ICard.define
         {
             get { return define; }
@@ -256,7 +256,7 @@ namespace TouhouCardEngine
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
-                    game.logger?.log("Game", card + "的" + propName + "=>" + v);
+                    //game.logger?.log("Game", card + "的" + propName + "=>" + v);
                     return Task.CompletedTask;
                 });
             else
@@ -315,6 +315,10 @@ namespace TouhouCardEngine
                 return new Card[] { card };
             else
                 return new Card[0];
+        }
+        public void Morph(IGame game, CardDefine define)
+        {
+            this.define = define;
         }
     }
 }
