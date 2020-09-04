@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         /// 卡片所在的牌堆
         /// </summary>
         public Pile pile { get; internal set; } = null;
-        public CardDefine define { get; } = null;
+        public CardDefine define { get; private set; } = null;
         ICardDefine ICard.define
         {
             get { return define; }
@@ -48,6 +48,10 @@ namespace TouhouCardEngine
                 this.define = define;
             else
                 throw new ArgumentNullException(nameof(define));
+        }
+        public void setDefine(IGame game, CardDefine define)
+        {
+            this.define = define;
         }
         public PropModifier[] getModifiers()
         {
