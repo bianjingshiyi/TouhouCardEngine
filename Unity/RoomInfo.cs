@@ -25,7 +25,7 @@ namespace TouhouCardEngine
         public Guid id = Guid.Empty;
 
         /// <summary>
-        /// 房主玩家ID
+        /// 房主玩家ID (Player ID)
         /// </summary>
         public int OwnerID;
 
@@ -127,6 +127,15 @@ namespace TouhouCardEngine
         {
             // 自动生成一个id
             id = Guid.NewGuid();
+        }
+
+        /// <summary>
+        /// 房主ID
+        /// </summary>
+        /// <param name="ownerID"></param>
+        public RoomInfo(int ownerID) : this()
+        {
+            OwnerID = ownerID;
         }
     }
 }

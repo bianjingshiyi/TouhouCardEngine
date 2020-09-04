@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
@@ -9,12 +7,9 @@ using LiteNetLib.Utils;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.Runtime.Serialization.Json;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson;
 using System.Threading;
 using System.Linq;
-using System.Reflection.Emit;
 using NitoriNetwork.Common;
 
 namespace TouhouCardEngine
@@ -190,6 +185,15 @@ namespace TouhouCardEngine
             return invoke.task;
         }
 
+        /// <summary>
+        /// 返回值是void的Request
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public Task<object> invokeHost(RPCRequest request)
+        {
+            return invokeHost<object>(request);
+        }
 
         async Task operationTimeout(Operation operation, float timeout, string msg)
         {
@@ -218,43 +222,21 @@ namespace TouhouCardEngine
                 case PacketType.sendResponse:
                     try
                     {
-                        int rid = reader.GetInt();
-                        int id = reader.GetInt();
-                        string typeName = reader.GetString();
-                        string json = reader.GetString();
-                        logger?.log("客户端" + this.id + "收到主机转发的来自客户端" + id + "的数据：（" + typeName + "）" + json);
-                        Type objType = Type.GetType(typeName);
-                        if (objType == null)
-                        {
-                            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                            {
-                                objType = assembly.GetType(typeName);
-                                if (objType != null)
-                                    break;
-                            }
-                        }
-                        object obj = BsonSerializer.Deserialize(json, objType);
+                        var result = OperationResultExt.ParseRequest(reader);
+                        logger?.log("客户端" + id + "收到主机转发的来自客户端" + result.clientID + "的数据：（" + result.obj + "）");
+
                         if (onReceive != null)
-                            await onReceive.Invoke(id, obj);
-                        if (id == this.id)
+                            await onReceive.Invoke(result.clientID, result.obj);
+
+                        if (result.clientID == id)
                         {
-                            Operation op = opList[rid];
-                            IOperation invoke = op as IOperation;
-                            if (invoke == null)
+                            if (opList.SetResult(result))
                             {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "未发送或超时的消息反馈" + rid);
-                                break;
-                            }
-                            opList.Remove(rid);
-                            if (obj is Exception e)
-                            {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "在收到消息" + rid + "时发生异常：" + e);
-                                invoke.setException(e);
+                                logger?.log("客户端" + id + "收到客户端" + peer.Id + "的消息反馈" + result.requestID + "为" + result.obj.ToJson());
                             }
                             else
                             {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "的消息反馈" + rid + "为" + obj.ToJson());
-                                invoke.setResult(obj);
+                                logger?.log("客户端" + id + "收到客户端" + peer.Id + "未发送或超时的消息反馈" + result.requestID);
                             }
                         }
                     }
@@ -264,113 +246,45 @@ namespace TouhouCardEngine
                     }
                     break;
                 case PacketType.joinResponse:
-                    var info = parseRoomInfo(peer.EndPoint, reader);
+                    var info = RoomInfoHelper.Parse(reader, peer.EndPoint);
                     if (info != null)
                     {
                         logger?.log($"客户端 {id} 收到了主机的加入响应：" + info.ToJson());
-                        roomInfo = info.deserialize();
+                        roomInfo = info;
                         onJoinRoom?.Invoke(roomInfo);
+                    }
+                    else
+                    {
+                        logger?.log($"主机加入响应解析错误");
                     }
                     break;
                 case PacketType.roomInfoUpdate:
-                    info = parseRoomInfo(peer.EndPoint, reader);
+                    info = RoomInfoHelper.Parse(reader, peer.EndPoint);
                     if (info != null)
                     {
                         logger?.log($"客户端 {id} 收到了主机的房间更新信息：" + info.ToJson());
-                        var newInfo = info.deserialize();
-                        onRoomInfoUpdate?.Invoke(roomInfo, newInfo);
-                        roomInfo = newInfo;
+                        onRoomInfoUpdate?.Invoke(roomInfo, info);
+                        roomInfo = info;
+                    }
+                    else
+                    {
+                        logger?.log($"房间更新信息解析错误");
                     }
                     break;
                 case PacketType.invokeRequest:
-                    try
-                    {
-                        int rid = reader.GetInt();
-                        object result = null;
-                        NetDataWriter writer = new NetDataWriter();
-
-                        writer.Put((int)PacketType.invokeResponse);
-                        writer.Put(rid);
-
-                        try
-                        {
-                            var request = RPCRequest.Parse(reader);
-
-                            logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "，" + request);
-                            try
-                            {
-                                if (!rpcExecutor.TryInvoke(request, out result))
-                                {
-                                    throw new MissingMethodException("无法找到方法：" + request);
-                                }
-                                objectWriter(writer, result);
-                            }
-                            catch (Exception invokeException)
-                            {
-                                objectWriter(writer, invokeException);
-                                logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "{" + request + ")}发生异常：" + invokeException);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            objectWriter(writer, e);
-                            logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "发生异常：" + e);
-                        }
-
-                        peer.Send(writer, DeliveryMethod.ReliableOrdered);
-                    }
-                    catch (Exception e)
-                    {
-                        throw e;
-                    }
+                    invokeRequestHandler(peer, reader);
                     break;
                 case PacketType.invokeResponse:
                     try
                     {
-                        int rid = reader.GetInt();
-                        string typeName = reader.GetString();
-                        if (!string.IsNullOrEmpty(typeName))
+                        var result = OperationResultExt.ParseInvoke(reader);
+                        if (!opList.SetResult(result))
                         {
-                            if (TypeHelper.tryGetType(typeName, out Type objType))
-                            {
-                                string json = reader.GetString();
-                                object obj = BsonSerializer.Deserialize(json, objType);
-                                Operation op = opList[rid];
-                                IInvokeOperation invoke = op as IInvokeOperation;
-
-                                if (invoke == null)
-                                {
-                                    logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
-                                    break;
-                                }
-                                opList.Remove(rid);
-                                if (obj is Exception e)
-                                {
-                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "在客户端发生异常：" + e);
-                                    invoke.setException(e);
-                                }
-                                else
-                                {
-                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为" + obj);
-                                    invoke.setResult(obj);
-                                }
-                            }
-                            else
-                                throw new TypeLoadException("无法识别的类型" + typeName);
+                            logger?.log("客户端接收到主机" + peer.Id + "未被请求或超时的远程调用" + result.requestID);
                         }
                         else
                         {
-                            var op = opList[rid];
-                            var invoke = op as IInvokeOperation;
-
-                            if (invoke == null)
-                            {
-                                logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
-                                break;
-                            }
-                            opList.Remove(rid);
-                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为null");
-                            invoke.setResult(null);
+                            logger?.log("客户端接收到主机" + peer.Id + "的调用结果");
                         }
                     }
                     catch (Exception e)
@@ -381,6 +295,49 @@ namespace TouhouCardEngine
                 default:
                     logger?.log("Warning", "客户端未处理的数据包类型：" + type);
                     break;
+            }
+        }
+
+        private void invokeRequestHandler(NetPeer peer, NetPacketReader reader)
+        {
+            try
+            {
+                OperationResult result = new OperationResult();
+                result.requestID = reader.GetInt();
+
+                try
+                {
+                    var request = RPCRequest.Parse(reader);
+
+                    logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "，" + request);
+                    try
+                    {
+                        if (!rpcExecutor.TryInvoke(request, out result.obj))
+                        {
+                            throw new MissingMethodException("无法找到方法：" + request);
+                        }
+                    }
+                    catch (Exception invokeException)
+                    {
+                        result.obj = invokeException;
+                        logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "{" + request + ")}发生异常：" + invokeException);
+                    }
+                }
+                catch (Exception e)
+                {
+                    result.obj = e;
+                    logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "发生异常：" + e);
+                }
+
+                NetDataWriter writer = new NetDataWriter();
+                writer.Put((int)PacketType.invokeResponse);
+                result.Write(writer);
+                peer.Send(writer, DeliveryMethod.ReliableOrdered);
+
+            }
+            catch (Exception e)
+            {
+                throw e;
             }
         }
 
@@ -444,7 +401,7 @@ namespace TouhouCardEngine
                     if (reader.GetInt() == (int)PacketType.discoveryResponse)
                     {
                         uint reqID = reader.GetUInt();
-                        var roomInfo = parseRoomInfo(remoteEndPoint, reader).deserialize();
+                        var roomInfo = RoomInfoHelper.Parse(reader, remoteEndPoint);
                         if (reqID == 0)
                         {
                             logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
@@ -486,34 +443,6 @@ namespace TouhouCardEngine
         {
             var writer = roomDiscoveryRequestWriter(0);
             net.SendBroadcast(writer, port);
-        }
-        RoomInfo parseRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader)
-        {
-            var type = reader.GetString();
-            var json = reader.GetString();
-            Type objType = Type.GetType(type);
-
-            if (objType == null)
-            {
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    objType = assembly.GetType(type);
-                    if (objType != null)
-                        break;
-                }
-            }
-            object obj = BsonSerializer.Deserialize(json, objType);
-            if (obj is RoomInfo info)
-            {
-                info.ip = remoteEndPoint.Address.ToString();
-                info.port = remoteEndPoint.Port;
-                return info;
-            }
-            else
-            {
-                logger?.log($"主机房间信息类型错误，收到了 {type}");
-                return null;
-            }
         }
         NetDataWriter roomDiscoveryRequestWriter(uint reqID)
         {
@@ -609,5 +538,23 @@ namespace TouhouCardEngine
                 host.Disconnect();
         }
         #endregion
+    }
+
+    public class RPCHelper
+    {
+        public static RPCRequest GameStart()
+        {
+            return new RPCRequest(typeof(void), "gameStart");
+        }
+
+        public static RPCRequest RoomPropSet(string name, object value)
+        {
+            return new RPCRequest(typeof(void), "setRoomProp", name, value);
+        }
+
+        public static RPCRequest RemovePlayer(int playerID)
+        {
+            return new RPCRequest(typeof(void), "removePlayer", playerID);
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using LiteNetLib.Utils;
+﻿using LiteNetLib;
+using LiteNetLib.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System;
@@ -245,6 +246,20 @@ namespace NitoriNetwork.Common
     }
 
     /// <summary>
+    /// 无权限调用某个接口时的Exception，RPC用
+    /// </summary>
+    [Serializable]
+    public class PermissionDenyException : Exception
+    {
+        public PermissionDenyException() { }
+        public PermissionDenyException(string message) : base(message) { }
+        public PermissionDenyException(string message, Exception inner) : base(message, inner) { }
+        protected PermissionDenyException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
+
+    /// <summary>
     /// RPC请求
     /// </summary>
     public class RPCRequest
@@ -391,4 +406,5 @@ namespace NitoriNetwork.Common
             throw new ArgumentException("Expression is not a method", "expression");
         }
     }
+
 }

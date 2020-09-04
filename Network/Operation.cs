@@ -4,6 +4,10 @@ using System.Collections;
 using System.Threading.Tasks;
 using TouhouCardEngine;
 using ExcelLibrary.BinaryFileFormat;
+using LiteNetLib.Utils;
+using LiteNetLib;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
 
 namespace NitoriNetwork.Common
 {
@@ -163,5 +167,103 @@ namespace NitoriNetwork.Common
         {
             get { return GetOperationByID(index); }
         }
+
+        /// <summary>
+        /// 设置结果并移除对应的操作
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        public bool SetResult(OperationResult result)
+        {
+            Operation op = this[result.requestID];
+            IOperation invoke = op as IOperation;
+            if (invoke == null)
+                return false;
+
+            if (result.obj != null && result.obj is Exception e)
+                invoke.setException(e);
+            else
+                invoke.setResult(result.obj);
+
+            Remove(result.requestID);
+            return true;
+        }
     }
+
+    public class OperationResult
+    {
+        public int requestID;
+        public object obj;
+    }
+
+    public class RequestOperationResult : OperationResult
+    {
+        public int clientID;
+    }
+    public static class OperationResultExt
+    {
+        public static OperationResult ParseInvoke(NetPacketReader reader)
+        {
+            var result = new OperationResult();
+            result.requestID = reader.GetInt();
+
+            string typeName = reader.GetString();
+            if (!string.IsNullOrEmpty(typeName))
+            {
+                if (TypeHelper.tryGetType(typeName, out Type objType))
+                {
+                    string json = reader.GetString();
+                    result.obj = BsonSerializer.Deserialize(json, objType);
+                }
+                else
+                    throw new TypeLoadException("无法识别的类型" + typeName);
+            }
+            else
+            {
+                result.obj = null;
+            }
+
+            return result;
+        }
+
+        public static void Write(this OperationResult result, NetDataWriter writer)
+        {
+            writer.Put(result.requestID);
+            if (result.obj == null)
+            {
+                writer.Put(string.Empty);
+            }
+            else
+            {
+                writer.Put(result.obj.GetType().FullName);
+                writer.Put(result.obj.ToJson());
+            }
+        }
+
+        public static RequestOperationResult ParseRequest(NetPacketReader reader)
+        {
+            var result = new RequestOperationResult();
+            result.requestID = reader.GetInt();
+            result.clientID = reader.GetInt();
+
+            string typeName = reader.GetString();
+            if (!string.IsNullOrEmpty(typeName))
+            {
+                if (TypeHelper.tryGetType(typeName, out Type objType))
+                {
+                    string json = reader.GetString();
+                    result.obj = BsonSerializer.Deserialize(json, objType);
+                }
+                else
+                    throw new TypeLoadException("无法识别的类型" + typeName);
+            }
+            else
+            {
+                result.obj = null;
+            }
+
+            return result;
+        }
+    }
+
 }
