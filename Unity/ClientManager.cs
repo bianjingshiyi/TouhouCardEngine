@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
@@ -9,12 +7,11 @@ using LiteNetLib.Utils;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.Runtime.Serialization.Json;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson;
 using System.Threading;
 using System.Linq;
-using System.Reflection.Emit;
+using NitoriNetwork.Common;
+
 namespace TouhouCardEngine
 {
     public class ClientManager : MonoBehaviour, IClientManager, INetEventListener
@@ -60,6 +57,10 @@ namespace TouhouCardEngine
         public Interfaces.ILogger logger { get; set; } = null;
         [SerializeField]
         int _id = -1;
+        
+        /// <summary>
+        /// 客户端ID
+        /// </summary>
         public int id
         {
             get { return _id; }
@@ -111,29 +112,27 @@ namespace TouhouCardEngine
             else
                 logger?.log("Warning", "客户端已经初始化，本地端口：" + net.LocalPort);
         }
+
+        OperationList opList = new OperationList();
+
         public Task<int> join(string ip, int port)
         {
-            if (_operationList.Any(o => o is JoinOperation))
+            if (opList.Any(o => o is JoinOperation))
                 throw new InvalidOperationException("客户端已经在执行加入操作");
             NetDataWriter writer = new NetDataWriter();
             if (IPAddress.TryParse(ip, out var address))
             {
                 host = net.Connect(new IPEndPoint(address, port), writer);
                 logger?.log("客户端正在连接主机" + ip + ":" + port);
-                JoinOperation operation = new JoinOperation(this);
-                _operationList.Add(operation);
+                JoinOperation operation = new JoinOperation();
+                opList.Add(operation);
                 _ = operationTimeout(operation, net.DisconnectTimeout / 1000, "客户端连接主机" + ip + ":" + port + "超时");
                 return operation.task;
             }
             else
                 throw new FormatException(ip + "不是有效的ip地址格式");
         }
-        class JoinOperation : Operation<int>
-        {
-            public JoinOperation(ClientManager manager) : base(manager, nameof(join))
-            {
-            }
-        }
+
         public void OnPeerConnected(NetPeer peer)
         {
             if (peer == host)
@@ -155,7 +154,8 @@ namespace TouhouCardEngine
             if (host == null)
                 throw new InvalidOperationException("客户端没有与主机连接，无法发送消息");
             logger?.log("客户端" + id + "向主机" + host.EndPoint + "发送数据：" + obj);
-            SendOperation<T> operation = new SendOperation<T>(this);
+            SendOperation<T> operation = new SendOperation<T>();
+            opList.Add(operation);
 
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)packetType);
@@ -165,118 +165,46 @@ namespace TouhouCardEngine
             writer.Put(obj.ToJson());
             host.Send(writer, DeliveryMethod.ReliableOrdered);
 
-            _operationList.Add(operation);
             _ = operationTimeout(operation, net.DisconnectTimeout / 1000, "客户端" + id + "向主机" + host.EndPoint + "发送数据响应超时：" + obj);
             return operation.task;
         }
-        class SendOperation<T> : Operation<T>
+
+        public Task<T> invokeHost<T>(RPCRequest request)
         {
-            public SendOperation(ClientManager manager) : base(manager, nameof(send))
-            {
-            }
-        }
-        public Task<T> invokeHost<T>(string method, params object[] args)
-        {
-            InvokeOperation<T> invoke = new InvokeOperation<T>(this, nameof(invokeHost), -1);
-            _operationList.Add(invoke);
+            InvokeOperation<T> invoke = new InvokeOperation<T>(nameof(invokeHost), -1);
+            opList.Add(invoke);
 
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.invokeRequest);
             writer.Put(invoke.id);
-            writer.Put(typeof(T).FullName);
-            writer.Put(method);
-            writer.Put(args.Length);
-            foreach (object arg in args)
-            {
-                if (arg != null)
-                {
-                    writer.Put(arg.GetType().FullName);
-                    writer.Put(arg.ToJson());
-                }
-                else
-                    writer.Put(string.Empty);
-            }
+            request.Write(writer);
+
             host.Send(writer, DeliveryMethod.ReliableOrdered);
-            logger?.log("主机远程调用客户端" + id + "的" + method + "，参数：" + string.Join("，", args));
+            logger?.log("主机远程调用客户端" + id + "的" + request.MethodName + "，参数：" + string.Join("，", request.Arguments));
             _ = operationTimeout(invoke, timeout, "主机请求客户端" + invoke.pid + "远程调用" + invoke.id + "超时");
             return invoke.task;
         }
+
+        /// <summary>
+        /// 返回值是void的Request
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public Task<object> invokeHost(RPCRequest request)
+        {
+            return invokeHost<object>(request);
+        }
+
         async Task operationTimeout(Operation operation, float timeout, string msg)
         {
             await Task.Delay((int)(timeout * 1000));
-            if (_operationList.Remove(operation))
+            if (opList.Remove(operation.id))
             {
                 logger?.log(msg);
                 operation.setCancel();
             }
         }
-        [Serializable]
-        class Operation
-        {
-            [SerializeField]
-            int _id;
-            public int id => _id;
-            [SerializeField]
-            string _name;
-            public string name => _name;
-            public Operation(ClientManager manager, string name)
-            {
-                _id = ++manager._lastOperationId;
-                _name = name;
-            }
-            public virtual void setCancel()
-            {
-                throw new NotImplementedException();
-            }
-        }
-        [Serializable]
-        class Operation<T> : Operation, IOperation
-        {
-            TaskCompletionSource<T> tcs { get; } = new TaskCompletionSource<T>();
-            public Task<T> task => tcs.Task;
-            public Operation(ClientManager manager, string name) : base(manager, name)
-            {
-            }
-            public virtual void setResult(object obj)
-            {
-                if (obj == null)
-                    tcs.SetResult(default);
-                else if (obj is T t)
-                    tcs.SetResult(t);
-                else
-                    throw new InvalidCastException();
-            }
-            public virtual void setException(Exception e)
-            {
-                tcs.SetException(e);
-            }
-            public override void setCancel()
-            {
-                if (tcs.Task.IsCompleted || tcs.Task.IsFaulted || tcs.Task.IsCanceled)
-                    return;
-                tcs.SetCanceled();
-            }
-        }
-        interface IOperation
-        {
-            int id { get; }
-            void setResult(object obj);
-            void setException(Exception e);
-        }
-        interface IInvokeOperation : IOperation
-        {
-            int pid { get; }
-        }
-        class InvokeOperation<T> : Operation<T>, IInvokeOperation
-        {
-            public int pid { get; }
-            public InvokeOperation(ClientManager manager, string name, int pid) : base(manager, name)
-            {
-                this.pid = pid;
-            }
-        }
-        int _lastOperationId = 0;
-        List<Operation> _operationList = new List<Operation>();
+
         public async void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
         {
             PacketType type = (PacketType)reader.GetInt();
@@ -287,49 +215,28 @@ namespace TouhouCardEngine
                     logger?.log("客户端连接主机成功，获得ID：" + this.id);
                     if (onConnected != null)
                         await onConnected.Invoke();
-                    JoinOperation joinOperation = _operationList.OfType<JoinOperation>().First();
+                    JoinOperation joinOperation = opList.OfType<JoinOperation>().First();
                     joinOperation.setResult(this.id);
-                    _operationList.Remove(joinOperation);
+                    opList.Remove(joinOperation);
                     break;
                 case PacketType.sendResponse:
                     try
                     {
-                        int rid = reader.GetInt();
-                        int id = reader.GetInt();
-                        string typeName = reader.GetString();
-                        string json = reader.GetString();
-                        logger?.log("客户端" + this.id + "收到主机转发的来自客户端" + id + "的数据：（" + typeName + "）" + json);
-                        Type objType = Type.GetType(typeName);
-                        if (objType == null)
-                        {
-                            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                            {
-                                objType = assembly.GetType(typeName);
-                                if (objType != null)
-                                    break;
-                            }
-                        }
-                        object obj = BsonSerializer.Deserialize(json, objType);
+                        var result = OperationResultExt.ParseRequest(reader);
+                        logger?.log("客户端" + id + "收到主机转发的来自客户端" + result.clientID + "的数据：（" + result.obj + "）");
+
                         if (onReceive != null)
-                            await onReceive.Invoke(id, obj);
-                        if (id == this.id)
+                            await onReceive.Invoke(result.clientID, result.obj);
+
+                        if (result.clientID == id)
                         {
-                            IOperation invoke = _operationList.OfType<IOperation>().FirstOrDefault(i => i.id == rid);
-                            if (invoke == null)
+                            if (opList.SetResult(result))
                             {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "未发送或超时的消息反馈" + rid);
-                                break;
-                            }
-                            _operationList.Remove(invoke as Operation);
-                            if (obj is Exception e)
-                            {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "在收到消息" + rid + "时发生异常：" + e);
-                                invoke.setException(e);
+                                logger?.log("客户端" + id + "收到客户端" + peer.Id + "的消息反馈" + result.requestID + "为" + result.obj.ToJson());
                             }
                             else
                             {
-                                logger?.log("客户端" + this.id + "收到客户端" + peer.Id + "的消息反馈" + rid + "为" + obj.ToJson());
-                                invoke.setResult(obj);
+                                logger?.log("客户端" + id + "收到客户端" + peer.Id + "未发送或超时的消息反馈" + result.requestID);
                             }
                         }
                     }
@@ -339,158 +246,45 @@ namespace TouhouCardEngine
                     }
                     break;
                 case PacketType.joinResponse:
-                    var info = parseRoomInfo(peer.EndPoint, reader);
+                    var info = RoomInfoHelper.Parse(reader, peer.EndPoint);
                     if (info != null)
                     {
                         logger?.log($"客户端 {id} 收到了主机的加入响应：" + info.ToJson());
-                        roomInfo = info.deserialize();
+                        roomInfo = info;
                         onJoinRoom?.Invoke(roomInfo);
+                    }
+                    else
+                    {
+                        logger?.log($"主机加入响应解析错误");
                     }
                     break;
                 case PacketType.roomInfoUpdate:
-                    info = parseRoomInfo(peer.EndPoint, reader);
+                    info = RoomInfoHelper.Parse(reader, peer.EndPoint);
                     if (info != null)
                     {
                         logger?.log($"客户端 {id} 收到了主机的房间更新信息：" + info.ToJson());
-                        var newInfo = info.deserialize();
-                        onRoomInfoUpdate?.Invoke(roomInfo, newInfo);
-                        roomInfo = newInfo;
+                        onRoomInfoUpdate?.Invoke(roomInfo, info);
+                        roomInfo = info;
+                    }
+                    else
+                    {
+                        logger?.log($"房间更新信息解析错误");
                     }
                     break;
                 case PacketType.invokeRequest:
-                    try
-                    {
-                        int rid = reader.GetInt();
-                        object result = null;
-                        NetDataWriter writer = new NetDataWriter();
-                        try
-                        {
-                            string returnTypeName = reader.GetString();
-                            Type returnType = Type.GetType(returnTypeName);
-                            if (returnType == null)
-                            {
-                                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                                {
-                                    returnType = assembly.GetType(returnTypeName);
-                                    if (returnType != null)
-                                        break;
-                                }
-                            }
-                            string methodName = reader.GetString();
-                            int argLength = reader.GetInt();
-                            object[] args = new object[argLength];
-                            for (int i = 0; i < args.Length; i++)
-                            {
-                                string typeName = reader.GetString();
-                                if (!string.IsNullOrEmpty(typeName))
-                                {
-                                    string json = reader.GetString();
-                                    Type objType = Type.GetType(typeName);
-                                    if (objType == null)
-                                    {
-                                        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                                        {
-                                            objType = assembly.GetType(typeName);
-                                            if (objType != null)
-                                                break;
-                                        }
-                                    }
-                                    object obj = BsonSerializer.Deserialize(json, objType);
-                                    args[i] = obj;
-                                }
-                                else
-                                    args[i] = null;
-                            }
-                            logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "，方法：" + methodName + "，参数：" + string.Join("，", args));
-                            try
-                            {
-                                if (!tryInvoke(returnType, methodName, args, out result))
-                                {
-                                    throw new MissingMethodException("无法找到方法：" + returnTypeName + " " + methodName + "(" + string.Join(",", args.Select(a => a.GetType().Name)) + ")");
-                                }
-                            }
-                            catch (Exception invokeException)
-                            {
-                                writer.Put((int)PacketType.invokeResponse);
-                                writer.Put(rid);
-                                writer.Put(invokeException.GetType().FullName);
-                                string exceptionJson = invokeException.ToJson();
-                                writer.Put(exceptionJson);
-                                peer.Send(writer, DeliveryMethod.ReliableOrdered);
-                                logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "{" + methodName + "(" + string.Join(",", args) + ")}发生异常：" + invokeException);
-                                break;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            writer.Put((int)PacketType.invokeResponse);
-                            writer.Put(rid);
-                            writer.Put(e.GetType().FullName);
-                            string exceptionJson = e.ToJson();
-                            writer.Put(exceptionJson);
-                            peer.Send(writer, DeliveryMethod.ReliableOrdered);
-                            logger?.log("客户端" + id + "执行来自主机的远程调用" + rid + "发生异常：" + e);
-                            break;
-                        }
-                        writer.Put((int)PacketType.invokeResponse);
-                        writer.Put(rid);
-                        if (result == null)
-                            writer.Put(string.Empty);
-                        else
-                        {
-                            writer.Put(result.GetType().FullName);
-                            writer.Put(result.ToJson());
-                        }
-                        peer.Send(writer, DeliveryMethod.ReliableOrdered);
-                    }
-                    catch (Exception e)
-                    {
-                        throw e;
-                    }
+                    invokeRequestHandler(peer, reader);
                     break;
                 case PacketType.invokeResponse:
                     try
                     {
-                        int rid = reader.GetInt();
-                        string typeName = reader.GetString();
-                        if (!string.IsNullOrEmpty(typeName))
+                        var result = OperationResultExt.ParseInvoke(reader);
+                        if (!opList.SetResult(result))
                         {
-                            if (TypeHelper.tryGetType(typeName, out Type objType))
-                            {
-                                string json = reader.GetString();
-                                object obj = BsonSerializer.Deserialize(json, objType);
-                                IInvokeOperation invoke = _operationList.OfType<IInvokeOperation>().FirstOrDefault(i => i.id == rid);
-                                if (invoke == null)
-                                {
-                                    logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
-                                    break;
-                                }
-                                _operationList.Remove(invoke as Operation);
-                                if (obj is Exception e)
-                                {
-                                    logger?.log("主机收到客户端" + peer.Id + "的远程调用回应" + rid + "在客户端发生异常：" + e);
-                                    invoke.setException(e);
-                                }
-                                else
-                                {
-                                    logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为" + obj);
-                                    invoke.setResult(obj);
-                                }
-                            }
-                            else
-                                throw new TypeLoadException("无法识别的类型" + typeName);
+                            logger?.log("客户端接收到主机" + peer.Id + "未被请求或超时的远程调用" + result.requestID);
                         }
                         else
                         {
-                            IInvokeOperation invoke = _operationList.OfType<IInvokeOperation>().FirstOrDefault(i => i.id == rid);
-                            if (invoke == null)
-                            {
-                                logger?.log("主机接收到客户端" + peer.Id + "未被请求或超时的远程调用" + rid);
-                                break;
-                            }
-                            _operationList.Remove(invoke as Operation);
-                            logger?.log("主机接收客户端" + peer.Id + "的远程调用" + rid + "返回为null");
-                            invoke.setResult(null);
+                            logger?.log("客户端接收到主机" + peer.Id + "的调用结果");
                         }
                     }
                     catch (Exception e)
@@ -503,74 +297,77 @@ namespace TouhouCardEngine
                     break;
             }
         }
-        private bool tryInvoke(Type returnType, string methodName, object[] args, out object result)
+
+        private void invokeRequestHandler(NetPeer peer, NetPacketReader reader)
         {
-            foreach (var target in invokeTargetList)
-            {
-                foreach (var method in target.GetType().GetMethods())
-                {
-                    if (tryInvoke(returnType, method, methodName, target, args, out result))
-                        return true;
-                }
-            }
-            result = null;
-            return false;
-        }
-        bool tryInvoke(Type returnType, MethodInfo method, string methodName, object obj, object[] args, out object result)
-        {
-            if (method.ReturnType != typeof(void) && method.ReturnType != returnType)
-            {
-                result = null;
-                return false;
-            }
-            if (method.Name != methodName)
-            {
-                result = null;
-                return false;
-            }
-            var @params = method.GetParameters();
-            if (@params.Length != args.Length)
-            {
-                result = null;
-                return false;
-            }
-            for (int i = 0; i < @params.Length; i++)
-            {
-                if (!@params[i].ParameterType.IsInstanceOfType(args[i]))
-                {
-                    result = null;
-                    return false;
-                }
-            }
             try
             {
-                result = method.Invoke(obj, args);
-                return true;
+                OperationResult result = new OperationResult();
+                result.requestID = reader.GetInt();
+
+                try
+                {
+                    var request = RPCRequest.Parse(reader);
+
+                    logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "，" + request);
+                    try
+                    {
+                        if (!rpcExecutor.TryInvoke(request, out result.obj))
+                        {
+                            throw new MissingMethodException("无法找到方法：" + request);
+                        }
+                    }
+                    catch (Exception invokeException)
+                    {
+                        result.obj = invokeException;
+                        logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "{" + request + ")}发生异常：" + invokeException);
+                    }
+                }
+                catch (Exception e)
+                {
+                    result.obj = e;
+                    logger?.log("客户端" + id + "执行来自主机的远程调用" + result.requestID + "发生异常：" + e);
+                }
+
+                NetDataWriter writer = new NetDataWriter();
+                writer.Put((int)PacketType.invokeResponse);
+                result.Write(writer);
+                peer.Send(writer, DeliveryMethod.ReliableOrdered);
+
             }
-            catch (TargetInvocationException e)
+            catch (Exception e)
             {
-                throw e.InnerException;
+                throw e;
             }
         }
-        List<object> invokeTargetList { get; } = new List<object>();
+
+        private static void objectWriter(NetDataWriter writer, object result)
+        {
+            if (result == null)
+            {
+                writer.Put(string.Empty);
+            }
+            else
+            {
+                writer.Put(result.GetType().FullName);
+                writer.Put(result.ToJson());
+            }
+        }
+
+        RPCExecutor rpcExecutor = new RPCExecutor();
+
         public void addInvokeTarget(object obj)
         {
-            if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
-            if (!invokeTargetList.Contains(obj))
-                invokeTargetList.Add(obj);
+            rpcExecutor.AddTargetObject(obj);
         }
-        public bool removeInvokeTarget(object obj)
-        {
-            return invokeTargetList.Remove(obj);
-        }
+
         public event Func<int, object, Task> onReceive;
         public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
         {
         }
         public void disconnect()
         {
-            cancleAllOperation();
+            opList.CancleAll();
             if (host != null)
             {
                 host.Disconnect();
@@ -578,19 +375,10 @@ namespace TouhouCardEngine
             }
         }
 
-        private void cancleAllOperation()
-        {
-            foreach (var operation in _operationList)
-            {
-                operation.setCancel();
-            }
-            _operationList.Clear();
-        }
-
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             logger?.log("客户端" + id + "与主机断开连接，原因：" + disconnectInfo.Reason + "，SocketErrorCode：" + disconnectInfo.SocketErrorCode);
-            cancleAllOperation();
+            opList.CancleAll();
             host = null;
             onDisconnect?.Invoke();
             onQuitRoom?.Invoke();
@@ -605,7 +393,6 @@ namespace TouhouCardEngine
             throw new NotImplementedException();
         }
 
-
         public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
             switch (messageType)
@@ -614,7 +401,7 @@ namespace TouhouCardEngine
                     if (reader.GetInt() == (int)PacketType.discoveryResponse)
                     {
                         uint reqID = reader.GetUInt();
-                        var roomInfo = parseRoomInfo(remoteEndPoint, reader).deserialize();
+                        var roomInfo = RoomInfoHelper.Parse(reader, remoteEndPoint);
                         if (reqID == 0)
                         {
                             logger?.log($"客户端找到主机，{remoteEndPoint.Address}:{remoteEndPoint.Port}");
@@ -656,34 +443,6 @@ namespace TouhouCardEngine
         {
             var writer = roomDiscoveryRequestWriter(0);
             net.SendBroadcast(writer, port);
-        }
-        RoomInfo parseRoomInfo(IPEndPoint remoteEndPoint, NetPacketReader reader)
-        {
-            var type = reader.GetString();
-            var json = reader.GetString();
-            Type objType = Type.GetType(type);
-            Debug.Log("Recv Json: " + json);
-            if (objType == null)
-            {
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    objType = assembly.GetType(type);
-                    if (objType != null)
-                        break;
-                }
-            }
-            object obj = BsonSerializer.Deserialize(json, objType);
-            if (obj is RoomInfo info)
-            {
-                info.ip = remoteEndPoint.Address.ToString();
-                info.port = remoteEndPoint.Port;
-                return info;
-            }
-            else
-            {
-                logger?.log($"主机房间信息类型错误，收到了 {type}");
-                return null;
-            }
         }
         NetDataWriter roomDiscoveryRequestWriter(uint reqID)
         {
@@ -781,14 +540,21 @@ namespace TouhouCardEngine
         #endregion
     }
 
-    [Serializable]
-    public class RPCException : Exception
+    public class RPCHelper
     {
-        public RPCException() { }
-        public RPCException(string message) : base(message) { }
-        public RPCException(string message, Exception inner) : base(message, inner) { }
-        protected RPCException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public static RPCRequest GameStart()
+        {
+            return new RPCRequest(typeof(void), "gameStart");
+        }
+
+        public static RPCRequest RoomPropSet(string name, object value)
+        {
+            return new RPCRequest(typeof(void), "setRoomProp", name, value);
+        }
+
+        public static RPCRequest RemovePlayer(int playerID)
+        {
+            return new RPCRequest(typeof(void), "removePlayer", playerID);
+        }
     }
 }

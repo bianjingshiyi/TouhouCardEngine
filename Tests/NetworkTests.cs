@@ -13,6 +13,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Reflection;
 using System.Threading;
+using NitoriNetwork.Common;
+
 namespace Tests
 {
     public class NetworkTests
@@ -467,9 +469,7 @@ namespace Tests
             ClientManager client1, client2;
             createHostClient12(out host, out client1, out client2);
 
-            RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
-            RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
-            RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+            createRoomPlayer12(host, out RoomPlayerInfo playerInfo1, out RoomPlayerInfo playerInfo2, out RoomInfo roomInfo);
 
             host.openRoom(roomInfo);
             yield return new WaitForSeconds(0.5f);
@@ -501,9 +501,9 @@ namespace Tests
             ClientManager client1, client2;
             createHostClient12(out host, out client1, out client2);
 
-            RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
-            RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
-            RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+            RoomPlayerInfo playerInfo1, playerInfo2;
+            RoomInfo roomInfo;
+            createRoomPlayer12(host, out playerInfo1, out playerInfo2, out roomInfo);
 
             host.openRoom(roomInfo);
             yield return new WaitForSeconds(0.5f);
@@ -524,11 +524,20 @@ namespace Tests
                 updateTrigger = true;
             };
 
-            host.removePlayer(playerInfo2.RoomID);
+            task = client1.invokeHost(RPCHelper.RemovePlayer(playerInfo2.PlayerID));
             yield return new WaitForSeconds(1);
 
             if (!updateTrigger)
                 throw new TimeoutException("移除超时。");
+        }
+
+        private static void createRoomPlayer12(HostManager host, out RoomPlayerInfo playerInfo1, out RoomPlayerInfo playerInfo2, out RoomInfo roomInfo)
+        {
+            playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
+            playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
+            playerInfo2.PlayerID = playerInfo1.PlayerID + 1;
+
+            roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port, OwnerID = playerInfo1.PlayerID };
         }
 
         /// <summary>
@@ -542,9 +551,7 @@ namespace Tests
             ClientManager client1, client2;
             createHostClient12(out host, out client1, out client2);
 
-            RoomPlayerInfo playerInfo1 = new RoomPlayerInfo() { name = "测试名字1" };
-            RoomPlayerInfo playerInfo2 = new RoomPlayerInfo() { name = "测试名字2" };
-            RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
+            createRoomPlayer12(host, out RoomPlayerInfo playerInfo1, out RoomPlayerInfo playerInfo2, out RoomInfo roomInfo);
 
             host.openRoom(roomInfo);
             yield return new WaitForSeconds(0.5f);
@@ -730,10 +737,10 @@ namespace Tests
 
             Task task = client.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 500);
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void),nameof(InvokeTarget.delay), 500));
             yield return waitTask(task);
             Assert.False(task.IsCanceled);
-            task = host.invoke<object>(client.id, nameof(InvokeTarget.delay), 1001);
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void), nameof(InvokeTarget.delay), 1001));
             yield return waitTask(task);
             Assert.True(task.IsCanceled);
         }
