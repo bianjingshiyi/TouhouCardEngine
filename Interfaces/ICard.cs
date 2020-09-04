@@ -33,6 +33,8 @@ namespace TouhouCardEngine.Interfaces
     {
         ICard card { get; }
         IPropModifier modifier { get; }
+        object valueBefore { get; }
+        object valueAfter { get; }
     }
     public interface IRemoveModiEventArg : IEventArg
     {

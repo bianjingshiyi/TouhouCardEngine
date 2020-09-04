@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         /// 卡片所在的牌堆
         /// </summary>
         public Pile pile { get; internal set; } = null;
-        public CardDefine define { get; internal set; } = null;
+        public CardDefine define { get; } = null;
         ICardDefine ICard.define
         {
             get { return define; }
@@ -56,7 +56,9 @@ namespace TouhouCardEngine
         public Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg() { game = game, card = this, modifier = modifier }, arg =>
+                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg()
+                { game = game, card = this, modifier = modifier, valueBefore = getProp(game, modifier.propName) },
+                arg =>
                 {
                     Card card = arg.card as Card;
                     modifier = arg.modifier as PropModifier;
@@ -66,6 +68,7 @@ namespace TouhouCardEngine
                     card.modifierList.Add(modifier);
                     modifier.afterAdd(game, card);
                     object prop = card.getProp(game, modifier.propName);
+                    (arg as AddModiEventArg).valueAfter = prop;
                     string propString = propToString(prop);
                     game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propString);
                     return Task.CompletedTask;
@@ -121,11 +124,13 @@ namespace TouhouCardEngine
         public class AddModiEventArg : EventArg, IAddModiEventArg
         {
             public Card card;
+            public object valueBefore;
             public PropModifier modifier;
-
+            public object valueAfter;
             ICard IAddModiEventArg.card => card;
-
             IPropModifier IAddModiEventArg.modifier => modifier;
+            object IAddModiEventArg.valueBefore => valueBefore;
+            object IAddModiEventArg.valueAfter => valueAfter;
         }
         public async Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier)
         {
@@ -251,7 +256,7 @@ namespace TouhouCardEngine
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
-                    //game.logger?.log("Game", card + "的" + propName + "=>" + v);
+                    game.logger?.log("Game", card + "的" + propName + "=>" + v);
                     return Task.CompletedTask;
                 });
             else
@@ -310,10 +315,6 @@ namespace TouhouCardEngine
                 return new Card[] { card };
             else
                 return new Card[0];
-        }
-        public void Morph(IGame game, CardDefine define)
-        {
-            this.define = define;
         }
     }
 }
