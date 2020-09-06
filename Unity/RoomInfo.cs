@@ -7,7 +7,6 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
-using Newtonsoft.Json;
 
 namespace TouhouCardEngine
 {
