@@ -6,7 +6,7 @@
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AAAAEAAAAQAAAAAAAABAIAAgQQAABAgAQCAgAAAAAgA=</HashCode>
+      <HashCode>AAAAEAAAAQAACAAAAABAIAAgQQAABAgAQCAgAAAAAgA=</HashCode>
       <FileName>Assets\Plugins\TouhouCardEngine\Unity\RoomInfo.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -15,10 +15,10 @@
     <Members>
       <Property Name="autoStart" Hidden="true" />
       <Method Name="Awake" Hidden="true" />
-      <Method Name="cancleAllOperation" Hidden="true" />
       <Property Name="host" Hidden="true" />
-      <Property Name="invokeTargetList" Hidden="true" />
+      <Method Name="invokeRequestHandler" Hidden="true" />
       <Property Name="net" Hidden="true" />
+      <Method Name="objectWriter" Hidden="true" />
       <Method Name="OnConnectionRequest" Hidden="true" />
       <Method Name="OnNetworkError" Hidden="true" />
       <Method Name="OnNetworkLatencyUpdate" Hidden="true" />
@@ -27,55 +27,15 @@
       <Method Name="OnPeerConnected" Hidden="true" />
       <Method Name="OnPeerDisconnected" Hidden="true" />
       <Method Name="operationTimeout" Hidden="true" />
-      <Method Name="parseRoomInfo" Hidden="true" />
       <Method Name="roomDiscoveryRequestWriter" Hidden="true" />
       <Method Name="Start" Hidden="true" />
       <Method Name="taskChecker" Hidden="true" />
-      <Method Name="tryInvoke" Hidden="true" />
       <Method Name="Update" Hidden="true" />
     </Members>
     <Compartments>
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
     <NestedTypes>
-      <Class Name="TouhouCardEngine.ClientManager.JoinOperation" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Class>
-      <Class Name="TouhouCardEngine.ClientManager.SendOperation&lt;T&gt;" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Class>
-      <Class Name="TouhouCardEngine.ClientManager.Operation" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-        <Lollipop Position="0.2" />
-      </Class>
-      <Class Name="TouhouCardEngine.ClientManager.Operation&lt;T&gt;" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-        <Lollipop Position="0.2" />
-      </Class>
-      <Interface Name="TouhouCardEngine.ClientManager.IOperation" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Interface>
-      <Interface Name="TouhouCardEngine.ClientManager.IInvokeOperation" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Interface>
-      <Class Name="TouhouCardEngine.ClientManager.InvokeOperation&lt;T&gt;" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-        <Lollipop Position="0.2" />
-      </Class>
       <Delegate Name="TouhouCardEngine.ClientManager.RoomInfoUpdateDelegate" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</NewMemberFileName>
@@ -83,7 +43,7 @@
       </Delegate>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>CQRkCiEBACCCQAhiUIHqKAABAhBgAYiAAAoCQAJEBkE=</HashCode>
+      <HashCode>AARkCiEBACCCQAhiUAHqCAABIhBgAQiAAgoDQAIEBkE=</HashCode>
       <FileName>Assets\Plugins\TouhouCardEngine\Unity\ClientManager.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
@@ -104,30 +64,14 @@
       <Method Name="OnPeerConnected" Hidden="true" />
       <Method Name="OnPeerDisconnected" Hidden="true" />
       <Method Name="playerInfoUpdateRequestHandler" Hidden="true" />
-      <Method Name="RoomInfoDiscoveryWriter" Hidden="true" />
-      <Method Name="RoomInfoResponseWriter" Hidden="true" />
-      <Method Name="RoomInfoUpdateWriter" Hidden="true" />
-      <Method Name="RoomInfoWriter" Hidden="true" />
       <Method Name="Start" Hidden="true" />
       <Method Name="Update" Hidden="true" />
     </Members>
     <Compartments>
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
-    <NestedTypes>
-      <Class Name="TouhouCardEngine.HostManager.InvokeOperation" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Class>
-      <Class Name="TouhouCardEngine.HostManager.InvokeOperation&lt;T&gt;" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Class>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAYgSAkAQCCCAAxiTAApAAwQABIgAkgAABIiwAIAZMA=</HashCode>
+      <HashCode>AAYgSAEAQCCCAAhiSmApAAgQABIhAggAAhIjQgIAZMA=</HashCode>
       <FileName>Assets\Plugins\TouhouCardEngine\Unity\HostManager.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" Collapsed="true" />

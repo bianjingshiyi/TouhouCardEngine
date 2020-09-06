@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
-using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+using Newtonsoft.Json;
 
 namespace TouhouCardEngine
 {
@@ -104,7 +107,7 @@ namespace TouhouCardEngine
             _persistDataList.Clear();
             foreach (var pair in runtimeDic)
             {
-                _persistDataList.Add(pair.Key + ":(" + pair.Value.GetType().FullName + ")" + JsonConvert.SerializeObject(pair.Value));
+                _persistDataList.Add(pair.Key + ":(" + pair.Value.GetType().FullName + ")" + pair.Value.ToJson());
             }
             return this;
         }
@@ -115,7 +118,7 @@ namespace TouhouCardEngine
             {
                 if (Regex.Match(data, @"(?<name>.+):\((?<type>.+)\)(?<json>.+)") is var m && m.Success)
                 {
-                    runtimeDic.Add(m.Groups["name"].Value, JsonConvert.DeserializeObject(m.Groups["json"].Value, getType(m.Groups["type"].Value)));
+                    runtimeDic.Add(m.Groups["name"].Value, BsonSerializer.Deserialize(m.Groups["json"].Value, getType(m.Groups["type"].Value)));
                 }
                 else
                     throw new FormatException("错误的序列化格式：" + data);
