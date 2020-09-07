@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using LiteNetLib.Utils;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-namespace TouhouCardEngine
+
+namespace NitoriNetwork.Common
 {
     [Serializable]
     public class RoomPlayerInfo

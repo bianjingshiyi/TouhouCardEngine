@@ -710,7 +710,7 @@ namespace Tests
 
             Task task = client.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invoke<bool>(client.id, nameof(InvokeTarget.method), 1);
+            task = host.invoke<bool>(client.id, new RPCRequest<bool>(nameof(InvokeTarget.method), 1));
             yield return waitTask(task);
             Assert.AreEqual(true, (task as Task<bool>).Result);
         }
@@ -723,7 +723,7 @@ namespace Tests
 
             Task task = client.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invoke<object>(client.id, nameof(InvokeTarget.exception));
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void), nameof(InvokeTarget.exception)));
             yield return waitTask(task);
             Assert.True(task.IsFaulted);
         }
@@ -737,7 +737,7 @@ namespace Tests
 
             Task task = client.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invoke<object>(client.id, new RPCRequest(typeof(void),nameof(InvokeTarget.delay), 500));
+            task = host.invoke<object>(client.id, new RPCRequest(typeof(void), nameof(InvokeTarget.delay), 500));
             yield return waitTask(task);
             Assert.False(task.IsCanceled);
             task = host.invoke<object>(client.id, new RPCRequest(typeof(void), nameof(InvokeTarget.delay), 1001));
@@ -755,7 +755,7 @@ namespace Tests
             List<Task> taskList = new List<Task>();
             for (int i = 0; i < 10; i++)
             {
-                task = host.invoke<bool>(client.id, nameof(InvokeTarget.method), i);
+                task = host.invoke<bool>(client.id, new RPCRequest<bool>(nameof(InvokeTarget.method), i));
                 taskList.Add(task);
             }
             yield return new WaitUntil(() => taskList.All(t => t.IsCanceled || t.IsFaulted || t.IsCompleted));
@@ -799,7 +799,7 @@ namespace Tests
             yield return waitTask(task);
             task = client2.join(host.ip, host.port);
             yield return waitTask(task);
-            task = host.invokeAll<bool>(new int[] { client1.id, client2.id }, nameof(InvokeTarget.method), 1);
+            task = host.invokeAll<bool>(new int[] { client1.id, client2.id }, new RPCRequest<bool>(nameof(InvokeTarget.method), 1));
             yield return waitTask(task);
             Dictionary<int, bool> result = (task as Task<Dictionary<int, bool>>).Result;
             Assert.AreEqual(2, result.Count);

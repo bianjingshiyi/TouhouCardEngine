@@ -1,14 +1,12 @@
-﻿using System;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
 
-namespace TouhouCardEngine
+namespace NitoriNetwork.Common
 {
     [Serializable]
     public class RoomInfo
