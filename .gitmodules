@@ -1,0 +1,4 @@
+[submodule "Network/Common"]
+	path = Network/Common
+	url = https://code.lotlab.org/IGensokyo/NitoriNetwork.Common.git
+	branch = master
