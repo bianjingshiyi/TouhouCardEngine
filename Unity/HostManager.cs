@@ -1,19 +1,13 @@
-﻿using System;
+﻿using LiteNetLib;
+using NitoriNetwork.Common;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
-using TouhouCardEngine.Interfaces;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Linq;
-using System.IO;
-using System.Runtime.Serialization.Json;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using System.Reflection;
 using System.Threading.Tasks;
-using NitoriNetwork.Common;
+using TouhouCardEngine.Interfaces;
+using UnityEngine;
 
 namespace TouhouCardEngine
 {
@@ -43,7 +37,7 @@ namespace TouhouCardEngine
             set { _autoStart = value; }
         }
 
-        HostNetworking host = new HostNetworking();
+        LocalHostNetworking host = new LocalHostNetworking();
 
         NetManager net { get => host.net; set => host.net = value; }
         public bool isRunning
@@ -131,7 +125,7 @@ namespace TouhouCardEngine
 
         public RoomInfo room => host.room;
 
-        public bool RoomIsValid => host.RoomIsValid;
+        public bool RoomIsValid => host.RoomValid;
 
         public RoomInfo openRoom(RoomInfo info)
         {
