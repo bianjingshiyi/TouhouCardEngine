@@ -4,7 +4,9 @@ namespace TouhouCardEngine
 {
     public class IntPropModifier : PropModifier<int>
     {
-        public bool isSet { get; }
+        public bool isSet { get; set; }
+        public int minValue { get; set; } = 0;
+        public int maxValue { get; set; } = int.MaxValue;
         public IntPropModifier(string propName, int value) : base(propName, value)
         {
             isSet = false;
@@ -20,9 +22,14 @@ namespace TouhouCardEngine
         public override int calc(IGame game, Card card, int value)
         {
             if (isSet)
-                return this.value;
+                value = this.value;
             else
-                return value + this.value;
+                value += this.value;
+            if (value < minValue)
+                value = minValue;
+            else if (value > maxValue)
+                value = maxValue;
+            return value;
         }
         public override PropModifier clone()
         {
