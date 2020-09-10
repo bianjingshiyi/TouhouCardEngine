@@ -56,7 +56,6 @@ namespace TouhouCardEngine
         {
             get { return net != null ? net.IsRunning : false; }
         }
-        NetPeer host => client.host;
 
         Interfaces.ILogger _logger = null;
 
@@ -124,11 +123,22 @@ namespace TouhouCardEngine
                 logger?.log("Warning", "客户端已经初始化，本地端口：" + net.LocalPort);
         }
 
-        OperationList opList = new OperationList();
-
         public Task<int> join(string ip, int port)
         {
             return client.join(ip, port);
+        }
+
+        /// <summary>
+        /// 加入服务器房间
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <param name="session"></param>
+        /// <param name="roomID"></param>
+        /// <returns></returns>
+        public Task<int> joinServer(string ip, int port, string session, string roomID)
+        {
+            return client.join(ip, port, session, roomID);
         }
 
         public event Func<Task> onConnected
