@@ -57,7 +57,7 @@ namespace TouhouCardEngine
         public Interfaces.ILogger logger { get; set; } = null;
         [SerializeField]
         int _id = -1;
-        
+
         /// <summary>
         /// 客户端ID
         /// </summary>
@@ -510,7 +510,7 @@ namespace TouhouCardEngine
             if (id == -1)
                 throw new TimeoutException();
             playerInfo.RoomID = id;
-            send(playerInfo as object, PacketType.joinRequest);
+            await send(playerInfo as object, PacketType.joinRequest);
         }
 
         /// <summary>
@@ -522,7 +522,7 @@ namespace TouhouCardEngine
         {
             await send(playerInfo as object, PacketType.playerInfoUpdateRequest);
         }
-         
+
         /// <summary>
         /// 当前所在房间信息，如果不在任何房间中则为空。
         /// </summary>

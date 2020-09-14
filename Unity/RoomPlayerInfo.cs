@@ -9,7 +9,7 @@ namespace TouhouCardEngine
     public class RoomPlayerInfo
     {
         /// <summary>
-        /// 游戏房间中的ID，由房间自行分配
+        /// 游戏房间中的ID，等同于玩家与Host连接时的PeerID。
         /// </summary>
         public int RoomID { get => id; set => id = value; }
         /// <summary>
