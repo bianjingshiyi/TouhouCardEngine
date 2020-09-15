@@ -347,9 +347,7 @@ namespace Tests
                 Assert.AreEqual(p.port, info.port);
             };
 
-            var task = client.joinRoom(info, playerInfo);
-            yield return new WaitUntil(() => task.IsCompleted);
-            yield return new WaitForSeconds(0.5f);
+            yield return client.joinRoom(info, playerInfo).wait();
 
             host.openRoom(info);
             hostRoomCreated = true;
