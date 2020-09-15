@@ -317,48 +317,54 @@ namespace Tests
             client.logger = logger;
             client.start();
 
-            RoomPlayerInfo playerInfo = new RoomPlayerInfo()
+            RoomInfo room = new RoomInfo() { ip = "127.0.0.1", port = host.port, playerList = new List<RoomPlayerInfo>() };
+
+            Task task = client.joinRoom(room, new RoomPlayerInfo()
             {
                 name = "测试名字"
-            };
-            RoomInfo info = new RoomInfo() { ip = "127.0.0.1", port = host.port, playerList = new List<RoomPlayerInfo>() };
+            });
+            yield return task.wait();
+            Assert.Null((task as Task<RoomInfo>).Result);
 
-            bool hostRoomCreated = false, joinSuccessHost = false, joinSuccessClient = false;
+            host.openRoom(room);
+            Assert.NotNull(host.room);
+
+            client.findRoom(host.port);
             bool joinLock = false;
-
-            host.onPlayerJoin += (p) =>
-            {
-                joinSuccessHost = true;
-                Assert.True(hostRoomCreated);
-                Assert.AreEqual(p.name, playerInfo.name);
-            };
-            client.onRoomFound += async (r) =>
+            client.onRoomFound += (r) =>
             {
                 if (!joinLock)
                 {
                     joinLock = true;
-                    await client.joinRoom(r, playerInfo);
+                    room = r;
                 }
             };
+            yield return new WaitUntil(() => joinLock);
+            Assert.AreEqual(host.room.ip, room.ip);
+            Assert.AreEqual(host.room.port, room.port);
 
-            client.onJoinRoom += (p) =>
+            bool joinFlag = false;
+            client.onJoinRoom += r =>
             {
-                joinSuccessClient = true;
-                Assert.AreEqual(p.port, info.port);
+                if (!joinFlag)
+                    joinFlag = true;
             };
-
-            yield return client.joinRoom(info, playerInfo).wait();
-
-            host.openRoom(info);
-            hostRoomCreated = true;
-
-            client.findRoom(host.port);
-            yield return new WaitForSeconds(1f);
-
-            if (!joinSuccessClient)
-                throw new TimeoutException("客户端加入超时。");
-            if (!joinSuccessHost)
-                throw new TimeoutException("服务端加入超时。");
+            bool clientJoinFlag = false;
+            host.onPlayerJoin += p =>
+            {
+                if (!clientJoinFlag)
+                    clientJoinFlag = true;
+            };
+            task = client.joinRoom(room, new RoomPlayerInfo()
+            {
+                name = "测试名字"
+            });
+            yield return task.wait();
+            Assert.True(joinFlag);
+            Assert.True(clientJoinFlag);
+            room = (task as Task<RoomInfo>).Result;
+            Assert.AreEqual(1, room.playerList.Count);
+            Assert.AreEqual("测试名字", room.playerList[0].name);
         }
         /// <summary>
         /// 加入房间后，client.quitRoom，触发client.onQuitRoom(room)事件和host.onClientQuit(player)事件。
@@ -506,7 +512,7 @@ namespace Tests
             host.openRoom(roomInfo);
             yield return new WaitForSeconds(0.5f);
 
-            var task = client1.joinRoom(roomInfo, playerInfo1);
+            Task task = client1.joinRoom(roomInfo, playerInfo1);
             yield return new WaitUntil(() => task.IsCompleted);
 
             task = client2.joinRoom(roomInfo, playerInfo2);
@@ -554,7 +560,7 @@ namespace Tests
             host.openRoom(roomInfo);
             yield return new WaitForSeconds(0.5f);
 
-            var task = client1.joinRoom(roomInfo, playerInfo1);
+            Task task = client1.joinRoom(roomInfo, playerInfo1);
             yield return new WaitUntil(() => task.IsCompleted);
 
             task = client2.joinRoom(roomInfo, playerInfo2);
