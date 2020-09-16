@@ -385,13 +385,11 @@ namespace Tests
             RoomPlayerInfo playerInfo = new RoomPlayerInfo() { name = "测试名字" };
             RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
 
-            host.openRoom(roomInfo);
-            yield return new WaitForSeconds(0.5f);
-
+            roomInfo = host.openRoom(roomInfo);
             var task = client.joinRoom(roomInfo, playerInfo);
-            yield return new WaitUntil(() => task.IsCompleted);
+            yield return task.wait();
 
-            bool quitHost = false, quitClient = false, roomJoined = false;
+            bool quitHost = false, quitClient = false;
 
             client.onQuitRoom += () =>
             {
@@ -402,20 +400,12 @@ namespace Tests
                 Assert.AreEqual(p.name, playerInfo.name);
                 quitHost = true;
             };
-            client.onJoinRoom += (room) =>
-            {
-                roomJoined = true;
-            };
-
-            yield return new WaitUntil(() => roomJoined);
             client.quitRoom();
 
             yield return new WaitForSeconds(1);
 
-            if (!quitClient)
-                throw new TimeoutException("客户端退出超时。");
-            if (!quitHost)
-                throw new TimeoutException("服务端退出超时。");
+            Assert.True(quitClient);
+            Assert.True(quitHost);
         }
         /// <summary>
         /// 加入房间后，host.closeRoom，触发client.onQuitRoom(room)事件。
