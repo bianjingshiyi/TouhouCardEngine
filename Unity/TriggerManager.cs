@@ -297,14 +297,6 @@ namespace TouhouCardEngine
             {
                 return action.Invoke((T)arg);
             };
-            try
-            {
-                onEventBefore?.Invoke(eventArg);
-            }
-            catch (Exception e)
-            {
-                logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
-            }
             //Before
             doEventNames = eventArg.beforeNames;
             if (doEventNames == null)
@@ -373,6 +365,15 @@ namespace TouhouCardEngine
                 }
             }
             doEventNames = null;
+            //Callback
+            try
+            {
+                onEventBefore?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
+            }
             //Event
             int repeatTime = 0;
             do
@@ -393,6 +394,15 @@ namespace TouhouCardEngine
                 repeatTime++;
             }
             while (repeatTime <= eventArg.repeatTime);
+            //Callback
+            try
+            {
+                onEventAfter?.Invoke(eventArg);
+            }
+            catch (Exception e)
+            {
+                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
+            }
             //After
             doEventNames = eventArg.afterNames;
             if (doEventNames == null)
@@ -461,14 +471,6 @@ namespace TouhouCardEngine
                 }
             }
             doEventNames = null;
-            try
-            {
-                onEventAfter?.Invoke(eventArg);
-            }
-            catch (Exception e)
-            {
-                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
-            }
             _eventChainList.Remove(eventArgItem);
             if (eventArg.isCanceled)
                 return default;
