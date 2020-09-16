@@ -256,9 +256,9 @@ namespace TouhouCardEngine
         /// <param name="room"></param>
         /// <param name="playerInfo"></param>
         /// <returns></returns>
-        public async Task joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
+        public Task<RoomInfo> joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
         {
-            await client.joinRoom(room, playerInfo);
+            return client.joinRoom(room, playerInfo);
         }
 
         /// <summary>
