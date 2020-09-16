@@ -114,6 +114,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("nickname", nickname);
 
             var response = client.Execute<ResponseData<string>>(request);
+
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
@@ -195,6 +196,15 @@ namespace NitoriNetwork.Common
         /// <returns></returns>
         int GetUID()
         {
+            return GetUserInfo().uid;
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <returns></returns>
+        public PublicUserInfo GetUserInfo()
+        {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
             var response = client.Execute<ResponseData<PublicUserInfo>>(request);
 
@@ -206,7 +216,18 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
-            return response.Data.result.uid;
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 注销
+        /// </summary>
+        public void Logout()
+        {
+            UserSession = "";
+            UID = 0;
+            // todo: 发送给服务器注销
+            client.CookieContainer = new CookieContainer();
         }
     }
 
