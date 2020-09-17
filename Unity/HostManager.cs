@@ -122,11 +122,9 @@ namespace TouhouCardEngine
         {
             net.Stop();
         }
-
+        #region Room
         public RoomInfo room => host.room;
-
         public bool RoomIsValid => host.RoomValid;
-
         public RoomInfo openRoom(RoomInfo info)
         {
             host.SetRoomInfo(info);
@@ -139,7 +137,6 @@ namespace TouhouCardEngine
             info.port = port;
             return info;
         }
-
         public async Task<Dictionary<int, T>> invokeAll<T>(int[] IdArray, RPCRequest request)
         {
             return await host.invokeAll<T>(IdArray, request);
@@ -148,7 +145,6 @@ namespace TouhouCardEngine
         {
             return host.invoke<T>(id, request);
         }
-
         public event Action<RoomPlayerInfo> onPlayerJoin 
         {
             add
@@ -160,7 +156,6 @@ namespace TouhouCardEngine
                 host.onPlayerQuit -= value;
             }
         }
-
         public event Action<RoomPlayerInfo> onPlayerQuit
         {
             add
@@ -172,12 +167,15 @@ namespace TouhouCardEngine
                 host.onPlayerQuit -= value;
             }
         }
-
         public void closeRoom()
         {
             net.DisconnectAll();
             host.room = null;
         }
+        #endregion
+        #region Server
+
+        #endregion
     }
 
     public class NetworkingLoggerAdapter : INetworkingLogger

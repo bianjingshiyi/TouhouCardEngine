@@ -100,6 +100,7 @@ namespace TouhouCardEngine
         {
             net.PollEvents();
         }
+        #region Network
         public void start()
         {
             if (!net.IsRunning)
@@ -122,25 +123,10 @@ namespace TouhouCardEngine
             else
                 logger?.log("Warning", "客户端已经初始化，本地端口：" + net.LocalPort);
         }
-
         public Task<int> join(string ip, int port)
         {
             return client.join(ip, port);
         }
-
-        /// <summary>
-        /// 加入服务器房间
-        /// </summary>
-        /// <param name="ip"></param>
-        /// <param name="port"></param>
-        /// <param name="session"></param>
-        /// <param name="roomID"></param>
-        /// <returns></returns>
-        public Task<int> joinServer(string ip, int port, string session, string roomID)
-        {
-            return client.join(ip, port, session, roomID);
-        }
-
         public event Func<Task> onConnected
         {
             add
@@ -152,7 +138,6 @@ namespace TouhouCardEngine
                 client.onConnected -= value;
             }
         }
-
         public Task send(object obj)
         {
             return client.send(obj);
@@ -161,12 +146,10 @@ namespace TouhouCardEngine
         {
             return await client.send<T>(obj);
         }
-
         public Task<T> invokeHost<T>(RPCRequest request)
         {
             return client.invokeHost<T>(request);
         }
-
         /// <summary>
         /// 返回值是void的Request
         /// </summary>
@@ -176,12 +159,10 @@ namespace TouhouCardEngine
         {
             return invokeHost<object>(request);
         }
-
         public void addInvokeTarget(object obj)
         {
             client.addInvokeTarget(obj);
         }
-
         public event Func<int, object, Task> onReceive
         {
             add
@@ -193,12 +174,10 @@ namespace TouhouCardEngine
                 client.onReceive -= value;
             }
         }
-
         public void disconnect()
         {
             client.disconnect();
         }
-
         public event Action onDisconnect
         {
             add
@@ -210,11 +189,11 @@ namespace TouhouCardEngine
                 client.onDisconnect -= value;
             }
         }
-
         public void stop()
         {
             net.Stop();
         }
+        #endregion
         #region Room
         /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
@@ -285,6 +264,20 @@ namespace TouhouCardEngine
         public void quitRoom()
         {
             client.quitRoom();
+        }
+        #endregion
+        #region Server
+        /// <summary>
+        /// 加入服务器房间
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <param name="session"></param>
+        /// <param name="roomID"></param>
+        /// <returns></returns>
+        public Task<int> joinServer(string ip, int port, string session, string roomID)
+        {
+            return client.join(ip, port, session, roomID);
         }
         #endregion
     }
