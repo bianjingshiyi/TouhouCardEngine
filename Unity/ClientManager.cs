@@ -285,6 +285,21 @@ namespace TouhouCardEngine
             get { throw new NotImplementedException(); }
         }
         /// <summary>
+        /// 注册账号，在服务器回应之后返回。
+        /// </summary>
+        /// <param name="account"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public Task register(string ip, int port, AccountInfo account, string captcha)
+        {
+            if (_serverClient == null)
+            {
+                string uri = "http://" + ip + ":" + port;
+                _serverClient = new ServerClient(uri);
+            }
+            return _serverClient.Register(account.userName, account.mail, account.password, account.nickName, captcha);
+        }
+        /// <summary>
         /// 登录指定服务器，在收到服务器的回应之后返回。
         /// </summary>
         /// <param name="ip"></param>
@@ -316,9 +331,24 @@ namespace TouhouCardEngine
         {
             return client.join(ip, port, session, roomID);
         }
+        ServerClient _serverClient;
         #endregion
     }
-
+    [Serializable]
+    public class AccountInfo
+    {
+        public string userName;
+        public string password;
+        public string mail;
+        public string nickName;
+        public AccountInfo(string userName, string password, string mail, string nickName)
+        {
+            this.userName = userName;
+            this.password = password;
+            this.mail = mail;
+            this.nickName = nickName;
+        }
+    }
     public class RPCHelper
     {
         public static RPCRequest GameStart()

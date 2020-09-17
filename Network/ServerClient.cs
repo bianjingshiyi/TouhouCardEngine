@@ -4,6 +4,8 @@ using RestSharp.Serialization;
 
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using System.Threading.Tasks;
+using System;
 
 namespace NitoriNetwork.Common
 {
@@ -102,7 +104,7 @@ namespace NitoriNetwork.Common
         /// <param name="nickname"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
-        public void Register(string username, string mail, string password, string nickname, string captcha)
+        public Task Register(string username, string mail, string password, string nickname, string captcha)
         {
             RestRequest request = new RestRequest("/api/User", Method.POST);
 
@@ -131,6 +133,7 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
+            throw new NotImplementedException();
         }
 
         /// <summary>
