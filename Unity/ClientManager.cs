@@ -206,7 +206,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task<RoomInfo> openRoom(RoomInfo room)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException();//实现客户端创建房间。
         }
         /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
@@ -294,7 +294,15 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task login(string ip, int port, string account, string password)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException();//TODO:实现客户端登录到服务端，以及网络模式的切换。
+        }
+        /// <summary>
+        /// 从服务器登出，在服务器返回消息之后返回。
+        /// </summary>
+        /// <returns></returns>
+        public Task logout()
+        {
+            throw new NotImplementedException();//TODO:实现客户端从服务器登出
         }
         /// <summary>
         /// 加入服务器房间
