@@ -6,7 +6,7 @@ using TouhouCardEngine;
 using System.Threading.Tasks;
 using NitoriNetwork.Common;
 using System.Linq;
-
+using System;
 namespace Tests
 {
     public class ServerNetworkTests
@@ -57,7 +57,7 @@ namespace Tests
             Assert.NotNull(rooms);
             Assert.AreEqual(1, rooms.Where(x => x.roomID == room.roomID).Count());
         }
-
+        public event Action action;
         [UnityTest]
         public IEnumerator ConnectServerTest()
         {
@@ -72,7 +72,7 @@ namespace Tests
                 return Task.CompletedTask;
             };
             client.start();
-
+            action = null;
             tryLogin();
             var room = serverClient.CreateRoom();
 

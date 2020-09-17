@@ -125,7 +125,7 @@ namespace TouhouCardEngine
         #region Room
         public RoomInfo room => host.room;
         public bool RoomIsValid => host.RoomValid;
-        public RoomInfo openRoom(RoomInfo info)
+        public Task<RoomInfo> openRoom(RoomInfo info)
         {
             host.SetRoomInfo(info);
 
@@ -135,7 +135,7 @@ namespace TouhouCardEngine
             }
             info.ip = ip;
             info.port = port;
-            return info;
+            return Task.FromResult(info);
         }
         public async Task<Dictionary<int, T>> invokeAll<T>(int[] IdArray, RPCRequest request)
         {
@@ -145,7 +145,7 @@ namespace TouhouCardEngine
         {
             return host.invoke<T>(id, request);
         }
-        public event Action<RoomPlayerInfo> onPlayerJoin 
+        public event Action<RoomPlayerInfo> onPlayerJoin
         {
             add
             {
@@ -174,7 +174,14 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
-
+        public string account
+        {
+            get { throw new NotImplementedException(); }
+        }
+        public Task login(string ip, int port, string account, string password)
+        {
+            throw new NotImplementedException();
+        }
         #endregion
     }
 

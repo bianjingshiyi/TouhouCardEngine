@@ -385,9 +385,12 @@ namespace Tests
             RoomPlayerInfo playerInfo = new RoomPlayerInfo() { name = "测试名字" };
             RoomInfo roomInfo = new RoomInfo() { ip = "127.0.0.1", port = host.port };
 
-            roomInfo = host.openRoom(roomInfo);
-            var task = client.joinRoom(roomInfo, playerInfo);
-            yield return task.wait();
+            Task<RoomInfo> roomTask = host.openRoom(roomInfo);
+            yield return roomTask.wait();
+            roomInfo = roomTask.Result;
+
+            roomTask = client.joinRoom(roomInfo, playerInfo);
+            yield return roomTask.wait();
 
             bool quitHost = false, quitClient = false;
 

@@ -159,6 +159,10 @@ namespace TouhouCardEngine
         {
             return invokeHost<object>(request);
         }
+        public Task<T> invokeAll<T>(IEnumerable<int> id, RPCRequest request)
+        {
+            throw new NotImplementedException();
+        }
         public void addInvokeTarget(object obj)
         {
             client.addInvokeTarget(obj);
@@ -196,6 +200,15 @@ namespace TouhouCardEngine
         #endregion
         #region Room
         /// <summary>
+        /// 打开一个房间，如果是在服务器模式下会在收到服务器返回的房间信息后返回。
+        /// </summary>
+        /// <param name="room"></param>
+        /// <returns></returns>
+        public Task<RoomInfo> openRoom(RoomInfo room)
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
         /// </summary>
         /// <param name="port">搜索端口。默认9050</param>
@@ -230,7 +243,7 @@ namespace TouhouCardEngine
             remove => client.onJoinRoom -= value;
         }
         /// <summary>
-        /// 加入指定房间，你必须告诉房主你的个人信息。
+        /// 使用指定的玩家信息加入指定的房间，在收到主机或服务器返回的房间信息之后返回。
         /// </summary>
         /// <param name="room"></param>
         /// <param name="playerInfo"></param>
@@ -267,6 +280,22 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
+        public string account
+        {
+            get { throw new NotImplementedException(); }
+        }
+        /// <summary>
+        /// 登录指定服务器，在收到服务器的回应之后返回。
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <param name="account"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public Task login(string ip, int port, string account, string password)
+        {
+            throw new NotImplementedException();
+        }
         /// <summary>
         /// 加入服务器房间
         /// </summary>
