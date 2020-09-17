@@ -38,7 +38,7 @@ namespace Tests
                 serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", "xxxx");
             }
             catch { }
-            serverClient.Login("testuser1", "123456", "xxxx");
+            _ = serverClient.Login("testuser1", "123456", "xxxx");
         }
 
         /// <summary>

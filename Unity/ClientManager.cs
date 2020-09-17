@@ -204,9 +204,15 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="room"></param>
         /// <returns></returns>
-        public Task<RoomInfo> openRoom(RoomInfo room)
+        public async Task<RoomInfo> openRoom(RoomInfo room)
         {
-            throw new NotImplementedException();//实现客户端创建房间。
+            if (account != null)
+            {
+                var serverRoom = await _serverClient.CreateRoomAsync();
+                room.id = new Guid(serverRoom.roomID);
+                return room;
+            }
+            throw new NotImplementedException();
         }
         /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
@@ -248,9 +254,15 @@ namespace TouhouCardEngine
         /// <param name="room"></param>
         /// <param name="playerInfo"></param>
         /// <returns></returns>
-        public Task<RoomInfo> joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
+        public async Task<RoomInfo> joinRoom(RoomInfo room, RoomPlayerInfo playerInfo)
         {
-            return client.joinRoom(room, playerInfo);
+            if (account != null)
+            {
+                await client.join(room.ip, room.port, _serverClient.UserSession, room.id.ToString());
+                return room;
+            }
+            else
+                return await client.joinRoom(room, playerInfo);
         }
 
         /// <summary>
@@ -288,11 +300,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task register(string ip, int port, AccountInfo account, string captcha)
         {
-            if (_serverClient == null)
-            {
-                string uri = "http://" + ip + ":" + port;
-                _serverClient = new ServerClient(uri);
-            }
+            checkServerClient(ip, port);
             return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, captcha);
         }
         /// <summary>
@@ -303,17 +311,22 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public Task login(string ip, int port, string account, string password)
+        public async Task login(string ip, int port, string account, string password, string captcha)
         {
-            throw new NotImplementedException();//TODO:实现客户端登录到服务端，以及网络模式的切换。
+            checkServerClient(ip, port);
+            await _serverClient.LoginAsync(account, password, captcha);
+            this.account = new AccountInfo(account, password);
         }
         /// <summary>
         /// 从服务器登出，在服务器返回消息之后返回。
         /// </summary>
         /// <returns></returns>
-        public Task logout()
+        public async Task logout()
         {
-            throw new NotImplementedException();//TODO:实现客户端从服务器登出
+            if (_serverClient == null)
+                return;
+            await _serverClient.LogoutAsync();
+            account = null;
         }
         /// <summary>
         /// 加入服务器房间
@@ -326,6 +339,14 @@ namespace TouhouCardEngine
         public Task<int> joinServer(string ip, int port, string session, string roomID)
         {
             return client.join(ip, port, session, roomID);
+        }
+        private void checkServerClient(string ip, int port)
+        {
+            if (_serverClient == null)
+            {
+                string uri = "http://" + ip + ":" + port;
+                _serverClient = new ServerClient(uri);
+            }
         }
         public AccountInfo account
         {
@@ -344,6 +365,9 @@ namespace TouhouCardEngine
         public string password;
         public string mail;
         public string nickName;
+        public AccountInfo(string userName, string password) : this(userName, password, null, null)
+        {
+        }
         public AccountInfo(string userName, string password, string mail, string nickName)
         {
             this.userName = userName;
