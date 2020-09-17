@@ -33,14 +33,14 @@ namespace TouhouCardEngine
             random = new Random(randomSeed);
             foreach (CardDefine define in defines)
             {
-                addCardDefine(define);
+                addDefine(define);
             }
         }
         public virtual void onAnswer(IResponse response)
         {
         }
         #region CardDefine
-        public void addCardDefine(CardDefine define)
+        public void addDefine(CardDefine define)
         {
             if (cardDefineDic.ContainsKey(define.id))
                 throw new ConflictDefineException(cardDefineDic[define.id], define);
@@ -53,39 +53,32 @@ namespace TouhouCardEngine
                 if (pair.Value is T t)
                     return t;
             }
-            return null;
+            throw new UnknowDefineException(typeof(T));
         }
-        public CardDefine getCardDefine(int id)
+        public CardDefine getDefine(int id)
         {
             if (cardDefineDic.ContainsKey(id))
                 return cardDefineDic[id];
             else
-                return null;
+                throw new UnknowDefineException(id);
         }
-        public CardDefine[] getCardDefines()
-        {
-            return cardDefineDic.Values.ToArray();
-        }
-        public CardDefine[] getCardDefines(IEnumerable<int> idCollection)
-        {
-            return idCollection.Select(id => getCardDefine(id)).ToArray();
-        }
-        public T getCardDefine<T>(int id) where T : CardDefine
+        public T getDefine<T>(int id) where T : CardDefine
         {
             if (cardDefineDic.ContainsKey(id) && cardDefineDic[id] is T t)
                 return t;
             else
-                return null;
+                throw new UnknowDefineException(id);
+        }
+        public CardDefine[] getDefines()
+        {
+            return cardDefineDic.Values.ToArray();
+        }
+        public CardDefine[] getDefines(IEnumerable<int> idCollection)
+        {
+            return idCollection.Select(id => getDefine(id)).ToArray();
         }
         Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
         #endregion
-        public Card createCardById(int id)
-        {
-            CardDefine define = getCardDefine(id);
-            if (define == null)
-                throw new NoCardDefineException(id);
-            return createCard(define);
-        }
         #region Card
         public virtual Card createCard(CardDefine define)
         {
@@ -95,6 +88,13 @@ namespace TouhouCardEngine
             Card card = new Card(id, define);
             cardDic.Add(id, card);
             return card;
+        }
+        public Card createCardById(int id)
+        {
+            CardDefine define = getDefine(id);
+            if (define == null)
+                throw new NoCardDefineException(id);
+            return createCard(define);
         }
         public Card getCard(int id)
         {
@@ -262,25 +262,10 @@ namespace TouhouCardEngine
         }
         Random random { get; set; }
     }
-    public delegate void PlayerIndexWitnessEvent(int playerIndex, EventWitness witness);
     public enum EventPhase
     {
         logic = 0,
         before,
         after
-    }
-
-    [Serializable]
-    public class ConflictDefineException : Exception
-    {
-        public ConflictDefineException() { }
-        public ConflictDefineException(CardDefine a, CardDefine b) : base(a + "和" + b + "具有相同的ID:" + a.id)
-        {
-        }
-        public ConflictDefineException(string message) : base(message) { }
-        public ConflictDefineException(string message, Exception inner) : base(message, inner) { }
-        protected ConflictDefineException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }
