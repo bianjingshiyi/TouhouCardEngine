@@ -280,10 +280,6 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
-        public string account
-        {
-            get { throw new NotImplementedException(); }
-        }
         /// <summary>
         /// 注册账号，在服务器回应之后返回。
         /// </summary>
@@ -331,6 +327,13 @@ namespace TouhouCardEngine
         {
             return client.join(ip, port, session, roomID);
         }
+        public AccountInfo account
+        {
+            get { return _account; }
+            private set { _account = value; }
+        }
+        [SerializeField]
+        AccountInfo _account;
         ServerClient _serverClient;
         #endregion
     }
