@@ -297,7 +297,7 @@ namespace TouhouCardEngine
                 string uri = "http://" + ip + ":" + port;
                 _serverClient = new ServerClient(uri);
             }
-            return _serverClient.Register(account.userName, account.mail, account.password, account.nickName, captcha);
+            return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, captcha);
         }
         /// <summary>
         /// 登录指定服务器，在收到服务器的回应之后返回。

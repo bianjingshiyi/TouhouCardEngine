@@ -337,7 +337,7 @@ namespace NitoriNetwork.Common
         /// 获取房间信息
         /// </summary>
         /// <returns></returns>
-        public async Task<ServerRoomInfo[]> GetRoomInfos()
+        public async Task<ServerRoomInfo[]> GetRoomInfosAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
             var response = await client.ExecuteAsync<ResponseData<ServerRoomInfo[]>>(request);
