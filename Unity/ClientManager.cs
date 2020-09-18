@@ -258,7 +258,7 @@ namespace TouhouCardEngine
         {
             if (account != null)
             {
-                await client.join(room.ip, room.port, _serverClient.UserSession, room.id.ToString());
+                await client.join(roomServerIP, roomServerPort, _serverClient.UserSession, room.id.ToString());
                 return room;
             }
             else
@@ -328,6 +328,18 @@ namespace TouhouCardEngine
             await _serverClient.LogoutAsync();
             account = null;
         }
+        public Task connectRoomServer(string ip, int port)
+        {
+            roomServerIP = ip;
+            roomServerPort = port;
+            return Task.CompletedTask;
+        }
+        public Task disconnectRoomServer()
+        {
+            roomServerIP = null;
+            roomServerPort = 0;
+            return Task.CompletedTask;
+        }
         /// <summary>
         /// 加入服务器房间
         /// </summary>
@@ -347,6 +359,21 @@ namespace TouhouCardEngine
                 string uri = "http://" + ip + ":" + port;
                 _serverClient = new ServerClient(uri);
             }
+        }
+        [Header("Server")]
+        [SerializeField]
+        string _roomServerIP;
+        public string roomServerIP
+        {
+            get { return _roomServerIP; }
+            private set { _roomServerIP = value; }
+        }
+        [SerializeField]
+        int _roomServerPort;
+        public int roomServerPort
+        {
+            get { return _roomServerPort; }
+            private set { _roomServerPort = value; }
         }
         public AccountInfo account
         {
