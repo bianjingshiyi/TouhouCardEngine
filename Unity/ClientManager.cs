@@ -215,6 +215,22 @@ namespace TouhouCardEngine
             throw new NotImplementedException();
         }
         /// <summary>
+        /// 获取大厅中的房间列表，在服务器返回房间列表之后返回。
+        /// </summary>
+        /// <returns></returns>
+        public async Task<RoomInfo[]> getRooms()
+        {
+            if (account != null)
+            {
+                var serverRooms = await _serverClient.GetRoomInfosAsync();
+                return serverRooms.Select(sr =>
+                {
+                    return new RoomInfo(new Guid(sr.roomID), sr.ownerID);
+                }).ToArray();
+            }
+            throw new NotImplementedException();
+        }
+        /// <summary>
         /// 局域网发现是Host收到了给回应，你不可能知道Host什么时候回应，也不知道局域网里有多少个可能会回应的Host，所以这里不返回任何东西。
         /// </summary>
         /// <param name="port">搜索端口。默认9050</param>
