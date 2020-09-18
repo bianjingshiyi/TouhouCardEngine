@@ -68,13 +68,15 @@ namespace TouhouCardEngine
             set
             {
                 _logger = value;
-                client.logger = new NetworkingLoggerAdapter(value);
+                client.logger = new NetworkingLoggerAdapter(_logger);
             }
         }
         /// <summary>
         /// 客户端ID
         /// </summary>
         public int id => client.id;
+
+        public int uid => _serverClient?.UID ?? -1;
 
         protected void Awake()
         {
@@ -85,6 +87,7 @@ namespace TouhouCardEngine
                 DisconnectTimeout = (int)(timeout * 1000),
                 IPv6Enabled = true,
             };
+            client.addSingleton(this);
         }
         protected void Start()
         {
@@ -209,7 +212,9 @@ namespace TouhouCardEngine
             if (account != null)
             {
                 var serverRoom = await _serverClient.CreateRoomAsync();
-                room.id = new Guid(serverRoom.roomID);
+                room.id = new Guid(serverRoom.id);
+                room.ip = serverRoom.ip;
+                room.port = serverRoom.port;
                 return room;
             }
             throw new NotImplementedException();
@@ -225,7 +230,7 @@ namespace TouhouCardEngine
                 var serverRooms = await _serverClient.GetRoomInfosAsync();
                 return serverRooms.Select(sr =>
                 {
-                    return new RoomInfo(new Guid(sr.roomID), sr.ownerID);
+                    return new RoomInfo(new Guid(sr.id), sr.ownerID) { ip = sr.ip, port = sr.port };
                 }).ToArray();
             }
             throw new NotImplementedException();
@@ -274,7 +279,7 @@ namespace TouhouCardEngine
         {
             if (account != null)
             {
-                await client.join(roomServerIP, roomServerPort, _serverClient.UserSession, room.id.ToString());
+                room = await client.joinRoom(room, playerInfo, _serverClient.UserSession);
                 return room;
             }
             else
@@ -344,18 +349,6 @@ namespace TouhouCardEngine
             await _serverClient.LogoutAsync();
             account = null;
         }
-        public Task connectRoomServer(string ip, int port)
-        {
-            roomServerIP = ip;
-            roomServerPort = port;
-            return Task.CompletedTask;
-        }
-        public Task disconnectRoomServer()
-        {
-            roomServerIP = null;
-            roomServerPort = 0;
-            return Task.CompletedTask;
-        }
         /// <summary>
         /// 加入服务器房间
         /// </summary>
@@ -376,26 +369,13 @@ namespace TouhouCardEngine
                 _serverClient = new ServerClient(uri);
             }
         }
-        [Header("Server")]
-        [SerializeField]
-        string _roomServerIP;
-        public string roomServerIP
-        {
-            get { return _roomServerIP; }
-            private set { _roomServerIP = value; }
-        }
-        [SerializeField]
-        int _roomServerPort;
-        public int roomServerPort
-        {
-            get { return _roomServerPort; }
-            private set { _roomServerPort = value; }
-        }
         public AccountInfo account
         {
             get { return _account; }
             private set { _account = value; }
         }
+
+        [Header("Server")]
         [SerializeField]
         AccountInfo _account;
         ServerClient _serverClient;

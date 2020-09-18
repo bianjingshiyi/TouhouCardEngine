@@ -79,10 +79,7 @@ namespace NitoriNetwork.Common
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    if (response.Data.code == 1)
-                    {
-                        return false;
-                    }
+                    if (response.Data.code == 1) return false;
 
                     throw new NetClientException(response.Data.message);
                 }
@@ -128,10 +125,7 @@ namespace NitoriNetwork.Common
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
                     // 登录失败
-                    if (response.Data.code == 1)
-                    {
-                        return false;
-                    }
+                    if (response.Data.code == 1) return false;
 
                     throw new NetClientException(response.Data.message);
                 }
@@ -277,10 +271,10 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public ServerRoomInfo CreateRoom()
+        public BriefRoomInfo CreateRoom()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = client.Execute<ResponseData<ServerRoomInfo>>(request);
+            var response = client.Execute<ResponseData<BriefRoomInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -297,10 +291,10 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public async Task<ServerRoomInfo> CreateRoomAsync()
+        public async Task<BriefRoomInfo> CreateRoomAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = await client.ExecuteAsync<ResponseData<ServerRoomInfo>>(request);
+            var response = await client.ExecuteAsync<ResponseData<BriefRoomInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -317,10 +311,10 @@ namespace NitoriNetwork.Common
         /// 获取房间信息
         /// </summary>
         /// <returns></returns>
-        public ServerRoomInfo[] GetRoomInfos()
+        public BriefRoomInfo[] GetRoomInfos()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = client.Execute<ResponseData<ServerRoomInfo[]>>(request);
+            var response = client.Execute<ResponseData<BriefRoomInfo[]>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -337,10 +331,10 @@ namespace NitoriNetwork.Common
         /// 获取房间信息
         /// </summary>
         /// <returns></returns>
-        public async Task<ServerRoomInfo[]> GetRoomInfosAsync()
+        public async Task<BriefRoomInfo[]> GetRoomInfosAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = await client.ExecuteAsync<ResponseData<ServerRoomInfo[]>>(request);
+            var response = await client.ExecuteAsync<ResponseData<BriefRoomInfo[]>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -359,7 +353,7 @@ namespace NitoriNetwork.Common
         /// <returns></returns>
         int GetUID()
         {
-            return GetUserInfo().uid;
+            return GetUserInfo().UID;
         }
 
         /// <summary>
@@ -368,17 +362,17 @@ namespace NitoriNetwork.Common
         /// <returns></returns>
         async Task<int> GetUIDAsync()
         {
-            return (await GetUserInfoAsync()).uid;
+            return (await GetUserInfoAsync()).UID;
         }
 
         /// <summary>
         /// 获取用户信息
         /// </summary>
         /// <returns></returns>
-        public PublicUserInfo GetUserInfo()
+        public PublicBasicUserInfo GetUserInfo()
         {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
-            var response = client.Execute<ResponseData<PublicUserInfo>>(request);
+            var response = client.Execute<ResponseData<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -395,10 +389,10 @@ namespace NitoriNetwork.Common
         /// 获取用户信息
         /// </summary>
         /// <returns></returns>
-        public async Task<PublicUserInfo> GetUserInfoAsync()
+        public async Task<PublicBasicUserInfo> GetUserInfoAsync()
         {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
-            var response = await client.ExecuteAsync<ResponseData<PublicUserInfo>>(request);
+            var response = await client.ExecuteAsync<ResponseData<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -433,46 +427,6 @@ namespace NitoriNetwork.Common
         }
     }
 
-    public class PublicUserInfo
-    {
-        /// <summary>
-        /// 用户ID
-        /// </summary>
-        public int uid;
-        /// <summary>
-        /// 用户昵称
-        /// </summary>
-        public string name;
-        /// <summary>
-        /// 用户头像ID
-        /// </summary>
-        public string avatar;
-    }
-
-    /// <summary>
-    /// 服务器房间信息
-    /// </summary>
-    public class ServerRoomInfo
-    {
-        /// <summary>
-        /// 房间ID
-        /// </summary>
-        public string roomID;
-        /// <summary>
-        /// 服务器IP
-        /// </summary>
-        public string ip;
-        /// <summary>
-        /// 服务器端口
-        /// </summary>
-        public int port;
-        /// <summary>
-        /// 房主ID
-        /// </summary>
-        public int ownerID;
-    }
-
-
     [System.Serializable]
     public class NetClientException : System.Exception
     {
@@ -490,12 +444,16 @@ namespace NitoriNetwork.Common
 
         public string Serialize(Parameter bodyParameter) => Serialize(bodyParameter.Value);
 
-        public T Deserialize<T>(IRestResponse response) => BsonSerializer.Deserialize<T>(response.Content);
+        public T Deserialize<T>(IRestResponse response)
+        {
+            UnityEngine.Debug.Log(response.Content);
+            return BsonSerializer.Deserialize<T>(response.Content);
+        }
 
         public string[] SupportedContentTypes { get; } =
         {
-        "application/json", "text/json", "text/x-json", "text/javascript", "*+json"
-    };
+            "application/json", "text/json", "text/x-json", "text/javascript", "*+json", "text/plain"
+        };
 
         public string ContentType { get; set; } = "application/json";
 

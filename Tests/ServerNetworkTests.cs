@@ -22,7 +22,11 @@ namespace Tests
             var captcha = serverClient.GetCaptchaImage();
             // 你应该在这里转换为图像，然后输入正确的验证码
             // 测试服务器不会验证验证码是否正确
-            serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", "xxxx");
+            try
+            {
+                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", "xxxx");
+            }
+            catch (Exception e) { }
 
             Assert.False(serverClient.Login("testuser1", "654321", "xxxx"));
             var success = serverClient.Login("testuser1", "123456", "xxxx");
@@ -55,7 +59,7 @@ namespace Tests
 
             Assert.NotNull(room);
             Assert.NotNull(rooms);
-            Assert.AreEqual(1, rooms.Where(x => x.roomID == room.roomID).Count());
+            Assert.AreEqual(1, rooms.Where(x => x.id == room.id).Count());
         }
         public event Action action;
         [UnityTest]
@@ -76,7 +80,7 @@ namespace Tests
             tryLogin();
             var room = serverClient.CreateRoom();
 
-            Task task = client.joinServer(room.ip, room.port, serverClient.UserSession, room.roomID);
+            Task task = client.joinServer(room.ip, room.port, serverClient.UserSession, room.id);
             yield return new WaitUntil(() => task.IsCompleted);
 
             Assert.AreEqual(0, client.id);
