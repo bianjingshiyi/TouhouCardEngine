@@ -313,6 +313,16 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
+        public Task<byte[]> getCaptchaImage(string ip, int port)
+        {
+            checkServerClient(ip, port);
+            return _serverClient.GetCaptchaImageAsync();
+        }
+        public Task<PublicBasicUserInfo> getUserInfo(string ip, int port)
+        {
+            checkServerClient(ip, port);
+            return _serverClient.GetUserInfoAsync();
+        }
         /// <summary>
         /// 注册账号，在服务器回应之后返回。
         /// </summary>
