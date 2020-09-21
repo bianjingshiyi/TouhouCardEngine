@@ -346,7 +346,8 @@ namespace TouhouCardEngine
         {
             checkServerClient(ip, port);
             await _serverClient.LoginAsync(account, password, captcha);
-            this.account = new AccountInfo(account, password);
+            var userInfo = await _serverClient.GetUserInfoAsync();
+            this.account = new AccountInfo(account, password, userInfo.Name, _serverClient.UID);
         }
         /// <summary>
         /// 从服务器登出，在服务器返回消息之后返回。
@@ -398,15 +399,20 @@ namespace TouhouCardEngine
         public string password;
         public string mail;
         public string nickName;
-        public AccountInfo(string userName, string password) : this(userName, password, null, null)
+        public int uid;
+        public AccountInfo(string userName, string password, string nickName, int uid) : this(userName, password, null, nickName, uid)
         {
         }
-        public AccountInfo(string userName, string password, string mail, string nickName)
+        public AccountInfo(string userName, string password, string mail, string nickName) : this(userName, password, mail, nickName, 0)
+        {
+        }
+        public AccountInfo(string userName, string password, string mail, string nickName, int uid)
         {
             this.userName = userName;
             this.password = password;
             this.mail = mail;
             this.nickName = nickName;
+            this.uid = uid;
         }
     }
     public class RPCHelper
