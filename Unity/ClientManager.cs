@@ -207,7 +207,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="room"></param>
         /// <returns></returns>
-        public async Task<RoomInfo> openRoom(RoomInfo room)
+        public async Task<RoomInfo> openRoom(RoomInfo room, RoomPlayerInfo ownerInfo)
         {
             if (account != null)
             {
@@ -215,7 +215,13 @@ namespace TouhouCardEngine
                 room.id = new Guid(serverRoom.id);
                 room.ip = serverRoom.ip;
                 room.port = serverRoom.port;
-                return room;
+                var newRoom = await joinRoom(room, ownerInfo);
+                foreach (var pair in room.runtimeDic)
+                {
+                    newRoom.setProp(pair.Key, pair.Value);
+                    await invokeHost(RPCHelper.RoomPropSet(pair.Key, pair.Value));
+                }
+                return newRoom;
             }
             throw new NotImplementedException();
         }
