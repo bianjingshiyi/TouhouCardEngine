@@ -319,14 +319,12 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
-        public Task<byte[]> getCaptchaImage(string ip, int port)
+        public Task<byte[]> getCaptchaImage()
         {
-            checkServerClient(ip, port);
             return _serverClient.GetCaptchaImageAsync();
         }
-        public Task<PublicBasicUserInfo> getUserInfo(string ip, int port)
+        public Task<PublicBasicUserInfo> getUserInfo()
         {
-            checkServerClient(ip, port);
             return _serverClient.GetUserInfoAsync();
         }
         /// <summary>
@@ -335,9 +333,8 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public Task register(string ip, int port, AccountInfo account, string captcha)
+        public Task register(AccountInfo account, string captcha)
         {
-            checkServerClient(ip, port);
             return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, captcha);
         }
         /// <summary>
@@ -348,9 +345,8 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public async Task login(string ip, int port, string account, string password, string captcha)
+        public async Task login(string account, string password, string captcha)
         {
-            checkServerClient(ip, port);
             await _serverClient.LoginAsync(account, password, captcha);
             var userInfo = await _serverClient.GetUserInfoAsync();
             this.account = new AccountInfo(account, password, userInfo.Name, _serverClient.UID);
@@ -378,11 +374,14 @@ namespace TouhouCardEngine
         {
             return client.join(ip, port, session, roomID);
         }
-        private void checkServerClient(string ip, int port)
+        /// <summary>
+        /// 初始化服务器的客户端
+        /// </summary>
+        /// <param name="uri"></param>
+        public void InitServerClient(string uri)
         {
             if (_serverClient == null)
             {
-                string uri = "http://" + ip + ":" + port;
                 _serverClient = new ServerClient(uri);
             }
         }
