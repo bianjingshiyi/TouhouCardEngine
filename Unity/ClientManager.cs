@@ -430,7 +430,7 @@ namespace TouhouCardEngine
 
         public static RPCRequest RoomPropSet(string name, object value)
         {
-            return new RPCRequest(typeof(void), "setRoomProp", name, value);
+            return new RPCRequest(typeof(void), "setRoomProp", name, value is BsonDocument ? value : value.ToBsonDocument());
         }
 
         public static RPCRequest RemovePlayer(int playerID)
