@@ -49,9 +49,44 @@ namespace TouhouCardEngine
             else
                 throw new ArgumentNullException(nameof(define));
         }
-        public void setDefine(IGame game, CardDefine define)
+        public Task<SetDefineEventArg> setDefine(IGame game, CardDefine define)
         {
-            this.define = define;
+            return game.triggers.doEvent(new SetDefineEventArg() { card = this, beforeDefine = this.define, afterDefine = define }, async arg =>
+            {
+                Card card = arg.card;
+                define = arg.afterDefine;
+                //禁用被动
+                foreach (var effect in card.define.effects.OfType<IPassiveEffect>())
+                {
+                    await effect.onDisable(game, card, null);
+                }
+                //更换define
+                card.define = define;
+                //激活被动
+                foreach (var effect in card.define.effects.OfType<IPassiveEffect>())
+                {
+                    await effect.onEnable(game, card, null);
+                }
+            });
+        }
+        public class SetDefineEventArg : EventArg, IDescribableEventArg
+        {
+            public CardDefine beforeDefine;
+            public Card card;
+            public CardDefine afterDefine;//TODO:卡牌快照
+            public ICard getCard(IGame game, IPlayer viewer)
+            {
+                return card;
+            }
+            public ICard[] getTargets(IGame game, IPlayer viewer)
+            {
+                return null;
+            }
+            public string toString(IGame game, IPlayer viewer)
+            {
+                //TODO:可见性问题
+                return "一张牌变形为" + card.getFormatString();
+            }
         }
         public PropModifier[] getModifiers()
         {
@@ -312,6 +347,10 @@ namespace TouhouCardEngine
                 return "Card(" + id + ")<" + define.GetType().Name + ">";
             else
                 return "Card(" + id + ")";
+        }
+        public string getFormatString()
+        {
+            return "{card:" + define.id + "}";
         }
         public static implicit operator Card[](Card card)
         {
