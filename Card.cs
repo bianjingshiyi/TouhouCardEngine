@@ -108,8 +108,7 @@ namespace TouhouCardEngine
                     modifier.afterAdd(game, card);
                     object prop = card.getProp(game, modifier.propName);
                     (arg as AddModiEventArg).valueAfter = prop;
-                    string propString = propToString(prop);
-                    game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propString);
+                    game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propToString(prop));
                     return Task.CompletedTask;
                 });
             else
@@ -184,8 +183,7 @@ namespace TouhouCardEngine
                         card.modifierList.Remove(modifier);
                         await modifier.afterRemove(game, card);
                         object prop = card.getProp(game, modifier.propName);
-                        string propString = propToString(prop);
-                        game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propString);
+                        game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propToString(prop));
                     });
                 else
                 {
@@ -193,8 +191,7 @@ namespace TouhouCardEngine
                     modifierList.Remove(modifier);
                     await modifier.afterRemove(game, this);
                     object prop = getProp(game, modifier.propName);
-                    string propString = propToString(prop);
-                    game?.logger?.log("PropModifier", this + "移除属性修正" + modifier + "=>" + propString);
+                    game?.logger?.log("PropModifier", this + "移除属性修正" + modifier + "=>" + propToString(prop));
                     return default;
                 }
             }
@@ -295,7 +292,7 @@ namespace TouhouCardEngine
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
-                    game.logger?.log("Game", card + "的" + propName + "=>" + v);
+                    game.logger?.log("Game", card + "的" + propName + "=>" + propToString(v));
                     return Task.CompletedTask;
                 });
             else
