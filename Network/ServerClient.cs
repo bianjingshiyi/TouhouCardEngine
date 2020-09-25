@@ -159,7 +159,7 @@ namespace NitoriNetwork.Common
         /// <param name="nickname"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
-        public void Register(string username, string mail, string password, string nickname, string key, string captcha)
+        public void Register(string username, string mail, string password, string nickname, string invite, string captcha)
         {
             RestRequest request = new RestRequest("/api/User", Method.POST);
 
@@ -169,7 +169,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("mail", mail);
             request.AddParameter("password", password);
             request.AddParameter("nickname", nickname);
-            request.AddParameter("key", key);
+            request.AddParameter("invite", invite);
 
             var response = client.Execute<ResponseData<string>>(request);
 
@@ -202,7 +202,7 @@ namespace NitoriNetwork.Common
         /// <param name="nickname"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
-        public async Task RegisterAsync(string username, string mail, string password, string nickname, string key, string captcha)
+        public async Task RegisterAsync(string username, string mail, string password, string nickname, string invite, string captcha)
         {
             RestRequest request = new RestRequest("/api/User", Method.POST);
 
@@ -212,7 +212,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("mail", mail);
             request.AddParameter("password", password);
             request.AddParameter("nickname", nickname);
-            request.AddParameter("key", key);
+            request.AddParameter("invite", invite);
 
             var response = await client.ExecuteAsync<ResponseData<string>>(request);
 

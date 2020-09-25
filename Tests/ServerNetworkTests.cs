@@ -24,7 +24,7 @@ namespace Tests
             // 测试服务器不会验证验证码是否正确
             try
             {
-                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", "xxxx");
+                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
             }
             catch (Exception e) { }
 
@@ -39,7 +39,7 @@ namespace Tests
         {
             try
             {
-                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", "xxxx");
+                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
             }
             catch { }
             _ = serverClient.Login("testuser1", "123456", "xxxx");

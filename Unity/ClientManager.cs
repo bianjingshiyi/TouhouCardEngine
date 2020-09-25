@@ -336,7 +336,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task register(AccountInfo account, string captcha)
         {
-            return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, account.key, captcha);
+            return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, account.invite, captcha);
         }
         /// <summary>
         /// 登录指定服务器，在收到服务器的回应之后返回。
@@ -406,7 +406,7 @@ namespace TouhouCardEngine
         public string mail;
         public string nickName;
         public int uid;
-        public string key;
+        public string invite;
         /// <summary>
         /// 登录账号构造器
         /// </summary>
@@ -434,7 +434,7 @@ namespace TouhouCardEngine
             this.mail = mail;
             this.nickName = nickName;
             this.uid = uid;
-            this.key = key;
+            this.invite = key;
         }
     }
     public class RPCHelper
