@@ -384,6 +384,7 @@ namespace TouhouCardEngine
             if (_serverClient == null)
             {
                 _serverClient = new ServerClient(uri);
+                account = null;
             }
         }
         public AccountInfo account
