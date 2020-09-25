@@ -11,6 +11,7 @@ using MongoDB.Bson;
 using System.Threading;
 using System.Linq;
 using NitoriNetwork.Common;
+using UnityEditor;
 
 namespace TouhouCardEngine
 {
@@ -335,7 +336,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task register(AccountInfo account, string captcha)
         {
-            return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, captcha);
+            return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, account.key, captcha);
         }
         /// <summary>
         /// 登录指定服务器，在收到服务器的回应之后返回。
@@ -405,19 +406,35 @@ namespace TouhouCardEngine
         public string mail;
         public string nickName;
         public int uid;
-        public AccountInfo(string userName, string password, string nickName, int uid) : this(userName, password, null, nickName, uid)
+        public string key;
+        /// <summary>
+        /// 登录账号构造器
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <param name="password"></param>
+        /// <param name="nickName"></param>
+        /// <param name="uid"></param>
+        public AccountInfo(string userName, string password, string nickName, int uid) : this(userName, password, null, nickName, uid, null)
         {
         }
-        public AccountInfo(string userName, string password, string mail, string nickName) : this(userName, password, mail, nickName, 0)
+        /// <summary>
+        /// 注册账号构造器
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <param name="password"></param>
+        /// <param name="mail"></param>
+        /// <param name="nickName"></param>
+        public AccountInfo(string userName, string password, string mail, string nickName, string key) : this(userName, password, mail, nickName, 0, key)
         {
         }
-        public AccountInfo(string userName, string password, string mail, string nickName, int uid)
+        public AccountInfo(string userName, string password, string mail, string nickName, int uid, string key)
         {
             this.userName = userName;
             this.password = password;
             this.mail = mail;
             this.nickName = nickName;
             this.uid = uid;
+            this.key = key;
         }
     }
     public class RPCHelper
