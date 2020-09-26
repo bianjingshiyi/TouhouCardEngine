@@ -25,6 +25,7 @@ namespace TouhouCardEngine
         }
         List<PropModifier> modifierList { get; } = new List<PropModifier>();
         List<Buff> buffList { get; } = new List<Buff>();
+        int _lastBuffId = 0;
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         public Card()
         {
@@ -213,6 +214,8 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(buff));
             game?.logger?.log("Buff", this + "获得增益" + buff);
             buffList.Add(buff);
+            _lastBuffId++;
+            buff.instanceID = _lastBuffId;
             if (buff.modifiers != null)
             {
                 foreach (var modifier in buff.modifiers)

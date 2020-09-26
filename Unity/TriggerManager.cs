@@ -88,8 +88,13 @@ namespace TouhouCardEngine
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
             if (eventItem == null)
                 return false;
+            else if (eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
+            {
+                logger?.log("Trigger", "注销触发器" + trigger);
+                return true;
+            }
             else
-                return eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0;
+                return false;
         }
         public ITrigger[] getTriggers(string eventName)
         {
@@ -523,13 +528,13 @@ namespace TouhouCardEngine
     }
     public class Trigger : Trigger<IEventArg>
     {
-        public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null) : base(arg =>
+        public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(arg =>
         {
             if (action != null)
                 return action.Invoke(arg.args);
             else
                 return Task.CompletedTask;
-        }, comparsion)
+        }, comparsion, name)
         {
         }
     }
@@ -538,10 +543,12 @@ namespace TouhouCardEngine
         public Func<ITrigger, ITrigger, IEventArg, int> comparsion { get; set; }
         public Func<T, bool> condition { get; set; }
         public Func<T, Task> action { get; set; }
-        public Trigger(Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null)
+        string _name;
+        public Trigger(Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null)
         {
             this.action = action;
             this.comparsion = comparsion;
+            _name = name;
         }
         public int compare(ITrigger<T> other, T arg)
         {
@@ -578,6 +585,10 @@ namespace TouhouCardEngine
                 return invoke(t);
             else
                 return Task.CompletedTask;
+        }
+        public override string ToString()
+        {
+            return string.IsNullOrEmpty(_name) ? base.ToString() : _name;
         }
     }
     public class GeneratedEventArg : IEventArg
