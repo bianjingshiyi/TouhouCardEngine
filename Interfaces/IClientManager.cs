@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NitoriNetwork.Common;
+using System;
 using System.Threading.Tasks;
 namespace TouhouCardEngine.Interfaces
 {
@@ -15,6 +16,6 @@ namespace TouhouCardEngine.Interfaces
 
         event Func<int, object, Task> onReceive;
         void disconnect();
-        event Action onDisconnect;
+        event Action<DisconnectType> onDisconnect;
     }
 }

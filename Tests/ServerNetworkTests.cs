@@ -80,7 +80,7 @@ namespace Tests
             tryLogin();
             var room = serverClient.CreateRoom();
 
-            Task task = client.joinServer(room.ip, room.port, serverClient.UserSession, room.id);
+            Task task = client.JoinServer(room.ip, room.port, serverClient.UserSession, room.id);
             yield return new WaitUntil(() => task.IsCompleted);
 
             Assert.AreEqual(0, client.id);

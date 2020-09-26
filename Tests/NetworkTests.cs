@@ -14,6 +14,7 @@ using MongoDB.Bson.Serialization;
 using System.Reflection;
 using System.Threading;
 using NitoriNetwork.Common;
+using UObject = UnityEngine.Object;
 
 namespace Tests
 {
@@ -133,13 +134,11 @@ namespace Tests
             bool isDisconnected = false;
             client.onDisconnect += onDisconnect;
             client.disconnect();
-            void onDisconnect()
+            void onDisconnect(DisconnectType disconnectType)
             {
                 isDisconnected = true;
             }
-            yield return new WaitForSeconds(.5f);
-
-            Assert.True(isDisconnected);
+            yield return new WaitUntil(() => isDisconnected);
         }
         /// <summary>
         /// 创建两个Host1,2和一个Client，Client先加入Host1，能正常收发数据，断开连接加入Host2，能与Host2正常收发数据，但是Host1接受不到数据，也不能向Host1发送。
@@ -802,6 +801,23 @@ namespace Tests
             Assert.AreEqual(2, result.Count);
             Assert.True(result[client1.id]);
             Assert.True(result[client2.id]);
+        }
+        [UnityTest]
+        public IEnumerator wtfTest()
+        {
+            createHostClient(out var host, out var client);
+            host.timeout = 1f;
+            client.timeout = 1f;
+            yield return client.join(host.ip, host.port).wait();
+            DisconnectType? disconnectType = null;
+            client.onDisconnect += dt =>
+            {
+                disconnectType = dt;
+            };
+            Assert.Null(disconnectType);
+            UObject.DestroyImmediate(host);
+            yield return new WaitUntil(() => disconnectType != null);
+            Debug.Log(disconnectType);
         }
     }
 }

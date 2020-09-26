@@ -186,7 +186,7 @@ namespace TouhouCardEngine
         {
             client.disconnect();
         }
-        public event Action onDisconnect
+        public event Action<DisconnectType> onDisconnect
         {
             add
             {
@@ -371,7 +371,8 @@ namespace TouhouCardEngine
         /// <param name="session"></param>
         /// <param name="roomID"></param>
         /// <returns></returns>
-        public Task<int> joinServer(string ip, int port, string session, string roomID)
+        [Obsolete("使用joinRoom替代")]
+        public Task<int> JoinServer(string ip, int port, string session, string roomID)
         {
             return client.join(ip, port, session, roomID);
         }

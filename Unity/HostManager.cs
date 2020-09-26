@@ -173,16 +173,6 @@ namespace TouhouCardEngine
             host.room = null;
         }
         #endregion
-        #region Server
-        public string account
-        {
-            get { throw new NotImplementedException(); }
-        }
-        public Task login(string ip, int port, string account, string password)
-        {
-            throw new NotImplementedException();
-        }
-        #endregion
     }
 
     public class NetworkingLoggerAdapter : INetworkingLogger
