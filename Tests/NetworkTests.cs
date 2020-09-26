@@ -803,7 +803,7 @@ namespace Tests
             Assert.True(result[client2.id]);
         }
         [UnityTest]
-        public IEnumerator wtfTest()
+        public IEnumerator disconnectWithoutQuitTest()
         {
             createHostClient(out var host, out var client);
             host.timeout = 1f;
@@ -817,7 +817,7 @@ namespace Tests
             Assert.Null(disconnectType);
             UObject.DestroyImmediate(host);
             yield return new WaitUntil(() => disconnectType != null);
-            Debug.Log(disconnectType);
+            Assert.AreEqual(DisconnectType.disconnect, disconnectType);
         }
     }
 }
