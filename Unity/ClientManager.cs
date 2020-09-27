@@ -318,7 +318,7 @@ namespace TouhouCardEngine
         {
             if (account != null)
             {
-                
+                client.quitRoom();
             }
             else
                 client.quitRoom();
