@@ -316,7 +316,12 @@ namespace TouhouCardEngine
 
         public void quitRoom()
         {
-            client.quitRoom();
+            if (account != null)
+            {
+                
+            }
+            else
+                client.quitRoom();
         }
         #endregion
         #region Server
