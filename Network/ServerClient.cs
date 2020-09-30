@@ -388,12 +388,53 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
+        /// 获取指定ID用户的用户信息
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <returns></returns>
+        public PublicBasicUserInfo GetUserInfo(int uid)
+        {
+            RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
+            var response = client.Execute<ResponseData<PublicBasicUserInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != 0)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
         /// 获取用户信息
         /// </summary>
         /// <returns></returns>
         public async Task<PublicBasicUserInfo> GetUserInfoAsync()
         {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
+            var response = await client.ExecuteAsync<ResponseData<PublicBasicUserInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != 0)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取指定用户的信息
+        /// </summary>
+        /// <returns></returns>
+        public async Task<PublicBasicUserInfo> GetUserInfoAsync(int uid)
+        {
+            RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
             var response = await client.ExecuteAsync<ResponseData<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
