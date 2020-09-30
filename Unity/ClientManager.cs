@@ -237,7 +237,11 @@ namespace TouhouCardEngine
                 var serverRooms = await _serverClient.GetRoomInfosAsync();
                 return serverRooms.Select(sr =>
                 {
-                    return new RoomInfo(new Guid(sr.id), sr.ownerID, sr.players.Select(sp => new RoomPlayerInfo() { PlayerID = sp }).ToArray())
+                    return new RoomInfo(new Guid(sr.id), sr.ownerID, sr.players.Select(sp => new RoomPlayerInfo()
+                    { 
+                        name = _serverClient.GetUserInfo(sp).Name,
+                        PlayerID = sp
+                    }).ToArray())
                     {
                         ip = sr.ip,
                         port = sr.port
