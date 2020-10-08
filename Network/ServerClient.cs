@@ -5,6 +5,9 @@ using RestSharp.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Threading.Tasks;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using System;
 
 namespace NitoriNetwork.Common
 {
@@ -29,6 +32,8 @@ namespace NitoriNetwork.Common
 
         RestClient client { get; }
 
+        string cookieFilePath { get; }
+
         /// <summary>
         /// 使用默认服务器初始化客户端
         /// </summary>
@@ -38,16 +43,57 @@ namespace NitoriNetwork.Common
         /// 指定一个服务器初始化Client
         /// </summary>
         /// <param name="baseUri"></param>
-        public ServerClient(string baseUri)
+        public ServerClient(string baseUri, string cookieFile = "")
         {
             client = new RestClient(baseUri);
             client.UserAgent = ua;
-            // todo: Cookie的序列化/反序列化
-            client.CookieContainer = new CookieContainer();
+            cookieFilePath = cookieFile;
+
+            if (string.IsNullOrEmpty(cookieFile))
+                client.CookieContainer = new CookieContainer();
+            else
+            {
+                client.CookieContainer = CookieContainerExtension.ReadFrom(cookieFile);
+                loadCookie(baseUri);
+            }
+
             client.ThrowOnDeserializationError = true;
             client.UseSerializer(
                 () => new MongoDBJsonSerializer()
             );
+        }
+
+        /// <summary>
+        /// 保存小饼干（？）
+        /// </summary>
+        void saveCookie()
+        {
+            if (!string.IsNullOrEmpty(cookieFilePath))
+            {
+                try
+                {
+                    client.CookieContainer.WriteTo(cookieFilePath);
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从Cookie里面加载部分需要的数据
+        /// </summary>
+        /// <param name="baseUri"></param>
+        void loadCookie(string baseUri)
+        {
+            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
+            foreach (Cookie cookie in cookies)
+            {
+                if (cookie.Name == "Session")
+                {
+                    UserSession = cookie.Value;
+                } 
+            }
         }
 
         class ResponseData<T>
@@ -98,6 +144,7 @@ namespace NitoriNetwork.Common
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
             UID = GetUID();
+            saveCookie();
 
             return true;
         }
@@ -144,6 +191,7 @@ namespace NitoriNetwork.Common
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
             UID = await GetUIDAsync();
+            saveCookie();
 
             return true;
         }
@@ -457,6 +505,7 @@ namespace NitoriNetwork.Common
             UID = 0;
             // todo: 发送给服务器注销
             client.CookieContainer = new CookieContainer();
+            saveCookie();
         }
 
         /// <summary>
@@ -503,4 +552,31 @@ namespace NitoriNetwork.Common
         public DataFormat DataFormat { get; } = DataFormat.Json;
     }
 
+    static class CookieContainerExtension
+    {
+        public static void WriteTo(this CookieContainer container, string file)
+        {
+            using (Stream stream = File.Create(file))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(stream, container);
+            }
+        }
+
+        public static CookieContainer ReadFrom(string file)
+        {
+            try
+            {
+                using (Stream stream = File.Open(file, FileMode.Open))
+                {
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    return (CookieContainer)formatter.Deserialize(stream);
+                }
+            }
+            catch (Exception)
+            {
+                return new CookieContainer();
+            }
+        }
+    }
 }

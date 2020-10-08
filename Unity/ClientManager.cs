@@ -397,8 +397,16 @@ namespace TouhouCardEngine
         {
             if (_serverClient == null)
             {
-                _serverClient = new ServerClient(uri);
-                account = null;
+                _serverClient = new ServerClient(uri, System.IO.Path.Combine(Application.persistentDataPath, "token"));
+                try
+                {
+                    var userInfo = _serverClient.GetUserInfo();
+                    account = new AccountInfo("", "", userInfo.Name, userInfo.UID);
+                }
+                catch (NetClientException)
+                {
+                    account = null;
+                }
             }
         }
         public AccountInfo account
