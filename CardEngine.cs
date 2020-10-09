@@ -2,9 +2,19 @@
 using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
+using NitoriNetwork.Common;
 
 namespace TouhouCardEngine
 {
+    public abstract class Rule
+    {
+        public CardDefine[] defines { get; }
+        public Rule(CardDefine[] defines)
+        {
+            this.defines = defines;
+        }
+        public abstract void onGameStart(RoomPlayerInfo[] playersInfo);
+    }
     [Serializable]
     public partial class CardEngine : IGame
     {
@@ -24,18 +34,101 @@ namespace TouhouCardEngine
             }
         }
         public ILogger logger { get; set; }
-        public IGameEnvironment env { get; }
+        #region 状态
         public Rule rule { get; }
-        public CardEngine(IGameEnvironment env = null, Rule rule = null, int randomSeed = 0, params CardDefine[] defines)
+        public Pile this[string pileName]
         {
-            this.env = env;
-            this.rule = rule;
+            get { return getPile(pileName); }
+        }
+        public void addPile(Pile pile)
+        {
+            pileList.Add(pile);
+            pile.owner = null;
+            foreach (Card card in pile)
+            {
+                card.owner = null;
+            }
+        }
+        public Pile getPile(string name)
+        {
+            return pileList.FirstOrDefault(e => { return e.name == name; });
+        }
+        public Pile[] getPiles()
+        {
+            return pileList.ToArray();
+        }
+        private List<Pile> pileList { get; } = new List<Pile>();
+        //public Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value)
+        //{
+        //    if (game != null && game.triggers != null)
+        //        return game.triggers.doEvent<ISetPropEventArg>(new SetPropEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
+        //        {
+        //            Card card = arg.card as Card;
+        //            propName = arg.propName;
+        //            var v = arg.value;
+        //            propDic[propName] = v;
+        //            game.logger?.log("Game", card + "的" + propName + "=>" + propToString(v));
+        //            return Task.CompletedTask;
+        //        });
+        //    else
+        //    {
+        //        propDic[propName] = value;
+        //        return Task.FromResult<ISetPropEventArg>(default);
+        //    }
+        //}
+        //public class SetPropEventArg : EventArg, ISetPropEventArg
+        //{
+        //    public Card card;
+        //    public string propName;
+        //    public object beforeValue;
+        //    public object value;
+        //    ICard ISetPropEventArg.card => card;
+        //    string ISetPropEventArg.propName => propName;
+        //    object ISetPropEventArg.beforeValue => beforeValue;
+        //    object ISetPropEventArg.value => value;
+        //}
+        //public T getProp<T>(IGame game, string propName)
+        //{
+        //    T value = default;
+        //    if (propDic.ContainsKey(propName) && propDic[propName] is T t)
+        //        value = t;
+        //    foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
+        //        mt.propName == propName &&
+        //        (game == null || mt.checkCondition(game, this))))
+        //    {
+        //        value = modifier.calc(game, this, value);
+        //    }
+        //    return (T)(object)value;
+        //}
+        //public object getProp(IGame game, string propName)
+        //{
+        //    object value = default;
+        //    if (propDic.ContainsKey(propName))
+        //        value = propDic[propName];
+        //    foreach (var modifier in modifierList.Where(m =>
+        //        m.propName == propName &&
+        //        (game == null || m.checkCondition(game, this))))
+        //    {
+        //        value = modifier.calc(game, this, value);
+        //    }
+        //    return value;
+        //}
+        //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
+        #endregion
+        public CardEngine(int randomSeed = 0, params CardDefine[] defines)
+        {
             random = new Random(randomSeed);
             foreach (CardDefine define in defines)
             {
                 addDefine(define);
             }
         }
+        #region 游戏流程
+        public void start(Rule rule, RoomPlayerInfo[] playersInfo)
+        {
+            rule.onGameStart(playersInfo);
+        }
+        #endregion
         public virtual void onAnswer(IResponse response)
         {
         }
@@ -109,14 +202,6 @@ namespace TouhouCardEngine
         }
         Dictionary<int, Card> cardDic { get; } = new Dictionary<int, Card>();
         #endregion
-        public T runFunc<T>(string script, EffectGlobals globals)
-        {
-            return env.runFunc<T>(script, globals);
-        }
-        public void runAction(string script, EffectGlobals globals)
-        {
-            env.runAction(script, globals);
-        }
         public T getProp<T>(string varName)
         {
             if (dicVar.ContainsKey(varName) && dicVar[varName] is T)
@@ -197,35 +282,6 @@ namespace TouhouCardEngine
             return id;
         }
         private List<Player> playerList { get; } = new List<Player>();
-        public void doEvent(Event e)
-        {
-            e.phase = EventPhase.before;
-            beginEvent(e);
-            e.phase = EventPhase.logic;
-            e.execute(this);
-            e.phase = EventPhase.after;
-            endEvent();
-        }
-        public void beginEvent(Event e)
-        {
-            e.parent = currentEvent;
-            currentEvent = e;
-            rule.beforeEvent(this, e);
-            beforeEvent?.Invoke(currentEvent);
-        }
-        public void endEvent()
-        {
-            //进行游戏规则内容中事件结束之后的处理，比如在事件之后发生的效果。
-            rule.afterEvent(this, currentEvent);
-            afterEvent?.Invoke(currentEvent);
-            if (currentEvent.parent != null)
-                currentEvent = currentEvent.parent;
-            else
-            {
-                eventList.Add(currentEvent);
-                currentEvent = null;
-            }
-        }
         public delegate void EventAction(Event @event);
         public event EventAction beforeEvent;
         public event EventAction afterEvent;
