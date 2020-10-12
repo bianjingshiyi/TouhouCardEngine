@@ -12,6 +12,7 @@ using System.Threading;
 using System.Linq;
 using NitoriNetwork.Common;
 using UnityEditor;
+using Action = System.Action;
 
 namespace TouhouCardEngine
 {
@@ -238,7 +239,7 @@ namespace TouhouCardEngine
                 return serverRooms.Select(sr =>
                 {
                     return new RoomInfo(new Guid(sr.id), sr.ownerID, sr.players.Select(sp => new RoomPlayerInfo()
-                    { 
+                    {
                         name = _serverClient.GetUserInfo(sp).Name,
                         PlayerID = sp
                     }).ToArray())
@@ -274,7 +275,7 @@ namespace TouhouCardEngine
         {
             return client.checkRoomInfo(roomInfo);
         }
-        public event Action onQuitRoom
+        public event System.Action onQuitRoom
         {
             add => client.onQuitRoom += value;
             remove => client.onQuitRoom -= value;
