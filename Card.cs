@@ -26,7 +26,6 @@ namespace TouhouCardEngine
         List<PropModifier> modifierList { get; } = new List<PropModifier>();
         List<Buff> buffList { get; } = new List<Buff>();
         int _lastBuffId = 0;
-        internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         public Card()
         {
 
@@ -286,6 +285,7 @@ namespace TouhouCardEngine
         {
             return buffList.Exists(b => b.id == buffId);
         }
+        #region 属性
         public Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value)
         {
             if (game != null && game.triggers != null)
@@ -341,6 +341,8 @@ namespace TouhouCardEngine
             }
             return value;
         }
+        internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
+        #endregion
         public override string ToString()
         {
             if (define != null)

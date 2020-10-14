@@ -61,7 +61,7 @@ namespace Tests
             Assert.NotNull(rooms);
             Assert.AreEqual(1, rooms.Where(x => x.id == room.id).Count());
         }
-        public event Action action;
+        public event System.Action action;
         [UnityTest]
         public IEnumerator ConnectServerTest()
         {

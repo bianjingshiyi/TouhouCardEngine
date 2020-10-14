@@ -51,6 +51,7 @@ namespace TouhouCardEngine
                 dicProp[propName] = getProp<string>(propName) + value;
         }
         internal Dictionary<string, object> dicProp { get; } = new Dictionary<string, object>();
+        #region Pile
         public Pile this[string pileName]
         {
             get { return getPile(pileName); }
@@ -73,6 +74,7 @@ namespace TouhouCardEngine
             return pileList.ToArray();
         }
         private List<Pile> pileList { get; } = new List<Pile>();
+        #endregion
         public override string ToString()
         {
             return name;
