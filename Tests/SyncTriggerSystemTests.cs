@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
 using Action = System.Action;
-using TAction = TouhouCardEngine.Action;
+using TAction = TouhouCardEngine.SyncAction;
 namespace Tests
 {
     public class SyncTriggerSystemTests

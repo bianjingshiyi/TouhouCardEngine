@@ -41,24 +41,24 @@ namespace TouhouCardEngine
         paused,
         completed
     }
-    public class ActionCollection : IEnumerable<Action>
+    public class ActionCollection : IEnumerable<SyncAction>
     {
-        public List<Action> _actionList = new List<Action>();
+        public List<SyncAction> _actionList = new List<SyncAction>();
         [SuppressMessage("Style", "IDE1006:命名样式", Justification = "<挂起>")]
-        public void Add(Action action)
+        public void Add(SyncAction action)
         {
             _actionList.Add(action);
         }
-        public IEnumerator<Action> GetEnumerator()
+        public IEnumerator<SyncAction> GetEnumerator()
         {
-            return ((IEnumerable<Action>)_actionList).GetEnumerator();
+            return ((IEnumerable<SyncAction>)_actionList).GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
             return _actionList.GetEnumerator();
         }
     }
-    public class Action
+    public class SyncAction
     {
         public virtual void execute()
         {
