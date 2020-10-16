@@ -14,22 +14,29 @@ namespace Tests
 {
     public class SyncTriggerSystemTests
     {
+        /// <summary>
+        /// 构建同步任务对象，执行动作列表
+        /// </summary>
         [Test]
         public void doTaskTest()
         {
             SyncTriggerSystem system = new SyncTriggerSystem();
             int i = 0, j = 0, k = 0;
-            system.doTask(new ActionCollection()
+            var task = system.doTask(new ActionCollection()
             {
                 new CAction(()=>i=1),
                 new CAction(()=>j=2),
                 new CAction(()=>k=3)
             });
+            Assert.NotNull(task);
 
             Assert.AreEqual(1, i);
             Assert.AreEqual(2, j);
             Assert.AreEqual(3, k);
         }
+        /// <summary>
+        /// 如果暂停
+        /// </summary>
         [Test]
         public void pauseAndResumeTest()
         {
@@ -39,28 +46,69 @@ namespace Tests
             {
                 new CAction(()=>i++),
                 new CAction(()=>i++),
-                new CAction(()=>system.currentTask.pause()),
+                new CAction(()=>system.pauseTask(system.currentTask)),
                 new CAction(()=>i++)
             });
 
+            Assert.Null(system.currentTask);
             Assert.AreEqual(SyncTaskState.paused, task.state);
+            Assert.AreEqual(task, system.getPausedTasks()[0]);
             Assert.AreEqual(2, i);
 
-            system.currentTask.resume();
+            system.resumeTask(task);
 
+            Assert.AreEqual(SyncTaskState.finished, task.state);
+            Assert.AreEqual(0, system.getPausedTasks().Length);
             Assert.AreEqual(3, i);
         }
-    }
-    class CAction : TAction
-    {
-        Action _action;
-        public CAction(Action action)
+        [Test]
+        public void taskTreeTest()
         {
-            _action = action;
+            SyncTriggerSystem system = new SyncTriggerSystem();
+            int i = 0;
+            var task = system.doTask(
+                () => system.doTask(() => i++),
+                () => system.doTask(() => i++),
+                () => system.doTask(() => Assert.NotNull(system.currentTask.parent)));
+            Assert.AreEqual(3, task.getChildren().Length);
+            Assert.AreEqual(2, i);
         }
-        public override void execute()
+        [Test]
+        public void stopTaskTest()
         {
-            _action?.Invoke();
+            SyncTriggerSystem system = new SyncTriggerSystem();
+            int i = 0;
+            var task = system.doTask(
+                () => i++,
+                () => system.stopTask(system.currentTask),
+                () => i++);
+            Assert.AreEqual(SyncTaskState.finished, task.state);
+            Assert.AreEqual(1, i);
+        }
+        [Test]
+        public void resumeFromTaskTest()
+        {
+            SyncTriggerSystem system = new SyncTriggerSystem();
+            int i = 0;
+            var task1 = system.doTask(
+                () => system.pauseTask(system.currentTask),
+                () =>
+                {
+                    Assert.AreEqual(1, system.currentTask.id);
+                    Assert.AreEqual(0, system.getPausedTasks().Length);
+                    Assert.AreEqual(1, system.getResumeTaskStack().Length);
+                },
+                () => i++);
+            Assert.AreEqual(1, task1.id);
+            Assert.AreEqual(SyncTaskState.paused, task1.state);
+            Assert.AreEqual(0, i);
+
+            var task2 = system.doTask(
+                () => system.resumeTask(task1),
+                () => Assert.AreEqual(2, system.currentTask.id),
+                () => i++);
+            Assert.AreEqual(2, task2.id);
+            Assert.AreEqual(2, i);
         }
     }
 }
