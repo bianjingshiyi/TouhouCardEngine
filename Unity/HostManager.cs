@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 using UnityEngine;
-
+using TouhouCardEngine.Shared;
 namespace TouhouCardEngine
 {
     public class HostManager : MonoBehaviour, IHostManager
@@ -45,9 +45,9 @@ namespace TouhouCardEngine
             get { return net != null ? net.IsRunning : false; }
         }
 
-        Interfaces.ILogger _logger = null;
+        Shared.ILogger _logger = null;
 
-        public Interfaces.ILogger logger
+        public Shared.ILogger logger
         {
             get
             {
@@ -177,11 +177,11 @@ namespace TouhouCardEngine
 
     public class NetworkingLoggerAdapter : INetworkingLogger
     {
-        Interfaces.ILogger logger;
+        Shared.ILogger logger;
 
         public const string channel = "Network";
 
-        public NetworkingLoggerAdapter(Interfaces.ILogger logger)
+        public NetworkingLoggerAdapter(Shared.ILogger logger)
         {
             this.logger = logger;
         }

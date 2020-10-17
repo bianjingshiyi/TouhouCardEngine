@@ -3,7 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 using NitoriNetwork.Common;
-
+using TouhouCardEngine.Shared;
 namespace TouhouCardEngine
 {
     public abstract class Rule

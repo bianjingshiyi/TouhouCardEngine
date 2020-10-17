@@ -17,7 +17,7 @@ using NitoriNetwork.Common;
 using UObject = UnityEngine.Object;
 using LiteNetLib;
 using TouhouCardEngine.Interfaces;
-using ILogger = TouhouCardEngine.Interfaces.ILogger;
+using ILogger = TouhouCardEngine.Shared.ILogger;
 
 namespace Tests
 {
