@@ -18,7 +18,7 @@ using UObject = UnityEngine.Object;
 using LiteNetLib;
 using TouhouCardEngine.Interfaces;
 using ILogger = TouhouCardEngine.Shared.ILogger;
-
+using LiteNetLib.Utils;
 namespace Tests
 {
     public class RoomTest
@@ -71,15 +71,103 @@ namespace Tests
             Assert.True(!room.getPlayers().Contains(player));
         }
         [UnityTest]
+        public IEnumerator liteNetTest()
+        {
+            string ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?.ToString();
+            UnityLogger logger = new UnityLogger("Room");
+            NetManager net1 = new NetManager(new TestNetEventListener() { logger = logger });
+            Assert.True(net1.Start());
+            logger.log("网络1初始化成功，端口：" + net1.LocalPort);
+            NetManager net2 = new NetManager(new TestNetEventListener() { logger = logger });
+            Assert.True(net2.Start());
+            logger.log("网络2初始化成功，端口：" + net2.LocalPort);
+            logger.log("网络1连接网络2:" + ip + ":" + net2.LocalPort);
+            var peer24net1 = net1.Connect(new IPEndPoint(IPAddress.Parse(ip), net2.LocalPort), new NetDataWriter());
+            yield return new WaitForSeconds(.5f);
+            net2.PollEvents();
+            //yield return new WaitUntil(() => peer24net1.ConnectionState == ConnectionState.Connected);
+        }
+        class TestNetEventListener : INetEventListener
+        {
+            public ILogger logger;
+            void INetEventListener.OnConnectionRequest(ConnectionRequest request)
+            {
+                logger.log("接受" + request.RemoteEndPoint + "的连接请求");
+                request.Accept();
+            }
+            void INetEventListener.OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+            {
+                throw new NotImplementedException();
+            }
+            void INetEventListener.OnNetworkLatencyUpdate(NetPeer peer, int latency)
+            {
+                throw new NotImplementedException();
+            }
+            void INetEventListener.OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
+            {
+                throw new NotImplementedException();
+            }
+            void INetEventListener.OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
+            {
+                throw new NotImplementedException();
+            }
+            void INetEventListener.OnPeerConnected(NetPeer peer)
+            {
+                throw new NotImplementedException();
+            }
+            void INetEventListener.OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
+            {
+                throw new NotImplementedException();
+            }
+        }
+        [Test]
+        public void serializeTest()
+        {
+            RoomData data = new RoomData { ownerId = 1 };
+            data.propDict.Add("randomSeed", 42);
+            data.playerDataList.Add(new RoomPlayerData(1, RoomPlayerType.human));
+            data.playerDataList[0].propDict.Add("name", "you know who");
+
+            string typeName = data.GetType().FullName;
+            string json = data.ToJson();
+
+            data = BsonSerializer.Deserialize(json, TypeHelper.getType(typeName)) as RoomData;
+            Assert.AreEqual(1, data.ownerId);
+            Assert.AreEqual(42, data.propDict["randomSeed"]);
+            Assert.AreEqual(1, data.playerDataList[0].id);
+            Assert.AreEqual(RoomPlayerType.human, data.playerDataList[0].type);
+            Assert.AreEqual("you know who", data.playerDataList[0].propDict["name"]);
+        }
+        [Test]
+        public void rpcLocalTest()
+        {
+            ServerNetworking server = new ServerNetworking();
+            MethodInfo method = GetType().GetMethod(nameof(testRPCMethod));
+            Assert.NotNull(method);
+            server.addRPCMethod(this, method);
+            var rpcMethod = server.getRPCMethod(nameof(testRPCMethod), 1, null, new RPCArg(), new RPCArg());
+            Assert.NotNull(rpcMethod);
+            Assert.AreEqual(method, rpcMethod.method);
+        }
+        public void testRPCMethod(int primArg, object objArg, RPCArgBase varArg, IRPCArg iArg)
+        {
+            Debug.Log("参数：" + primArg + objArg + varArg + iArg);
+        }
+        public class RPCArgBase { }
+        public class RPCArg : RPCArgBase, IRPCArg { }
+        public interface IRPCArg { }
+        [UnityTest]
         public IEnumerator clientRoomCreateTest()
         {
             UnityLogger logger = new UnityLogger("Room");
             using (HostNetworking server = new ServerNetworking(logger))
             {
                 server.start();
+                new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
                 using (ClientNetworking client = new ClientNetworking(logger))
                 {
                     client.start();
+                    new GameObject(nameof(server)).AddComponent<Updater>().action = () => client.update();
                     //连接到服务器
                     yield return client.connect(server.ip, server.port).wait();
                     //创建房间
@@ -88,6 +176,14 @@ namespace Tests
                     ClientRoom room = new ClientRoom(task.Result);
                     createRoomAssert(room);
                 }
+            }
+        }
+        class Updater : MonoBehaviour
+        {
+            public Action action;
+            protected void Update()
+            {
+                action?.Invoke();
             }
         }
     }
@@ -104,10 +200,17 @@ namespace Tests
         }
         #endregion
         #region 私有成员
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            _logger.log("服务端接受" + request.RemoteEndPoint.Address + ":" + request.RemoteEndPoint.Port + "的连接请求");
+            request.Accept();
+        }
         protected override void rpcMethodRegister()
         {
             base.rpcMethodRegister();
             rpcExecutor.AddTargetMethod<ServerNetworking>(x => x.createRoom());
+
+            addRPCMethod(this, GetType().GetMethod(nameof(createRoom)));
         }
         #endregion
 
