@@ -42,6 +42,10 @@ namespace Tests
         {
             LocalRoom room = new LocalRoom();
             room.addAIPlayer();
+            addAIPlayerAssert(room);
+        }
+        private static void addAIPlayerAssert(Room room)
+        {
             Assert.AreEqual(2, room.getPlayers().Length);
             Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
             Assert.AreEqual(1, room.getPlayers()[0].id);
@@ -66,59 +70,9 @@ namespace Tests
         public void localRoomRemovePlayerTest()
         {
             LocalRoom room = new LocalRoom();
-            var player = room.addAIPlayer();
+            var player = room.addAIPlayer().Result;
             room.removePlayer(player.id);
             Assert.True(!room.getPlayers().Contains(player));
-        }
-        [UnityTest]
-        public IEnumerator liteNetTest()
-        {
-            string ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)?.ToString();
-            UnityLogger logger = new UnityLogger("Room");
-            NetManager net1 = new NetManager(new TestNetEventListener() { logger = logger });
-            Assert.True(net1.Start());
-            logger.log("网络1初始化成功，端口：" + net1.LocalPort);
-            NetManager net2 = new NetManager(new TestNetEventListener() { logger = logger });
-            Assert.True(net2.Start());
-            logger.log("网络2初始化成功，端口：" + net2.LocalPort);
-            logger.log("网络1连接网络2:" + ip + ":" + net2.LocalPort);
-            var peer24net1 = net1.Connect(new IPEndPoint(IPAddress.Parse(ip), net2.LocalPort), new NetDataWriter());
-            yield return new WaitForSeconds(.5f);
-            net2.PollEvents();
-            //yield return new WaitUntil(() => peer24net1.ConnectionState == ConnectionState.Connected);
-        }
-        class TestNetEventListener : INetEventListener
-        {
-            public ILogger logger;
-            void INetEventListener.OnConnectionRequest(ConnectionRequest request)
-            {
-                logger.log("接受" + request.RemoteEndPoint + "的连接请求");
-                request.Accept();
-            }
-            void INetEventListener.OnNetworkError(IPEndPoint endPoint, SocketError socketError)
-            {
-                throw new NotImplementedException();
-            }
-            void INetEventListener.OnNetworkLatencyUpdate(NetPeer peer, int latency)
-            {
-                throw new NotImplementedException();
-            }
-            void INetEventListener.OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
-            {
-                throw new NotImplementedException();
-            }
-            void INetEventListener.OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
-            {
-                throw new NotImplementedException();
-            }
-            void INetEventListener.OnPeerConnected(NetPeer peer)
-            {
-                throw new NotImplementedException();
-            }
-            void INetEventListener.OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
-            {
-                throw new NotImplementedException();
-            }
         }
         [Test]
         public void serializeTest()
@@ -156,8 +110,21 @@ namespace Tests
         public class RPCArgBase { }
         public class RPCArg : RPCArgBase, IRPCArg { }
         public interface IRPCArg { }
+        /// <summary>
+        /// 创建房间测试。
+        /// </summary>
+        /// <returns></returns>
         [UnityTest]
         public IEnumerator clientRoomCreateTest()
+        {
+            yield return createClientRoomAndAssert(onAssert);
+            IEnumerator onAssert(Room room)
+            {
+                createRoomAssert(room);
+                yield break;
+            }
+        }
+        IEnumerator createClientRoomAndAssert(Func<Room, IEnumerator> onAssert)
         {
             UnityLogger logger = new UnityLogger("Room");
             using (HostNetworking server = new ServerNetworking(logger))
@@ -173,17 +140,31 @@ namespace Tests
                     //创建房间
                     var task = client.createRoom();
                     yield return task.wait();
-                    ClientRoom room = new ClientRoom(task.Result);
-                    createRoomAssert(room);
+                    ClientRoom room = new ClientRoom(client, task.Result);
+                    yield return onAssert?.Invoke(room);
                 }
             }
         }
-        class Updater : MonoBehaviour
+        [UnityTest]
+        public IEnumerator clientRoomAddAIPlayerTest()
+        {
+            yield return createClientRoomAndAssert(onAssert);
+            IEnumerator onAssert(Room room)
+            {
+                yield return room.addAIPlayer().wait();
+                addAIPlayerAssert(room);
+            }
+        }
+        class Updater : MonoBehaviour, IDisposable
         {
             public Action action;
             protected void Update()
             {
                 action?.Invoke();
+            }
+            public void Dispose()
+            {
+                DestroyImmediate(gameObject);
             }
         }
     }
@@ -231,7 +212,10 @@ namespace Tests
     }
     public class ServerRoom : Room
     {
-
+        public override Task<AIRoomPlayer> addAIPlayer()
+        {
+            throw new NotImplementedException();
+        }
     }
     public class NetworkTests
     {
