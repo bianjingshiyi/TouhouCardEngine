@@ -2,7 +2,9 @@
     "name": "TouhouCardEngine.Tests",
     "references": [
         "TouhouCardEngine",
-        "UnityEngine.TestRunner"
+        "UnityEngine.TestRunner",
+        "TouhouCardEngine.Shared",
+        "TouhouCardEngine.Library"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
