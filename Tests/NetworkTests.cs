@@ -98,10 +98,10 @@ namespace Tests
             ServerNetworking server = new ServerNetworking();
             MethodInfo method = GetType().GetMethod(nameof(testRPCMethod));
             Assert.NotNull(method);
-            server.addRPCMethod(this, method);
+            server.addRPCMethod(method);
             var rpcMethod = server.getRPCMethod(nameof(testRPCMethod), 1, null, new RPCArg(), new RPCArg());
             Assert.NotNull(rpcMethod);
-            Assert.AreEqual(method, rpcMethod.method);
+            Assert.AreEqual(method, rpcMethod);
         }
         public void testRPCMethod(int primArg, object objArg, RPCArgBase varArg, IRPCArg iArg)
         {
@@ -176,23 +176,71 @@ namespace Tests
         }
         public RoomData createRoom()
         {
-            _logger?.log("服务器新建房间");
-            return new ServerRoom().data;
+            log?.log("服务器新建房间");
+            ServerRoom room = new ServerRoom();
+            roomList.Add(room);
+            return room.data;
         }
         #endregion
-        #region 私有成员
+        #region 方法重载
         protected override void OnConnectionRequest(ConnectionRequest request)
         {
-            _logger.log("服务端接受" + request.RemoteEndPoint.Address + ":" + request.RemoteEndPoint.Port + "的连接请求");
-            request.Accept();
+            log.log("服务端接受" + request.RemoteEndPoint.Address + ":" + request.RemoteEndPoint.Port + "的连接请求");
+            NetPeer peer = request.Accept();
+            peerCtxDict.Add(peer, new ClientContext(this, peer));
         }
         protected override void rpcMethodRegister()
         {
             base.rpcMethodRegister();
-            rpcExecutor.AddTargetMethod<ServerNetworking>(x => x.createRoom());
 
-            addRPCMethod(this, GetType().GetMethod(nameof(createRoom)));
+            addRPCMethod(typeof(ClientContext).GetMethod(nameof(ClientContext.createRoom)));
         }
+        /// <summary>
+        /// 服务端RPC机制是针对客户端现场的，当执行RPC的时候会找到Peer对应的ClientContext，
+        /// 然后由ClientContext来执行方法。
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="method"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        protected override object invokeRPCMethod(NetPeer peer, MethodInfo method, object[] args)
+        {
+            if (tryGetClientContext(peer, out var context))
+            {
+                return method.Invoke(method.IsStatic ? null : context, args);
+            }
+            else
+            {
+                log?.logWarn("服务端尝试执行远程调用" + method.Name + "(" + string.Join(",", args.Select(a => a.GetType().FullName)) + ")，" +
+                    "但是未找到" + peer.EndPoint + "对应的客户端现场");
+                throw new NetworkException("服务端不存在与" + peer.EndPoint + "的连接现场");
+            }
+            //ServerNetworking使用不一样的RPC机制，所以不调用基类实现。
+            //return base.invokeRPCMethod(peer, method, args);
+        }
+        #endregion
+        #region 私有成员
+        bool tryGetClientContext(NetPeer peer, out ClientContext context)
+        {
+            return peerCtxDict.TryGetValue(peer, out context);
+        }
+        class ClientContext
+        {
+            ServerNetworking networking { get; }
+            public NetPeer peer { get; }
+            public Room room { get; }
+            public ClientContext(ServerNetworking networking, NetPeer peer)
+            {
+                this.networking = networking;
+                this.peer = peer;
+            }
+            public RoomData createRoom()
+            {
+                return networking.createRoom();
+            }
+        }
+        Dictionary<NetPeer, ClientContext> peerCtxDict { get; } = new Dictionary<NetPeer, ClientContext>();
+        List<Room> roomList { get; } = new List<Room>();
         #endregion
 
         public override RoomInfo GetRoom(NetPeer peer)
@@ -216,6 +264,16 @@ namespace Tests
         {
             throw new NotImplementedException();
         }
+    }
+    [Serializable]
+    public class NetworkException : Exception
+    {
+        public NetworkException() { }
+        public NetworkException(string message) : base(message) { }
+        public NetworkException(string message, Exception inner) : base(message, inner) { }
+        protected NetworkException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
     public class NetworkTests
     {
