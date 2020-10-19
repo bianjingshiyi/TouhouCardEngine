@@ -12,6 +12,7 @@ using System.Threading;
 using System.Linq;
 using NitoriNetwork.Common;
 using UnityEditor;
+using Action = System.Action;
 
 namespace TouhouCardEngine
 {
@@ -58,9 +59,9 @@ namespace TouhouCardEngine
             get { return net != null ? net.IsRunning : false; }
         }
 
-        Interfaces.ILogger _logger = null;
+        Shared.ILogger _logger = null;
 
-        public Interfaces.ILogger logger
+        public Shared.ILogger logger
         {
             get
             {
@@ -238,7 +239,7 @@ namespace TouhouCardEngine
                 return serverRooms.Select(sr =>
                 {
                     return new RoomInfo(new Guid(sr.id), sr.ownerID, sr.players.Select(sp => new RoomPlayerInfo()
-                    { 
+                    {
                         name = _serverClient.GetUserInfo(sp).Name,
                         PlayerID = sp
                     }).ToArray())
@@ -274,7 +275,7 @@ namespace TouhouCardEngine
         {
             return client.checkRoomInfo(roomInfo);
         }
-        public event Action onQuitRoom
+        public event System.Action onQuitRoom
         {
             add => client.onQuitRoom += value;
             remove => client.onQuitRoom -= value;
@@ -397,8 +398,16 @@ namespace TouhouCardEngine
         {
             if (_serverClient == null)
             {
-                _serverClient = new ServerClient(uri);
-                account = null;
+                _serverClient = new ServerClient(uri, System.IO.Path.Combine(Application.persistentDataPath, "token"));
+                try
+                {
+                    var userInfo = _serverClient.GetUserInfo();
+                    account = new AccountInfo("", "", userInfo.Name, userInfo.UID);
+                }
+                catch (NetClientException)
+                {
+                    account = null;
+                }
             }
         }
         public AccountInfo account

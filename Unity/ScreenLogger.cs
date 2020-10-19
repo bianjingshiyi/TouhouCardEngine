@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace TouhouCardEngine
 {
     [RequireComponent(typeof(Text))]
-    public class ScreenLogger : MonoBehaviour, Interfaces.ILogger
+    public class ScreenLogger : MonoBehaviour, Shared.ILogger
     {
         Text textComponent = null;
         Text TextComponent

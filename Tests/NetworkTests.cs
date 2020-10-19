@@ -15,9 +15,208 @@ using System.Reflection;
 using System.Threading;
 using NitoriNetwork.Common;
 using UObject = UnityEngine.Object;
-
+using LiteNetLib;
+using TouhouCardEngine.Interfaces;
+using ILogger = TouhouCardEngine.Shared.ILogger;
+using LiteNetLib.Utils;
 namespace Tests
 {
+    public class RoomTest
+    {
+        [Test]
+        public void localRoomCreateTest()
+        {
+            LocalRoom room = new LocalRoom();
+            createRoomAssert(room);
+        }
+
+        private static void createRoomAssert(Room room)
+        {
+            Assert.AreEqual(1, room.getPlayers().Length);
+            Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
+            Assert.AreEqual(1, room.getPlayers()[0].id);
+        }
+
+        [Test]
+        public void localRoomAddAIPlayerTest()
+        {
+            LocalRoom room = new LocalRoom();
+            room.addAIPlayer();
+            addAIPlayerAssert(room);
+        }
+        private static void addAIPlayerAssert(Room room)
+        {
+            Assert.AreEqual(2, room.getPlayers().Length);
+            Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
+            Assert.AreEqual(1, room.getPlayers()[0].id);
+            Assert.IsInstanceOf<AIRoomPlayer>(room.getPlayers()[1]);
+            Assert.AreEqual(2, room.getPlayers()[1].id);
+        }
+        [Test]
+        public void localRoomSetPropTest()
+        {
+            LocalRoom room = new LocalRoom();
+            room.setProp("key", "value");
+            Assert.AreEqual("value", room.getProp<string>("key"));
+        }
+        [Test]
+        public void localRoomSetPlayerPropTest()
+        {
+            LocalRoom room = new LocalRoom();
+            room.setPlayerProp(1, "key", "value");
+            Assert.AreEqual("value", room.getPlayerProp<string>(1, "key"));
+        }
+        [Test]
+        public void localRoomRemovePlayerTest()
+        {
+            LocalRoom room = new LocalRoom();
+            var player = room.addAIPlayer().Result;
+            room.removePlayer(player.id);
+            Assert.True(!room.getPlayers().Contains(player));
+        }
+        [Test]
+        public void serializeTest()
+        {
+            RoomData data = new RoomData { ownerId = 1 };
+            data.propDict.Add("randomSeed", 42);
+            data.playerDataList.Add(new RoomPlayerData(1, RoomPlayerType.human));
+            data.playerDataList[0].propDict.Add("name", "you know who");
+
+            string typeName = data.GetType().FullName;
+            string json = data.ToJson();
+
+            data = BsonSerializer.Deserialize(json, TypeHelper.getType(typeName)) as RoomData;
+            Assert.AreEqual(1, data.ownerId);
+            Assert.AreEqual(42, data.propDict["randomSeed"]);
+            Assert.AreEqual(1, data.playerDataList[0].id);
+            Assert.AreEqual(RoomPlayerType.human, data.playerDataList[0].type);
+            Assert.AreEqual("you know who", data.playerDataList[0].propDict["name"]);
+        }
+        [Test]
+        public void rpcLocalTest()
+        {
+            ServerNetworking server = new ServerNetworking();
+            MethodInfo method = GetType().GetMethod(nameof(testRPCMethod));
+            Assert.NotNull(method);
+            server.addRPCMethod(this, method);
+            var rpcMethod = server.getRPCMethod(nameof(testRPCMethod), 1, null, new RPCArg(), new RPCArg());
+            Assert.NotNull(rpcMethod);
+            Assert.AreEqual(method, rpcMethod.method);
+        }
+        public void testRPCMethod(int primArg, object objArg, RPCArgBase varArg, IRPCArg iArg)
+        {
+            Debug.Log("参数：" + primArg + objArg + varArg + iArg);
+        }
+        public class RPCArgBase { }
+        public class RPCArg : RPCArgBase, IRPCArg { }
+        public interface IRPCArg { }
+        /// <summary>
+        /// 创建房间测试。
+        /// </summary>
+        /// <returns></returns>
+        [UnityTest]
+        public IEnumerator clientRoomCreateTest()
+        {
+            yield return createClientRoomAndAssert(onAssert);
+            IEnumerator onAssert(Room room)
+            {
+                createRoomAssert(room);
+                yield break;
+            }
+        }
+        IEnumerator createClientRoomAndAssert(Func<Room, IEnumerator> onAssert)
+        {
+            UnityLogger logger = new UnityLogger("Room");
+            using (HostNetworking server = new ServerNetworking(logger))
+            {
+                server.start();
+                new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
+                using (ClientNetworking client = new ClientNetworking(logger))
+                {
+                    client.start();
+                    new GameObject(nameof(server)).AddComponent<Updater>().action = () => client.update();
+                    //连接到服务器
+                    yield return client.connect(server.ip, server.port).wait();
+                    //创建房间
+                    var task = client.createRoom();
+                    yield return task.wait();
+                    ClientRoom room = new ClientRoom(client, task.Result);
+                    yield return onAssert?.Invoke(room);
+                }
+            }
+        }
+        [UnityTest]
+        public IEnumerator clientRoomAddAIPlayerTest()
+        {
+            yield return createClientRoomAndAssert(onAssert);
+            IEnumerator onAssert(Room room)
+            {
+                yield return room.addAIPlayer().wait();
+                addAIPlayerAssert(room);
+            }
+        }
+        class Updater : MonoBehaviour, IDisposable
+        {
+            public Action action;
+            protected void Update()
+            {
+                action?.Invoke();
+            }
+            public void Dispose()
+            {
+                DestroyImmediate(gameObject);
+            }
+        }
+    }
+    public class ServerNetworking : HostNetworking
+    {
+        #region 公共成员
+        public ServerNetworking(ILogger logger = null) : base(logger)
+        {
+        }
+        public RoomData createRoom()
+        {
+            _logger?.log("服务器新建房间");
+            return new ServerRoom().data;
+        }
+        #endregion
+        #region 私有成员
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            _logger.log("服务端接受" + request.RemoteEndPoint.Address + ":" + request.RemoteEndPoint.Port + "的连接请求");
+            request.Accept();
+        }
+        protected override void rpcMethodRegister()
+        {
+            base.rpcMethodRegister();
+            rpcExecutor.AddTargetMethod<ServerNetworking>(x => x.createRoom());
+
+            addRPCMethod(this, GetType().GetMethod(nameof(createRoom)));
+        }
+        #endregion
+
+        public override RoomInfo GetRoom(NetPeer peer)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override NetPeer getPeerByPeerID(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override IEnumerable<NetPeer> GetRoomPeers(NetPeer peer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public class ServerRoom : Room
+    {
+        public override Task<AIRoomPlayer> addAIPlayer()
+        {
+            throw new NotImplementedException();
+        }
+    }
     public class NetworkTests
     {
         [UnityTest]

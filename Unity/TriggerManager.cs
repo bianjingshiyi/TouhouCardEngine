@@ -12,7 +12,7 @@ namespace TouhouCardEngine
 {
     public class TriggerManager : MonoBehaviour, ITriggerManager, IDisposable
     {
-        public Interfaces.ILogger logger { get; set; } = null;
+        public Shared.ILogger logger { get; set; } = null;
         [Serializable]
         public class EventListItem
         {

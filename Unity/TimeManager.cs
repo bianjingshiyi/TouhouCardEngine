@@ -45,7 +45,7 @@ namespace TouhouCardEngine
 
         public void Dispose()
         {
-            
+
         }
     }
     [Serializable]
@@ -76,6 +76,6 @@ namespace TouhouCardEngine
         {
             onExpired?.Invoke();
         }
-        public event Action onExpired;
+        public event System.Action onExpired;
     }
 }
