@@ -16,9 +16,7 @@ using System.Threading;
 using NitoriNetwork.Common;
 using UObject = UnityEngine.Object;
 using LiteNetLib;
-using TouhouCardEngine.Interfaces;
 using ILogger = TouhouCardEngine.Shared.ILogger;
-using LiteNetLib.Utils;
 namespace Tests
 {
     public class RoomTest
@@ -72,23 +70,24 @@ namespace Tests
             LocalRoom room = new LocalRoom();
             var player = room.addAIPlayer().Result;
             room.removePlayer(player.id);
-            Assert.True(!room.getPlayers().Contains(player));
+            Assert.True(!room.data.containPlayerData(player.id));
         }
         [Test]
         public void serializeTest()
         {
-            RoomData data = new RoomData { ownerId = 1 };
+            TypedRoomData data = new TypedRoomData { ownerId = 1 };
             data.propDict.Add("randomSeed", 42);
-            data.playerDataList.Add(new RoomPlayerData(1, RoomPlayerType.human));
+            data.playerDataList.Add(new TypedRoomPlayerData(1, "玩家", RoomPlayerType.human));
             data.playerDataList[0].propDict.Add("name", "you know who");
 
             string typeName = data.GetType().FullName;
             string json = data.ToJson();
 
-            data = BsonSerializer.Deserialize(json, TypeHelper.getType(typeName)) as RoomData;
+            data = BsonSerializer.Deserialize(json, TypeHelper.getType(typeName)) as TypedRoomData;
             Assert.AreEqual(1, data.ownerId);
             Assert.AreEqual(42, data.propDict["randomSeed"]);
             Assert.AreEqual(1, data.playerDataList[0].id);
+            Assert.AreEqual("玩家", data.playerDataList[0].name);
             Assert.AreEqual(RoomPlayerType.human, data.playerDataList[0].type);
             Assert.AreEqual("you know who", data.playerDataList[0].propDict["name"]);
         }
@@ -134,14 +133,58 @@ namespace Tests
                 using (ClientNetworking client = new ClientNetworking(logger))
                 {
                     client.start();
-                    new GameObject(nameof(server)).AddComponent<Updater>().action = () => client.update();
+                    new GameObject(nameof(client)).AddComponent<Updater>().action = () => client.update();
                     //连接到服务器
                     yield return client.connect(server.ip, server.port).wait();
                     //创建房间
-                    var task = client.createRoom();
+                    var task = client.reqCreateRoom(new TypedRoomPlayerData(0, "玩家1", RoomPlayerType.human));
                     yield return task.wait();
                     ClientRoom room = new ClientRoom(client, task.Result);
                     yield return onAssert?.Invoke(room);
+                }
+            }
+        }
+        [UnityTest]
+        public IEnumerator clientRoomJoinTest()
+        {
+            yield return createClient2RoomAndAssert(onAssert);
+            IEnumerator onAssert(Room room1, Room room2)
+            {
+                Assert.AreEqual(2, room1.getPlayers().Length);
+                Assert.AreEqual(2, room2.getPlayers().Length);
+                yield break;
+            }
+        }
+        IEnumerator createClient2RoomAndAssert(Func<Room, Room, IEnumerator> onAssert)
+        {
+            UnityLogger logger = new UnityLogger("Room");
+            using (HostNetworking server = new ServerNetworking(logger))
+            {
+                server.start();
+                new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
+                using (ClientNetworking client1 = new ClientNetworking(logger))
+                {
+                    client1.start();
+                    new GameObject(nameof(client1)).AddComponent<Updater>().action = () => client1.update();
+                    using (ClientNetworking client2 = new ClientNetworking(logger))
+                    {
+                        client2.start();
+                        new GameObject(nameof(client2)).AddComponent<Updater>().action = () => client2.update();
+                        //连接到服务器
+                        yield return client1.connect(server.ip, server.port).wait();
+                        yield return client2.connect(server.ip, server.port).wait();
+                        //创建房间
+                        var task = client1.reqCreateRoom(new TypedRoomPlayerData(0, "玩家1", RoomPlayerType.human));
+                        yield return task.wait();
+                        RoomData roomData = task.Result;
+                        ClientRoom room1 = new ClientRoom(client1, roomData);
+                        //加入房间
+                        task = client2.reqJoinRoom(roomData.id, new TypedRoomPlayerData(0, "玩家2", RoomPlayerType.human));
+                        yield return task.wait();
+                        roomData = task.Result;
+                        ClientRoom room2 = new ClientRoom(client2, roomData);
+                        yield return onAssert?.Invoke(room1, room2);
+                    }
                 }
             }
         }
@@ -168,18 +211,30 @@ namespace Tests
             }
         }
     }
-    public class ServerNetworking : HostNetworking
+    class ServerNetworking : HostNetworking
     {
         #region 公共成员
         public ServerNetworking(ILogger logger = null) : base(logger)
         {
+            //RPC注册
+            addRPCMethod(typeof(ClientContext).GetMethod(nameof(ClientContext.rcvCreateRoom)));
+            addRPCMethod(typeof(ClientContext).GetMethod(nameof(ClientContext.rcvJoinRoom)));
         }
-        public RoomData createRoom()
+        public void playerCreateRoom(ClientContext client, RoomPlayerData playerData)
         {
             log?.log("服务器新建房间");
-            ServerRoom room = new ServerRoom();
-            roomList.Add(room);
-            return room.data;
+            ServerRoom room = new ServerRoom(++lastRoomId, client, playerData);
+            roomDict.Add(room.id, room);
+        }
+        public void playerJoinRoom(ClientContext client, RoomPlayerData playerData, int roomId)
+        {
+            log?.log("客户端" + client.id + "加入房间" + roomId);
+            if (roomDict.TryGetValue(roomId, out var room))
+            {
+                room.addClientPlayer(client, playerData);
+            }
+            else
+                throw new NetworkException("不存在房间" + roomId);
         }
         #endregion
         #region 方法重载
@@ -188,12 +243,6 @@ namespace Tests
             log.log("服务端接受" + request.RemoteEndPoint.Address + ":" + request.RemoteEndPoint.Port + "的连接请求");
             NetPeer peer = request.Accept();
             peerCtxDict.Add(peer, new ClientContext(this, peer));
-        }
-        protected override void rpcMethodRegister()
-        {
-            base.rpcMethodRegister();
-
-            addRPCMethod(typeof(ClientContext).GetMethod(nameof(ClientContext.createRoom)));
         }
         /// <summary>
         /// 服务端RPC机制是针对客户端现场的，当执行RPC的时候会找到Peer对应的ClientContext，
@@ -218,29 +267,19 @@ namespace Tests
             //ServerNetworking使用不一样的RPC机制，所以不调用基类实现。
             //return base.invokeRPCMethod(peer, method, args);
         }
+        protected override Type getType(string typeName)
+        {
+            return TypeHelper.getType(typeName, typeof(int).Assembly, typeof(Room).Assembly);
+        }
         #endregion
         #region 私有成员
         bool tryGetClientContext(NetPeer peer, out ClientContext context)
         {
             return peerCtxDict.TryGetValue(peer, out context);
         }
-        class ClientContext
-        {
-            ServerNetworking networking { get; }
-            public NetPeer peer { get; }
-            public Room room { get; }
-            public ClientContext(ServerNetworking networking, NetPeer peer)
-            {
-                this.networking = networking;
-                this.peer = peer;
-            }
-            public RoomData createRoom()
-            {
-                return networking.createRoom();
-            }
-        }
         Dictionary<NetPeer, ClientContext> peerCtxDict { get; } = new Dictionary<NetPeer, ClientContext>();
-        List<Room> roomList { get; } = new List<Room>();
+        Dictionary<int, ServerRoom> roomDict { get; } = new Dictionary<int, ServerRoom>();
+        int lastRoomId { get; set; } = 0;
         #endregion
 
         public override RoomInfo GetRoom(NetPeer peer)
@@ -258,11 +297,65 @@ namespace Tests
             throw new NotImplementedException();
         }
     }
-    public class ServerRoom : Room
+    class ClientContext
     {
-        public override Task<AIRoomPlayer> addAIPlayer()
+        ServerNetworking networking { get; }
+        public NetPeer peer { get; }
+        public int id => peer.Id;
+        public ServerRoom room { get; set; }
+        public ClientContext(ServerNetworking networking, NetPeer peer)
+        {
+            this.networking = networking;
+            this.peer = peer;
+        }
+        public RoomData rcvCreateRoom(RoomPlayerData playerData)
+        {
+            networking.playerCreateRoom(this, playerData);
+            return room.data;
+        }
+        public RoomData rcvJoinRoom(int roomId, RoomPlayerData playerData)
+        {
+            networking.playerJoinRoom(this, playerData, roomId);
+            return room.data;
+        }
+        public RoomPlayerData addAIPlayer()
         {
             throw new NotImplementedException();
+        }
+    }
+    class ServerRoom : Room
+    {
+        public ServerRoom(int id, ClientContext client, RoomPlayerData playerData) : base()
+        {
+            data.id = id;
+            addClientPlayer(client, playerData);
+        }
+        public override RoomData data => _data;
+        public override Task<RoomPlayerData> addAIPlayer()
+        {
+            AIRoomPlayer player = new AIRoomPlayer(++lastPlayerId);
+            RoomPlayerData playerData = addPlayer(new TypelessRoomPlayerData("AI"), player);
+            return Task.FromResult(playerData);
+        }
+        public RoomPlayerData addClientPlayer(ClientContext client, RoomPlayerData playerData)
+        {
+            ServerRoomPlayer player = new ServerRoomPlayer(++lastPlayerId);
+            playerData = addPlayer(playerData, player);
+            _clientList.Add(client);
+            client.room = this;
+            return playerData;
+        }
+        protected override void setData(RoomData data)
+        {
+            throw new NotImplementedException();
+        }
+        List<ClientContext> _clientList = new List<ClientContext>();
+        TypelessRoomData _data = new TypelessRoomData();
+    }
+    public class ServerRoomPlayer : RoomPlayer
+    {
+        public ServerRoomPlayer(int id) : base(id)
+        {
         }
     }
     [Serializable]

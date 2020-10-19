@@ -28,7 +28,7 @@ namespace NitoriNetwork.Common
             return peerDict.Values;
         }
 
-        public override void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
+        protected override void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
             switch (messageType)
             {

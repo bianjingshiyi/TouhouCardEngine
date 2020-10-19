@@ -52,10 +52,10 @@ namespace TouhouCardEngine
             }
             return results;
         }
-        public static IEnumerable<T> skipUntil<T>(this IEnumerable<T> c, Func<T, bool> func)
-        {
-            return c.SkipWhile(e => !func(e));
-        }
+        //public static IEnumerable<T> skipUntil<T>(this IEnumerable<T> c, Func<T, bool> func)
+        //{
+        //    return c.SkipWhile(e => !func(e));
+        //}
         public static IEnumerable<T> skipUntilLast<T>(this IEnumerable<T> c, Func<T, bool> func)
         {
             List<T> list = new List<T>();

@@ -4,29 +4,27 @@ using System.Threading.Tasks;
 
 namespace TouhouCardEngine
 {
-    public class ClientRoom : Room
+    public class ClientRoom : TypedRoom
     {
         ClientNetworking _networking;
         public ClientRoom(ClientNetworking networking, RoomData data) : base(data)
         {
             _networking = networking;
         }
-        public override Task<AIRoomPlayer> addAIPlayer()
+        public override Task<RoomPlayerData> addAIPlayer()
         {
-            throw new NotImplementedException();
+            return _networking.invoke<RoomPlayerData>(nameof(Room.addAIPlayer));
         }
     }
-    public class LocalRoom : Room
+    public class LocalRoom : TypedRoom
     {
         public LocalRoom() : base()
         {
         }
-
-        public override Task<AIRoomPlayer> addAIPlayer()
+        public override RoomData data => throw new NotImplementedException();
+        protected override void setData(RoomData data)
         {
-            AIRoomPlayer player = new AIRoomPlayer(++lastPlayerId);
-            addPlayer(player);
-            return Task.FromResult(player);
+            throw new NotImplementedException();
         }
     }
 }
