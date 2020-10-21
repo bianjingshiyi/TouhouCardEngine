@@ -1,9 +1,34 @@
 ﻿using NitoriNetwork.Common;
 using System;
 using System.Threading.Tasks;
+using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
+    public class ClientLogic : IDisposable
+    {
+        #region 公共成员
+        public ClientLogic(ILogger logger = null)
+        {
+            this.logger = logger;
+            networking = new ClientNetworking(logger);
+        }
+        public async Task createRoom(RoomPlayerData playerData)
+        {
+            logger?.log("客户端创建房间");
+            await networking.invoke<RoomData>(nameof(createRoom), playerData);
+        }
+        public void Dispose()
+        {
+
+        }
+        #endregion
+        #region 私有成员
+        ClientRoom room { get; set; } = null;
+        ILogger logger { get; }
+        ClientNetworking networking { get; }
+        #endregion
+    }
     public class ClientRoom : TypedRoom
     {
         ClientNetworking _networking;
