@@ -94,7 +94,7 @@ namespace Tests
         [Test]
         public void rpcLocalTest()
         {
-            ServerNetworking server = new ServerNetworking();
+            ServerNetworking server = new ServerNetworking(null);
             MethodInfo method = GetType().GetMethod(nameof(testRPCMethod));
             Assert.NotNull(method);
             server.addRPCMethod(method);
@@ -126,7 +126,7 @@ namespace Tests
         IEnumerator createClientRoomAndAssert(Func<Room, IEnumerator> onAssert)
         {
             UnityLogger logger = new UnityLogger("Room");
-            using (HostNetworking server = new ServerNetworking(logger))
+            using (HostNetworking server = new ServerNetworking(null, logger))
             {
                 server.start();
                 new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
@@ -158,7 +158,7 @@ namespace Tests
         IEnumerator createClient2RoomAndAssert(Func<Room, Room, IEnumerator> onAssert)
         {
             UnityLogger logger = new UnityLogger("Room");
-            using (HostNetworking server = new ServerNetworking(logger))
+            using (HostNetworking server = new ServerNetworking(null, logger))
             {
                 server.start();
                 new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
