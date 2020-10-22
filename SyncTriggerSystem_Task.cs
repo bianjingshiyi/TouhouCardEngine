@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.CodeAnalysis;
-using SAction = System.Action;
 using UnityEditor;
 
 namespace TouhouCardEngine
@@ -11,18 +10,13 @@ namespace TouhouCardEngine
     /// <summary>
     /// 同步触发系统
     /// </summary>
-    public class SyncTriggerSystem
+    public partial class SyncTriggerSystem
     {
         #region 公开成员
-        public SyncTask currentTask
+        public SyncTriggerSystem(CardEngine game)
         {
-            get { return _currentTask; }
-            private set { _currentTask = value; }
+            this.game = game;
         }
-        public SyncTask _currentTask;
-        public List<SyncTask> _pausedTaskList = new List<SyncTask>();
-        public List<SyncTask> _resumeTaskStack = new List<SyncTask>();
-        public int _lastTaskId = 0;
         /// <summary>
         /// 执行一项任务，返回执行任务对象。
         /// </summary>
@@ -39,7 +33,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
-        public SyncTask doTask(params SAction[] actions)
+        public SyncTask doTask(params Action<CardEngine>[] actions)
         {
             SyncTask task = new SyncTask(++_lastTaskId, new ActionCollection(actions));
             return doOrResumeTask(task);
@@ -70,6 +64,15 @@ namespace TouhouCardEngine
             task.state = SyncTaskState.finished;
             _pausedTaskList.Remove(task);
         }
+        public SyncTask currentTask
+        {
+            get { return _currentTask; }
+            private set { _currentTask = value; }
+        }
+        public SyncTask _currentTask;
+        public List<SyncTask> _pausedTaskList = new List<SyncTask>();
+        public List<SyncTask> _resumeTaskStack = new List<SyncTask>();
+        public int _lastTaskId = 0;
         #endregion
         #region 私有成员
         SyncTask doOrResumeTask(SyncTask task)
@@ -95,7 +98,7 @@ namespace TouhouCardEngine
                     currentTask = null;
                     return task;
                 }
-                task.actions[i].execute();
+                task.actions[i].execute(game);
             }
             task.state = SyncTaskState.finished;
             if (isResumed)
@@ -107,6 +110,7 @@ namespace TouhouCardEngine
                 currentTask = task.parent;
             return task;
         }
+        CardEngine game { get; }
         #endregion
     }
     public class SyncTask
@@ -130,10 +134,16 @@ namespace TouhouCardEngine
         public int _curActionIndex = 0;
         public ActionCollection actions => _actions;
         public ActionCollection _actions;
-        public SyncTask(int id, ActionCollection actions)
+        public EventContext context => _context;
+        public EventContext _context = null;
+        public SyncTask(int id, EventContext context, ActionCollection actions)
         {
             _id = id;
+            _context = context;
             _actions = actions;
+        }
+        public SyncTask(int id, ActionCollection actions) : this(id, null, actions)
+        {
         }
         public void addChild(SyncTask task)
         {
@@ -151,48 +161,48 @@ namespace TouhouCardEngine
         paused,
         finished
     }
-    public class ActionCollection : IEnumerable<Action>
+    public class ActionCollection : IEnumerable<SyncAction>
     {
-        public List<Action> _actionList = new List<Action>();
+        public List<SyncAction> _actionList = new List<SyncAction>();
         public int length => _actionList.Count;
         public ActionCollection()
         {
         }
-        public ActionCollection(IEnumerable<SAction> actions)
+        public ActionCollection(IEnumerable<Action<CardEngine>> actions)
         {
             _actionList.AddRange(actions.Select(sa => new CAction(sa)));
         }
         [SuppressMessage("Style", "IDE1006:命名样式", Justification = "<挂起>")]
-        public void Add(Action action)
+        public void Add(SyncAction action)
         {
             _actionList.Add(action);
         }
-        public Action this[int index] => _actionList[index];
-        public IEnumerator<Action> GetEnumerator()
+        public SyncAction this[int index] => _actionList[index];
+        public IEnumerator<SyncAction> GetEnumerator()
         {
-            return ((IEnumerable<Action>)_actionList).GetEnumerator();
+            return ((IEnumerable<SyncAction>)_actionList).GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
             return _actionList.GetEnumerator();
         }
     }
-    public class Action
+    public class SyncAction
     {
-        public virtual void execute()
+        public virtual void execute(CardEngine game)
         {
         }
     }
-    public class CAction : Action
+    public class CAction : SyncAction
     {
-        SAction _action;
-        public CAction(SAction action)
+        Action<CardEngine> _action;
+        public CAction(Action<CardEngine> action)
         {
             _action = action;
         }
-        public override void execute()
+        public override void execute(CardEngine game)
         {
-            _action?.Invoke();
+            _action?.Invoke(game);
         }
     }
 }

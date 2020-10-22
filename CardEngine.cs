@@ -18,8 +18,19 @@ namespace TouhouCardEngine
     [Serializable]
     public partial class CardEngine : IGame
     {
+        #region 公共成员
+        public CardEngine(int randomSeed = 0, params CardDefine[] defines)
+        {
+            trigger = new SyncTriggerSystem(this);
+            random = new Random(randomSeed);
+            foreach (CardDefine define in defines)
+            {
+                addDefine(define);
+            }
+        }
         public ITimeManager time { get; set; } = null;
         public ITriggerManager triggers { get; set; } = null;
+        public SyncTriggerSystem trigger { get; }
         IAnswerManager _answers;
         public IAnswerManager answers
         {
@@ -34,6 +45,7 @@ namespace TouhouCardEngine
             }
         }
         public ILogger logger { get; set; }
+        #endregion
         #region 状态
         public Rule rule { get; }
         public Pile this[string pileName]
@@ -115,14 +127,6 @@ namespace TouhouCardEngine
         //}
         //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
-        public CardEngine(int randomSeed = 0, params CardDefine[] defines)
-        {
-            random = new Random(randomSeed);
-            foreach (CardDefine define in defines)
-            {
-                addDefine(define);
-            }
-        }
         #region 游戏流程
         public void start(Rule rule, RoomPlayerInfo[] playersInfo)
         {
