@@ -6,7 +6,7 @@ namespace TouhouCardEngine.Interfaces
         ITriggerManager triggers { get; }
         IAnswerManager answers { get; }
         ITimeManager time { get; }
-        ILogger logger { get; }
+        Shared.ILogger logger { get; }
         int randomInt(int min, int max);
     }
     public interface IPlayer

@@ -59,9 +59,9 @@ namespace TouhouCardEngine
             get { return net != null ? net.IsRunning : false; }
         }
 
-        Interfaces.ILogger _logger = null;
+        Shared.ILogger _logger = null;
 
-        public Interfaces.ILogger logger
+        public Shared.ILogger logger
         {
             get
             {

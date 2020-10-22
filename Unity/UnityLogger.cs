@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TouhouCardEngine
 {
-    public class UnityLogger : Interfaces.ILogger
+    public class UnityLogger : Shared.ILogger
     {
         string name { get; }
         public UnityLogger(string name = null)
