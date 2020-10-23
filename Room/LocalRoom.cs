@@ -22,11 +22,11 @@ namespace TouhouCardEngine
         {
 
         }
+        public ClientRoom room { get; private set; } = null;
+        public ClientNetworking networking { get; }
         #endregion
         #region 私有成员
-        ClientRoom room { get; set; } = null;
         ILogger logger { get; }
-        ClientNetworking networking { get; }
         #endregion
     }
     public class ClientRoom : TypedRoom
