@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class Player
+    public class Player : IPlayer
     {
-        public Player(CardEngine engine, Pile[] piles)
+        public int id { get; }
+        public string name { get; set; }
+        public Player(int id, string name, params Pile[] piles)
         {
-            this.engine = engine;
+            this.id = id;
+            this.name = name;
             foreach (Pile pile in piles)
             {
                 pile.owner = this;
@@ -48,21 +51,35 @@ namespace TouhouCardEngine
                 dicProp[propName] = getProp<string>(propName) + value;
         }
         internal Dictionary<string, object> dicProp { get; } = new Dictionary<string, object>();
+        #region Pile
         public Pile this[string pileName]
         {
             get { return getPile(pileName); }
+        }
+        public void addPile(Pile pile)
+        {
+            pileList.Add(pile);
+            pile.owner = this;
+            foreach (Card card in pile)
+            {
+                card.owner = this;
+            }
         }
         public Pile getPile(string name)
         {
             return pileList.FirstOrDefault(e => { return e.name == name; });
         }
-        List<Pile> pileList { get; } = new List<Pile>();
-        CardEngine engine { get; }
+        public Pile[] getPiles()
+        {
+            return pileList.ToArray();
+        }
+        private List<Pile> pileList { get; } = new List<Pile>();
+        #endregion
         public override string ToString()
         {
-            return "Player(" + engine.getPlayerIndex(this) + ")";
+            return name;
         }
-        public static implicit operator Player[] (Player player)
+        public static implicit operator Player[](Player player)
         {
             return new Player[] { player };
         }
