@@ -51,16 +51,19 @@ namespace TouhouCardEngine
         /// <param name="trigger"></param>
         public void register(string eventName, ITrigger trigger)
         {
+            //传入不能为空
             if (string.IsNullOrEmpty(eventName))
                 throw new ArgumentException(nameof(eventName) + "不能为空字符串", nameof(eventName));
             if (trigger == null)
                 throw new ArgumentNullException(nameof(trigger));
+
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
             if (eventItem == null)
             {
                 eventItem = new EventListItem(eventName);
                 _eventList.Add(eventItem);
             }
+
             if (!eventItem.triggerList.Any(ti => ti.trigger == trigger))
             {
                 TriggerListItem item = new TriggerListItem(trigger);

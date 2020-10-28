@@ -22,9 +22,10 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
-        public SyncTask doTask(ActionCollection actions)
+        public SyncTask doTask(ActionCollection actions,EventContext eventContext = null)
         {
             SyncTask task = new SyncTask(++_lastTaskId, actions);
+            task._context = eventContext;
             return doOrResumeTask(task);
         }
         /// <summary>
@@ -33,6 +34,14 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
+        public SyncTask doTask(EventContext eventContext,params Action<CardEngine>[] actions)
+        {
+            SyncTask task = new SyncTask(++_lastTaskId, new ActionCollection(actions))
+            {
+                _context = eventContext
+            };
+            return doOrResumeTask(task);
+        }
         public SyncTask doTask(params Action<CardEngine>[] actions)
         {
             SyncTask task = new SyncTask(++_lastTaskId, new ActionCollection(actions));
@@ -115,16 +124,29 @@ namespace TouhouCardEngine
     }
     public class SyncTask
     {
+        /// <summary>
+        /// ID
+        /// </summary>
         public int id => _id;
         public int _id = 0;
+
+        /// <summary>
+        /// 状态
+        /// </summary>
         public SyncTaskState state
         {
             get { return _state; }
             set { _state = value; }
         }
         public SyncTaskState _state = SyncTaskState.running;
+        /// <summary>
+        /// 父任务
+        /// </summary>
         public SyncTask parent => _parent;
         public SyncTask _parent = null;
+        /// <summary>
+        /// 子任务列表
+        /// </summary>
         public List<SyncTask> _childList = new List<SyncTask>();
         public int curActionIndex
         {
