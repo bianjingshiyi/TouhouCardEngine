@@ -9,7 +9,12 @@ namespace TouhouCardEngine
     public partial class SyncTriggerSystem
     {
         #region 公共成员
-        public SyncTask task = null;
+        /// <summary>
+        /// 事件列表
+        /// 总之需要一个用来存储事件的表
+        /// 用来存储已经定义好的事件的
+        /// </summary>
+        public LinkedList<EventContext> eventList = new LinkedList<EventContext>();
         /// <summary>
         /// doEvent
         /// </summary>
@@ -20,56 +25,187 @@ namespace TouhouCardEngine
         {
             
             //是否被取消
-            if (context.hasVar("isCancel") && context.getVar<bool>("isCancel"))
+            if (context.hasVar(EventContext.IS_CANCEL) && context.getVar<bool>(EventContext.IS_CANCEL))
             {
                 return null;
             }
             
             //是否效果被修改
-            if(context.hasVar("newActions") && context.getVar<Action<CardEngine>[]>("newActions") != null)
+            if(context.hasVar(EventContext.NEW_ACTIONS) && context.getVar<Action<CardEngine>[]>(EventContext.NEW_ACTIONS) != null)
             {
                 doTask(context, actions);
             }
-
-            //是否重复释放事件效果
-            //if(context.hasVar("times") && context.getVar<int>("times") > 0)
-            //{             
-            //    for (int i = 0; i < context.getVar<int>("times"); i += 1)
-            //    {
-            //        task = doTask(actions);
-            //        task._context = context;
-            //        return task;
-            //    }
-            //}
-            //事件效果正常执行
-           
+          
             return doTask(context, actions);
 
         }
+
+        /// <summary>
+        /// “在事件之前”注册触发器
+        /// </summary>
+        /// <param name="eventName"></param>
+        /// <param name="trigger"></param>
         public void regTrigBfr(string eventName, SyncTrigger trigger)
         {
-            
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，创建一个
+            if (!eventList.Any( e => e.name == eventName))
+            {
+                context = new EventContext(eventName);
+                eventList.AddLast(context);
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            List<SyncTrigger> triggers = null;
+            //往事件的“before”注册触发器
+            if (!context.hasVar(EventContext.BEFORE))
+            {
+                triggers = new List<SyncTrigger>();
+                triggers.Add(trigger);
+                context.Add(EventContext.BEFORE, triggers);
+            }
+            else
+            {
+                triggers = context.getVar<List<SyncTrigger>>(EventContext.BEFORE);
+                triggers.Add(trigger);
+            }
         }
-        
+
+        /// <summary>
+        /// 获取一个事件的“在事件之前”所有的触发器
+        /// </summary>
+        /// <param name="eventName"></param>
+        /// <returns></returns>
         public IEnumerable<SyncTrigger> getTrigBfr(string eventName)
         {
-            throw new NotImplementedException();
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，那就没了
+            if (!eventList.Any(e => e.name == eventName))
+            {
+                return null;
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            if (!context.hasVar(EventContext.BEFORE))
+            {
+                return null;
+            }
+
+            IEnumerable<SyncTrigger> list = context.getVar<List<SyncTrigger>>(EventContext.BEFORE);
+            return list;
+
         }
+
+        /// <summary>
+        /// 删除指定事件“在事件之前”的指定触发器
+        /// </summary>
+        /// <param name="eventName"></param>
+        /// <param name="trigger"></param>
+        /// <returns></returns>
         public bool unregTrigBfr(string eventName, SyncTrigger trigger)
         {
-            throw new NotImplementedException();
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，那返回false
+            if (!eventList.Any(e => e.name == eventName))
+            {
+                return false;
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            if (context.hasVar(EventContext.BEFORE) &&
+                context.getVar<List<SyncTrigger>>(EventContext.BEFORE) != null &&
+                context.getVar<List<SyncTrigger>>(EventContext.BEFORE).Any(e => e == trigger))
+            {
+                context.getVar<List<SyncTrigger>>(EventContext.BEFORE).Remove(trigger);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         public void regTrigAft(string eventName, SyncTrigger trigger)
         {
-            throw new NotImplementedException();
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，创建一个
+            if (!eventList.Any(e => e.name == eventName))
+            {
+                context = new EventContext(eventName);
+                eventList.AddLast(context);
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            List<SyncTrigger> triggers = null;
+            //往事件的“before”注册触发器
+            if (!context.hasVar(EventContext.AFTER))
+            {
+                triggers = new List<SyncTrigger>();
+                triggers.Add(trigger);
+                context.Add(EventContext.AFTER, triggers);
+            }
+            else
+            {
+                triggers = context.getVar<List<SyncTrigger>>(EventContext.AFTER);
+                triggers.Add(trigger);
+            }
         }
         public IEnumerable<SyncTrigger> getTrigAft(string eventName)
         {
-            throw new NotImplementedException();
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，那就没了
+            if (!eventList.Any(e => e.name == eventName))
+            {
+                return null;
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            if (!context.hasVar(EventContext.AFTER))
+            {
+                return null;
+            }
+
+            IEnumerable<SyncTrigger> list = context.getVar<List<SyncTrigger>>(EventContext.AFTER);
+            return list;
         }
         public bool unregTrigAft(string eventName, SyncTrigger trigger)
         {
-            throw new NotImplementedException();
+            EventContext context = null;
+            //检查已存在列表中是否有对应事件，如果没有，那返回false
+            if (!eventList.Any(e => e.name == eventName))
+            {
+                return false;
+            }
+            else
+            {
+                context = eventList.Where(e => e.name == eventName).LastOrDefault();
+            }
+
+            if (context.hasVar(EventContext.AFTER) &&
+                context.getVar<List<SyncTrigger>>(EventContext.AFTER) != null &&
+                context.getVar<List<SyncTrigger>>(EventContext.AFTER).Any(e => e == trigger))
+            {
+                context.getVar<List<SyncTrigger>>(EventContext.AFTER).Remove(trigger);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         #endregion
         
@@ -99,6 +235,26 @@ namespace TouhouCardEngine
         public object this[string key] { get => varDict[key]; set => varDict[key] = value; }
         public string name;
         public Dictionary<string, object> varDict = new Dictionary<string, object>();
+
+        #region 常量
+        /// <summary>
+        /// IEnumerable<SyncTrigger>,“事件发生之前”
+        /// </summary>
+        public const string BEFORE = "before";
+        /// <summary>
+        /// IEnumerable<SyncTrigger>,“事件发生之后”
+        /// </summary>
+        public const string AFTER = "after";
+        /// <summary>
+        /// bool,是否被取消
+        /// </summary>
+        public const string IS_CANCEL = "isCancel";
+        /// <summary>
+        /// Action<CardEngine>[],用来替代事件原效果的新效果
+        /// </summary>
+        public const string NEW_ACTIONS = "newActions";
+        #endregion
+
         #endregion
         #region 私有成员
         ICollection<string> IDictionary<string, object>.Keys => varDict.Keys;
