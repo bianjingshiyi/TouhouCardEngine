@@ -110,7 +110,7 @@ namespace TouhouCardEngine
                 task.actions[i].execute(game);
             }
             task.state = SyncTaskState.finished;
-            if (isResumed)
+            if (isResumed && _resumeTaskStack.Count > 0)
             {
                 currentTask = _resumeTaskStack[_resumeTaskStack.Count - 1];
                 _resumeTaskStack.RemoveAt(_resumeTaskStack.Count - 1);
