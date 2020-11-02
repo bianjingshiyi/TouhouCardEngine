@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
@@ -15,29 +16,52 @@ namespace TouhouCardEngine
         /// 用来存储已经定义好的事件的
         /// </summary>
         public LinkedList<EventContext> eventList = new LinkedList<EventContext>();
+        
         /// <summary>
         /// doEvent
         /// </summary>
         /// <param name="context">事件</param>
         /// <param name="actions">事件效果</param>
         /// <returns></returns>
-        public SyncTask doEvent(EventContext context, params Action<CardEngine>[] actions)
+        public SyncTask doEvent(EventContext context, ActionCollection actions)
         {
-            
             //是否被取消
             if (context.hasVar(EventContext.IS_CANCEL) && context.getVar<bool>(EventContext.IS_CANCEL))
             {
                 return null;
             }
-            
-            //是否效果被修改
-            if(context.hasVar(EventContext.NEW_ACTIONS) && context.getVar<Action<CardEngine>[]>(EventContext.NEW_ACTIONS) != null)
-            {
-                doTask(context, actions);
-            }
-          
-            return doTask(context, actions);
 
+            SyncTask task = doTask(context, actions);
+
+            if (context.hasVar(EventContext.BEFORE) && context.getVar<List<SyncTrigger>>(EventContext.BEFORE) != null)
+            {
+                List<SyncTrigger> copyBfr = null;
+                context.getVar<List<SyncTrigger>>(EventContext.BEFORE).ForEach(e => copyBfr.Add(e));
+             
+
+
+                foreach(SyncTrigger t in copyBfr)
+                {
+                    task.addChild(doTask(t.actions));
+                }
+            }
+
+            if (context.hasVar(EventContext.AFTER) && context.getVar<List<SyncTrigger>>(EventContext.AFTER) != null)
+            {
+                List<SyncTrigger> copyAft = null;
+                context.getVar<List<SyncTrigger>>(EventContext.AFTER).ForEach(e => copyAft.Add(e));
+             
+                foreach (SyncTrigger t in copyAft)
+                {
+                    
+                }
+            }
+            return task;
+        }
+
+        public SyncTask doEvent(EventContext context, params Action<CardEngine>[] actions)
+        {
+            return doEvent(context, new ActionCollection(actions));
         }
 
         /// <summary>
@@ -305,9 +329,9 @@ namespace TouhouCardEngine
     }
     public class SyncTrigger
     {
-        SyncFunc<int> getPrior { get; set; }
-        SyncFunc<bool> condition { get; set; }
-        ActionCollection actions { get; set; }
+        public SyncFunc<int> getPrior { get; set; }
+        public SyncFunc<bool> condition { get; set; }
+        public ActionCollection actions { get; set; }
         public SyncTrigger(SyncFunc<int> getPrior, SyncFunc<bool> condition, ActionCollection actions)
         {
             this.getPrior = getPrior;
@@ -315,8 +339,7 @@ namespace TouhouCardEngine
             this.actions = actions;
         }
         public SyncTrigger(Func<CardEngine, int> getPrior = null, Func<CardEngine, bool> condition = null, params Action<CardEngine>[] actions) : this(null, null, new ActionCollection(actions))
-        {
-            
+        {         
         }
         public SyncTrigger(Func<CardEngine, int> getPrior, params Action<CardEngine>[] actions) : this(getPrior, null, actions)
         {
@@ -327,6 +350,7 @@ namespace TouhouCardEngine
         public SyncTrigger(params Action<CardEngine>[] actions) : this(null, null, actions)
         {
         }
+      
     }
     public class SyncFunc<T>
     {

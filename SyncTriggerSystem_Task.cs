@@ -22,10 +22,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="actions"></param>
         /// <returns></returns>
-        public SyncTask doTask(ActionCollection actions,EventContext eventContext = null)
+        public SyncTask doTask(ActionCollection actions)
         {
             SyncTask task = new SyncTask(++_lastTaskId, actions);
-            task._context = eventContext;
             return doOrResumeTask(task);
         }
         /// <summary>
@@ -37,6 +36,14 @@ namespace TouhouCardEngine
         public SyncTask doTask(EventContext eventContext,params Action<CardEngine>[] actions)
         {
             SyncTask task = new SyncTask(++_lastTaskId, new ActionCollection(actions))
+            {
+                _context = eventContext
+            };
+            return doOrResumeTask(task);
+        }
+        public SyncTask doTask(EventContext eventContext, ActionCollection actions)
+        {
+            SyncTask task = new SyncTask(++_lastTaskId, actions)
             {
                 _context = eventContext
             };
@@ -199,6 +206,10 @@ namespace TouhouCardEngine
         {
             _actionList.Add(action);
         }
+        //public void Add(ActionCollection actions)
+        //{
+        //    _actionList.AddRange(actions);
+        //}
         public SyncAction this[int index] => _actionList[index];
         public IEnumerator<SyncAction> GetEnumerator()
         {
