@@ -206,10 +206,10 @@ namespace TouhouCardEngine
         {
             _actionList.Add(action);
         }
-        //public void Add(ActionCollection actions)
-        //{
-        //    _actionList.AddRange(actions);
-        //}
+        public void Add(ActionCollection actions)
+        {
+            _actionList.AddRange(actions);
+        }
         public SyncAction this[int index] => _actionList[index];
         public IEnumerator<SyncAction> GetEnumerator()
         {
