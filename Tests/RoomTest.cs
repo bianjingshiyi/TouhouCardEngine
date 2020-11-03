@@ -17,64 +17,74 @@ namespace Tests
         [Test]
         public void localRoomCreateTest()
         {
+            createLocalRoomAndAssert(createRoomAssert);
+        }
+        void createLocalRoomAndAssert(Action<Room> onAssert)
+        {
             using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
             {
                 client.createLocalRoom();
-                createRoomAssert(client.room);
+                onAssert(client.room);
             }
         }
         private static void createRoomAssert(Room room)
         {
             Assert.AreEqual(1, room.getPlayers().Length);
             Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
-            Assert.AreEqual(1, room.getPlayers()[0].id);
+            Assert.AreNotEqual(0, room.getPlayers()[0].id);
         }
         [Test]
         public void localRoomAddAIPlayerTest()
         {
-            using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
-            {
-                client.createLocalRoom();
-                client.room.addAIPlayer();
-                addAIPlayerAssert(client.room);
-            }
+            createLocalRoomAndAssert(addAIPlayerAssert);
         }
         private static void addAIPlayerAssert(Room room)
         {
+            room.addPlayer(new AIRoomPlayer(), new RoomPlayerData("AI", RoomPlayerType.ai));
             Assert.AreEqual(2, room.getPlayers().Length);
             Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
-            Assert.AreEqual(1, room.getPlayers()[0].id);
+            Assert.AreNotEqual(0, room.getPlayers()[0].id);
             Assert.IsInstanceOf<AIRoomPlayer>(room.getPlayers()[1]);
-            Assert.AreEqual(2, room.getPlayers()[1].id);
+            Assert.AreNotEqual(0, room.getPlayers()[1].id);
         }
         [Test]
         public void localRoomSetPropTest()
         {
-            using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
-            {
-                client.createLocalRoom();
-                client.room.setProp("key", "value");
-                Assert.AreEqual("value", client.room.getProp<string>("key"));
-            }
+            createLocalRoomAndAssert(setPropAssert);
         }
+
+        private static void setPropAssert(Room room)
+        {
+            room.setProp("key", "value");
+            Assert.AreEqual("value", room.getProp<string>("key"));
+        }
+
         [Test]
         public void localRoomSetPlayerPropTest()
         {
-            using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
-            {
-                client.createLocalRoom();
-                client.room.setPlayerProp(1, "key", "value");
-                Assert.AreEqual("value", client.room.getPlayerProp<string>(1, "key"));
-            }
+            createLocalRoomAndAssert(setPlayerPropAssert);
         }
+
+        private static void setPlayerPropAssert(Room room)
+        {
+            room.setPlayerProp(room.data.ownerId, "key", "value");
+            Assert.AreEqual("value", room.getPlayerProp<string>(room.data.ownerId, "key"));
+        }
+
         [Test]
         public void localRoomRemovePlayerTest()
         {
-            LocalRoom room = new LocalRoom();
-            var player = room.addAIPlayer().Result;
-            room.removePlayer(player.id);
-            Assert.True(!room.data.containPlayerData(player.id));
+            createLocalRoomAndAssert(removePlayerAssert);
         }
+
+        private static void removePlayerAssert(Room room)
+        {
+            var player = new AIRoomPlayer();
+            room.addPlayer(player, new RoomPlayerData("AI", RoomPlayerType.ai));
+            room.removePlayer(player.id);
+            Assert.Null(room.data.getPlayerData(player.id));
+        }
+
         [Test]
         public void serializeTest()
         {

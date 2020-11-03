@@ -16,8 +16,10 @@ namespace TouhouCardEngine
         public void createLocalRoom()
         {
             logger?.log("客户端创建本地房间");
-            room = new LocalRoom();
-            localPlayer = room.addLocalPlayer().Result;
+            room = new Room();
+            localPlayer = new LocalRoomPlayer();
+            room.addPlayer(localPlayer, new RoomPlayerData("本地玩家", RoomPlayerType.human));
+            room.data.ownerId = localPlayer.id;
         }
         public async Task createOnlineRoom(RoomPlayerData playerData)
         {
@@ -30,38 +32,11 @@ namespace TouhouCardEngine
                 networking.Dispose();
         }
         public RoomPlayer localPlayer { get; private set; } = null;
-        public ClientRoom room { get; private set; } = null;
+        public Room room { get; private set; } = null;
         public ClientNetworking networking { get; }
         #endregion
         #region 私有成员
         ILogger logger { get; }
         #endregion
-    }
-    public class ClientRoom : Room
-    {
-        /// <summary>
-        /// 添加并返回本地玩家。
-        /// </summary>
-        /// <returns></returns>
-        public Task<RoomPlayer> addLocalPlayer()
-        {
-            RoomPlayer player = new LocalRoomPlayer(++lastPlayerId);
-            addPlayer(new RoomPlayerData("本地玩家", RoomPlayerType.human), player);
-            return Task.FromResult(player);
-        }
-    }
-    public class OnlineRoom : Room
-    {
-        ClientNetworking _networking;
-        public OnlineRoom(ClientNetworking networking, RoomData data) : base(data)
-        {
-            _networking = networking;
-        }
-    }
-    public class LocalRoom : ClientRoom
-    {
-        public LocalRoom() : base()
-        {
-        }
     }
 }
