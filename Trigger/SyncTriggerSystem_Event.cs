@@ -2,11 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TouhouCardEngine.Interfaces;
 using UnityEngine;
 
 namespace TouhouCardEngine
 {
-    public partial class SyncTriggerSystem
+    partial class SyncTriggerSystem
+    {
+        #region 公共成员
+        public SyncTask ask(int playerId, IRequest request, float timeout = float.MaxValue)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
+    }
+    partial class SyncTriggerSystem
     {
         #region 公共成员
         public SyncTask doEvent(EventContext context, IEnumerable<SyncAction> actions)
@@ -237,7 +247,7 @@ namespace TouhouCardEngine
         }
         public SyncTrigger(Func<CardEngine, int> getPrior = null, Func<CardEngine, bool> condition = null, params Action<CardEngine>[] actions) : this(
             getPrior != null ? new SyncFunc<int>(getPrior) : null,
-            condition != null ? new SyncFunc<bool>(condition) : null, 
+            condition != null ? new SyncFunc<bool>(condition) : null,
             new ActionCollection(actions))
         {
         }

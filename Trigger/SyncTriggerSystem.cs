@@ -1,6 +1,6 @@
 ﻿namespace TouhouCardEngine
 {
-    partial class SyncTriggerSystem
+    public partial class SyncTriggerSystem
     {
         public SyncTriggerSystem(CardEngine game)
         {

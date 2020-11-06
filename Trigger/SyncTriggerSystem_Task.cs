@@ -11,7 +11,7 @@ namespace TouhouCardEngine
     /// <summary>
     /// 同步触发系统
     /// </summary>
-    public partial class SyncTriggerSystem
+    partial class SyncTriggerSystem
     {
         #region 公开成员
         public SyncTask doTask(EventContext eventContext, ActionCollection actions)

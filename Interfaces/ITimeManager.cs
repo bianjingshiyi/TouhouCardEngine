@@ -10,6 +10,6 @@ namespace TouhouCardEngine.Interfaces
     {
         float remainedTime { get; }
         float time { get; }
-        event System.Action onExpired;
+        event Action onExpired;
     }
 }

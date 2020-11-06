@@ -76,6 +76,6 @@ namespace TouhouCardEngine
         {
             onExpired?.Invoke();
         }
-        public event System.Action onExpired;
+        public event Action onExpired;
     }
 }

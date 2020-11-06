@@ -263,19 +263,19 @@ namespace Tests
             int i = 0;
             system.regTrigBfr("TestEvent", new SyncTrigger(game =>
             {
-                return 2;
-            }, game =>
-            {
-                if (i == 0)
-                    i = 1;
-            }));
-            system.regTrigBfr("TestEvent", new SyncTrigger(game =>
-            {
                 return 1;
             }, game =>
             {
                 if (i == 1)
                     i = 2;
+            }));
+            system.regTrigBfr("TestEvent", new SyncTrigger(game =>
+            {
+                return 2;
+            }, game =>
+            {
+                if (i == 0)
+                    i = 1;
             }));
             system.doEvent(new EventContext("TestEvent"), game =>
             {
@@ -283,6 +283,12 @@ namespace Tests
                     i = 3;
             });
             Assert.AreEqual(3, i);
+        }
+        [Test]
+        public void askAndAnswerTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            //SyncTask askTask = system.ask(0,)
         }
     }
 }
