@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
+using System.Collections.Generic;
 
 namespace Tests
 {
@@ -87,7 +88,6 @@ namespace Tests
                 {
                     Assert.AreEqual(1, game.trigger.currentTask.id);
                     Assert.AreEqual(0, game.trigger.getPausedTasks().Length);
-                    Assert.AreEqual(1, game.trigger.getResumeTaskStack().Length);
                 },
                 game => i++);
             Assert.AreEqual(1, task1.id);
@@ -100,6 +100,85 @@ namespace Tests
                 game => i++);
             Assert.AreEqual(2, task2.id);
             Assert.AreEqual(2, i);
+        }
+        [Test]
+        public void pauseAndResumeFromTaskTreeTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask task = system.doTask("Use",
+               useAction1,//在AskTask暂停了
+               useAction2);
+            void useAction1(CardEngine g1)
+            {
+                g1.trigger.doTask("Ask",
+                    askAction1,
+                    askAction2);
+                void askAction1(CardEngine g2)
+                {
+                    g2.trigger.currentTask.parent.context["i"] = 1;
+                }
+                void askAction2(CardEngine g2)
+                {
+                    g2.trigger.pauseTask(g2.trigger.currentTask);
+                }
+            }
+            void useAction2(CardEngine g1)
+            {
+                g1.trigger.currentTask.context["i"] = 2;
+            }
+            Assert.AreEqual(1, task.context["i"]);
+            Assert.AreEqual(1, system.getPausedTasks().Count());
+            system.resumeTask(system.getPausedTasks().First());
+            Assert.AreEqual(2, task.context["i"]);
+            Assert.AreEqual(0, system.getPausedTasks().Count());
+        }
+        [Test]
+        public void pauseResumeFromOtherTaskTreeTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask taskUse = system.doTask("Use",
+                useAction1,
+                useAction2);
+            void useAction1(CardEngine g1)
+            {
+                g1.trigger.doTask("Ask",
+                    askAction1,
+                    askAction2);
+                void askAction1(CardEngine g2)
+                {
+                    g2.trigger.currentTask.parent.context["i"] = 1;
+                }
+                void askAction2(CardEngine g2)
+                {
+                    g2.trigger.pauseTask(g2.trigger.currentTask);
+                }
+            }
+            void useAction2(CardEngine g1)
+            {
+                int i = g1.trigger.currentTask.context.getVar<int>(nameof(i));
+                g1.trigger.currentTask.context.setVar(nameof(i), i * 2);
+            }
+            Assert.AreEqual(1, taskUse.context["i"]);
+            Assert.AreEqual(1, system.getPausedTasks().Count());
+            SyncTask taskSkill = system.doTask("Skill",
+                skillAction1,
+                skillAction2,
+                skillAction3);
+            void skillAction1(CardEngine g1)
+            {
+                g1.trigger.getPausedTasks()[0].parent.context["i"] = 2;
+            }
+            void skillAction2(CardEngine g1)
+            {
+                g1.trigger.resumeTask(g1.trigger.getPausedTasks()[0]);
+            }
+            void skillAction3(CardEngine g1)
+            {
+                g1.trigger.currentTask.context["j"] = 3;
+            }
+            Assert.AreEqual(4, taskUse.context["i"]);
+            Assert.AreEqual(0, system.getPausedTasks().Count());
+            Assert.AreEqual(3, taskSkill.context["j"]);
         }
         private static SyncTriggerSystem createSystem()
         {
@@ -120,6 +199,8 @@ namespace Tests
         public void regGetUnregTest()
         {
             SyncTriggerSystem system = createSystem();
+            Assert.AreEqual(0, system.getTrigBfr("Test").Count());
+            Assert.AreEqual(0, system.getTrigAft("Test").Count());
             SyncTrigger t1 = new SyncTrigger();
             SyncTrigger t2 = new SyncTrigger();
             system.regTrigBfr("Test", t1);
@@ -134,7 +215,18 @@ namespace Tests
             Assert.AreEqual(0, system.getTrigAft("Test").Count());
         }
         [Test]
-        public void doEventWithTrigger()
+        public void doTriggerTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            float f = 0;
+            SyncTrigger trigger = new SyncTrigger(
+                g1 => f += 1,
+                g1 => f += 1);
+            system.doTrigger(trigger);
+            Assert.AreEqual(2, f);
+        }
+        [Test]
+        public void doEventWithTriggerTest()
         {
             SyncTriggerSystem system = createSystem();
             int a = 0, b = 0;
@@ -157,14 +249,15 @@ namespace Tests
                 { "a", 1 },
                 { "b", 2 }
             });
-            Assert.AreEqual(1, a);
+
             Assert.AreEqual(2, b);
+            Assert.AreEqual(1, a);
         }
         /// <summary>
         /// getPrior返回值越大的Trigger越先执行
         /// </summary>
         [Test]
-        public void doEventWithPriorTrig()
+        public void doEventWithPriorTrigTest()
         {
             SyncTriggerSystem system = createSystem();
             int i = 0;
