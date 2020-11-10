@@ -2,7 +2,8 @@
 using LiteNetLib.Utils;
 using System.Collections.Generic;
 using System.Net;
-
+using System.Threading.Tasks;
+using System;
 namespace NitoriNetwork.Common
 {
     class LocalHostNetworking : HostNetworking
@@ -20,7 +21,10 @@ namespace NitoriNetwork.Common
         {
             return room;
         }
-
+        public override Task<T> invoke<T>(string mehtod, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
         protected Dictionary<int, NetPeer> peerDict { get; } = new Dictionary<int, NetPeer>();
 
         protected override IEnumerable<NetPeer> GetRoomPeers(NetPeer peer)

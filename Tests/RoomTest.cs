@@ -19,33 +19,36 @@ namespace Tests
         {
             createLocalRoomAndAssert(createRoomAssert);
         }
-        void createLocalRoomAndAssert(Action<Room> onAssert)
+        void createLocalRoomAndAssert(Func<ClientLogic, IEnumerator> onAssert)
         {
             using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
             {
                 client.createLocalRoom();
-                onAssert(client.room);
+                onAssert(client);
             }
         }
-        private static void createRoomAssert(Room room)
+        IEnumerator createRoomAssert(ClientLogic client)
         {
+            Room room = client.room;
             Assert.AreEqual(1, room.getPlayers().Length);
-            Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
             Assert.AreNotEqual(0, room.getPlayers()[0].id);
+            Assert.AreNotEqual(RoomPlayerType.human, room.data.getPlayerData(room.getPlayers()[0].id).type);
+            yield break;
         }
         [Test]
         public void localRoomAddAIPlayerTest()
         {
             createLocalRoomAndAssert(addAIPlayerAssert);
         }
-        private static void addAIPlayerAssert(Room room)
+        IEnumerator addAIPlayerAssert(ClientLogic client)
         {
-            room.addPlayer(new AIRoomPlayer(), new RoomPlayerData("AI", RoomPlayerType.ai));
-            Assert.AreEqual(2, room.getPlayers().Length);
-            Assert.IsInstanceOf<LocalRoomPlayer>(room.getPlayers()[0]);
-            Assert.AreNotEqual(0, room.getPlayers()[0].id);
-            Assert.IsInstanceOf<AIRoomPlayer>(room.getPlayers()[1]);
-            Assert.AreNotEqual(0, room.getPlayers()[1].id);
+            yield return client.roomAddAIPlayer().wait();
+            Assert.AreEqual(2, client.room.getPlayers().Length);
+            Assert.AreNotEqual(0, client.room.getPlayers()[0].id);
+            Assert.AreEqual(RoomPlayerType.human, client.room.data.getPlayerData(client.room.getPlayers()[0].id).type);
+            Assert.AreNotEqual(0, client.room.getPlayers()[1].id);
+            Assert.AreEqual(RoomPlayerType.ai, client.room.data.getPlayerData(client.room.getPlayers()[1].id).type);
+            yield break;
         }
         [Test]
         public void localRoomSetPropTest()
@@ -53,10 +56,12 @@ namespace Tests
             createLocalRoomAndAssert(setPropAssert);
         }
 
-        private static void setPropAssert(Room room)
+        IEnumerator setPropAssert(ClientLogic client)
         {
+            Room room = client.room;
             room.setProp("key", "value");
             Assert.AreEqual("value", room.getProp<string>("key"));
+            yield break;
         }
 
         [Test]
@@ -65,10 +70,12 @@ namespace Tests
             createLocalRoomAndAssert(setPlayerPropAssert);
         }
 
-        private static void setPlayerPropAssert(Room room)
+        IEnumerator setPlayerPropAssert(ClientLogic client)
         {
+            Room room = client.room;
             room.setPlayerProp(room.data.ownerId, "key", "value");
             Assert.AreEqual("value", room.getPlayerProp<string>(room.data.ownerId, "key"));
+            yield break;
         }
 
         [Test]
@@ -77,12 +84,14 @@ namespace Tests
             createLocalRoomAndAssert(removePlayerAssert);
         }
 
-        private static void removePlayerAssert(Room room)
+        IEnumerator removePlayerAssert(ClientLogic client)
         {
+            Room room = client.room;
             var player = new AIRoomPlayer();
             room.addPlayer(player, new RoomPlayerData("AI", RoomPlayerType.ai));
             room.removePlayer(player.id);
             Assert.Null(room.data.getPlayerData(player.id));
+            yield break;
         }
 
         [Test]
@@ -107,11 +116,26 @@ namespace Tests
         [UnityTest]
         public IEnumerator LANRoomCreateTest()
         {
-            UnityLogger logger = new UnityLogger("RoomLocal");
-            using (ClientLogic client = new ClientLogic(logger))
+            yield return LANRoomCreateAndAssert(LANRoomCreateAssert);
+        }
+        IEnumerator LANRoomCreateAndAssert(Func<ClientLogic, IEnumerator> onAssert)
+        {
+            using (ClientLogic client = new ClientLogic(new UnityLogger("RoomLocal")))
             {
-                yield return client.createOnlineRoom(new RoomPlayerData("本地玩家", RoomPlayerType.human)).wait();
+                client.switchNetToLAN();
+                yield return client.createOnlineRoom().wait();
+                yield return onAssert(client);
             }
+        }
+        IEnumerator LANRoomCreateAssert(ClientLogic client)
+        {
+            createRoomAssert(client);
+            yield break;
+        }
+        [UnityTest]
+        public IEnumerator LANRoomAddAIPlayerTest()
+        {
+            yield return LANRoomCreateAndAssert(addAIPlayerAssert);
         }
         //[Test]
         //public void rpcLocalTest()
