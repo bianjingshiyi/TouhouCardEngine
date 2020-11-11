@@ -10,15 +10,6 @@ namespace TouhouCardEngine
     partial class SyncTriggerSystem
     {
         #region 公共成员
-        public SyncTask ask(int playerId, IRequest request, float timeout = float.MaxValue)
-        {
-            throw new NotImplementedException();
-        }
-        #endregion
-    }
-    partial class SyncTriggerSystem
-    {
-        #region 公共成员
         public SyncTask doEvent(EventContext context, IEnumerable<SyncAction> actions)
         {
             return doTask(context, new ActionCollection()
@@ -246,8 +237,8 @@ namespace TouhouCardEngine
             this.actions = actions;
         }
         public SyncTrigger(Func<CardEngine, int> getPrior = null, Func<CardEngine, bool> condition = null, params Action<CardEngine>[] actions) : this(
-            getPrior != null ? new SyncFunc<int>(getPrior) : null,
-            condition != null ? new SyncFunc<bool>(condition) : null,
+            getPrior != null ? new FLambda<int>(getPrior) : null,
+            condition != null ? new FLambda<bool>(condition) : null,
             new ActionCollection(actions))
         {
         }
@@ -261,17 +252,23 @@ namespace TouhouCardEngine
         {
         }
     }
-    public class SyncFunc<T>
+    public abstract class SyncFunc<T>
+    {
+        public abstract T evaluate(CardEngine game);
+    }
+    public class FLambda<T> : SyncFunc<T>
     {
         public Func<CardEngine, T> func;
-        public SyncFunc(Func<CardEngine, T> func)
+        public FLambda(Func<CardEngine, T> func)
         {
             this.func = func;
         }
-        public virtual T evaluate(CardEngine game)
+        public override T evaluate(CardEngine game)
         {
-            if (func == null) return default;
+            if (func == null)
+                return default;
             return func(game);
         }
+        public static readonly FLambda<T> Default = new FLambda<T>(null);
     }
 }
