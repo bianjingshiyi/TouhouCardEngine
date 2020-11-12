@@ -262,6 +262,7 @@ namespace TouhouCardEngine
         {
             _action?.Invoke(game);
         }
+        public static readonly ALambda doNothing = new ALambda(null);
     }
     [Serializable]
     public class TaskStillRunningException : Exception

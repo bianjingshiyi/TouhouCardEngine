@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
 using System.Collections.Generic;
+using UnityEngine.TestTools;
+using System.Collections;
+using UnityEngine;
 
 namespace Tests
 {
@@ -182,7 +185,11 @@ namespace Tests
         }
         private static SyncTriggerSystem createSystem()
         {
-            return new CardEngine().trigger;
+            CardEngine game = new CardEngine
+            {
+                time = new GameObject(nameof(TimeManager)).AddComponent<TimeManager>()
+            };
+            return game.trigger;
         }
         [Test]
         public void doEventTest()
@@ -285,10 +292,79 @@ namespace Tests
             Assert.AreEqual(3, i);
         }
         [Test]
-        public void askAndAnswerTest()
+        public void askAndGetRequestsTest()
         {
             SyncTriggerSystem system = createSystem();
-            //SyncTask askTask = system.ask(0,)
+            SyncTask task = system.request(1, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, float.MaxValue, null);
+            Assert.AreEqual(SyncTaskState.paused, task.state);
+            Assert.AreEqual(task, system.getAllRequestTasks()[0]);
+        }
+        [UnityTest]
+        public IEnumerator getRemainedTimeTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask task = system.request(1, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, 3, ALambda.doNothing);
+
+            yield return new WaitForSeconds(1);
+
+            Assert.True(1 < system.getRemainedTime(task) && system.getRemainedTime(task) <= 2);
+
+            yield return new WaitForSeconds(3);
+
+            Assert.AreEqual(0, system.getRemainedTime(task));
+        }
+        [UnityTest]
+        public IEnumerator timeoutTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            bool flag = false;
+            SyncTask task = system.request(1, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, 3, new ALambda(game => flag = true));
+
+            yield return new WaitForSeconds(3);
+
+            Assert.AreEqual(SyncTaskState.finished, task.state);
+            Assert.AreEqual(0, system.getAllRequestTasks().Length);
+            Assert.True(flag);
+        }
+        [Test]
+        public void reponseTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask task = system.request(1, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, 3, ALambda.doNothing, new FLambda<bool>(game =>
+            {
+                EventContext context = game.trigger.currentTask.context;
+                int[] cards = context.getVar<int[]>("cards");
+                int card = context.getVar<int>("card");
+                return cards.Contains(card);
+            }));
+
+            task = system.response(1, new EventContext("discover")
+            {
+                { "card", 4 }
+            });
+            Assert.AreEqual(SyncTaskState.paused, task.state);
+            task = system.response(2, new EventContext("discover")
+            {
+                { "card", 3 }
+            });
+            Assert.AreEqual(SyncTaskState.paused, task.state);
+            task = system.response(1, new EventContext("discover")
+            {
+                { "card", 3 }
+            });
+            Assert.AreEqual(SyncTaskState.finished, task.state);
         }
     }
 }
