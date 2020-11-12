@@ -1,15 +1,13 @@
-﻿using NUnit.Framework;
-using UnityEngine;
-using UnityEngine.TestTools;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using NitoriNetwork.Common;
+using NUnit.Framework;
+using System;
 using System.Collections;
 using TouhouCardEngine;
-using System;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using System.Reflection;
-using NitoriNetwork.Common;
-using TouhouCardEngine.Shared;
-using ILogger = TouhouCardEngine.Shared.ILogger;
+using UnityEngine;
+using UnityEngine.TestTools;
+
 namespace Tests
 {
     public class RoomTest
@@ -136,6 +134,43 @@ namespace Tests
         public IEnumerator LANRoomAddAIPlayerTest()
         {
             yield return LANRoomCreateAndAssert(addAIPlayerAssert);
+        }
+        [UnityTest]
+        public IEnumerator LANRoomJoinTest()
+        {
+            yield return LANRoomCreate2AndAssert(LANRoomJoinAssert);
+        }
+        IEnumerator LANRoomCreate2AndAssert(Func<ClientLogic, ClientLogic, IEnumerator> onAssert)
+        {
+            using (ClientLogic client1 = new ClientLogic(new UnityLogger("RoomLocal")))
+            {
+                client1.switchNetToLAN();
+                yield return client1.createOnlineRoom().wait();
+                using (ClientLogic client2 = new ClientLogic(new UnityLogger("RoomRemote")))
+                {
+                    client2.switchNetToLAN();
+                    var roomsTask = client2.getRooms();
+                    yield return roomsTask.wait();
+                    RoomData roomData = roomsTask.Result[0];
+                    yield return client2.joinOnlineRoom(roomData).wait();
+                    yield return onAssert(client1, client2);
+                }
+            }
+        }
+        IEnumerator LANRoomJoinAssert(ClientLogic client1, ClientLogic client2)
+        {
+            Assert.AreEqual(client1.room.getPlayers()[0].id, client1.room.data.ownerId);
+            Assert.AreEqual(2, client1.room.getPlayers().Length);
+            Assert.AreEqual(RoomPlayerType.human, client1.room.data.playerDataList[0].type);
+            Assert.AreEqual(RoomPlayerType.human, client1.room.data.playerDataList[1].type);
+            Assert.AreEqual(client2.room.getPlayers()[0].id, client2.room.data.ownerId);
+            Assert.AreEqual(2, client2.room.getPlayers().Length);
+            Assert.AreEqual(RoomPlayerType.human, client2.room.data.playerDataList[0].type);
+            Assert.AreEqual(RoomPlayerType.human, client2.room.data.playerDataList[1].type);
+            Assert.AreEqual(client1.room.data.ownerId, client2.room.data.ownerId);
+            Assert.AreEqual(client1.room.getPlayers()[0].id, client2.room.getPlayers()[0].id);
+            Assert.AreEqual(client1.room.getPlayers()[1].id, client2.room.getPlayers()[1].id);
+            yield break;
         }
         //[Test]
         //public void rpcLocalTest()

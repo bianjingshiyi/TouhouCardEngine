@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using TouhouCardEngine.Shared;
-
+using LiteNetLib.Utils;
 namespace TouhouCardEngine
 {
     public class ClientLogic : IDisposable
@@ -45,6 +45,22 @@ namespace TouhouCardEngine
             room.addPlayer(new ClientLocalRoomPlayer(localPlayerData.id));
             localPlayer = room.getPlayer(localPlayerData.id);
         }
+        public Task<RoomData[]> getRooms()
+        {
+            return curNetwork.getRooms();
+        }
+        public async Task joinOnlineRoom(RoomData roomData)
+        {
+            roomData = await curNetwork.joinRoom(roomData, curNetwork.getJoinPlayerData());
+            room = new Room(roomData);
+            foreach (var playerData in roomData.playerDataList)
+            {
+                if (playerData.id == curNetwork.getJoinPlayerData().id)
+                    room.addPlayer(new ClientLocalRoomPlayer(playerData.id));
+                else
+                    room.addPlayer(new ClientRoomPlayer(playerData.id));
+            }
+        }
         public async Task roomAddAIPlayer()
         {
             if (curNetwork == null)
@@ -80,6 +96,12 @@ namespace TouhouCardEngine
         {
         }
     }
+    class ClientRoomPlayer : RoomPlayer
+    {
+        public ClientRoomPlayer(int id) : base(id)
+        {
+        }
+    }
     public class LANNetworking : ClientNetworking
     {
         #region 公共成员
@@ -92,7 +114,9 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public override RoomPlayerData getJoinPlayerData()
         {
-            return new RoomPlayerData(Guid.NewGuid().GetHashCode(), "玩家1", RoomPlayerType.human);
+            if (_playerData == null)
+                _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "玩家1", RoomPlayerType.human);
+            return _playerData;
         }
         public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData)
         {
@@ -101,12 +125,20 @@ namespace TouhouCardEngine
             data.ownerId = hostPlayerData.id;
             return Task.FromResult(data);
         }
+        public override async Task<RoomData[]> getRooms()
+        {
+            RoomData data = await invokeBroadcast<RoomData>("discoverRoom");
+            return new RoomData[] { data };
+        }
         public override Task<RoomPlayerData> addAIPlayer()
         {
             RoomPlayerData aiPlayerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai);
             //通知其他玩家添加AI玩家
             return Task.FromResult(aiPlayerData);
         }
+        #endregion
+        #region 私有成员
+        RoomPlayerData _playerData;
         #endregion
     }
 }
