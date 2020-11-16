@@ -13,7 +13,7 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract void onGameStart(RoomPlayerInfo[] playersInfo);
+        public abstract void onGameStart(CardEngine game, RoomPlayerInfo[] playersInfo);
     }
     [Serializable]
     public partial class CardEngine : IGame
@@ -130,7 +130,7 @@ namespace TouhouCardEngine
         #region 游戏流程
         public void start(Rule rule, RoomPlayerInfo[] playersInfo)
         {
-            rule.onGameStart(playersInfo);
+            rule.onGameStart(this, playersInfo);
         }
         #endregion
         public virtual void onAnswer(IResponse response)
