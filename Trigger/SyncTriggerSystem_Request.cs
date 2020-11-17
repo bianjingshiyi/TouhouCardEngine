@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TouhouCardEngine
 {
@@ -10,7 +11,20 @@ namespace TouhouCardEngine
             float timeout, SyncAction onTimeout,
             SyncFunc<bool> isValidResponse, bool isAny)
         {
-            throw new NotImplementedException();
+            
+            Timer timer = game.time.startTimer(timeout) as Timer;
+            requestContext[nameof(timer)] = timer;
+            requestContext[nameof(isValidResponse)] = isValidResponse;
+            requestContext[nameof(isAny)] = isAny;
+            requestContext[nameof(playersId)] = playersId;
+            SyncTask reqTask = doTask(requestContext,
+                game => game.trigger.pauseTask(game.trigger.currentTask)
+            );
+            timer.onExpired += () => {
+                onTimeout.execute(game);
+                stopTask(reqTask);
+            };
+            return reqTask;
         }
         public SyncTask request(int playerId, EventContext requestContext,
             float timeout, SyncAction onTimeout)
@@ -40,15 +54,35 @@ namespace TouhouCardEngine
         }
         public SyncTask[] getAllRequestTasks()
         {
-            throw new NotImplementedException();
+            return _pausedTaskList.ToArray();
         }
         public float getRemainedTime(SyncTask requestTask)
         {
-            throw new NotImplementedException();
+            return (requestTask.context["timer"] as Timer).remainedTime;
         }
         public SyncTask response(int playerId, EventContext responseContext)
         {
-            throw new NotImplementedException();
+            SyncTask resTask = _pausedTaskList.FirstOrDefault();
+            foreach (SyncTask task in _pausedTaskList) {
+                EventContext currContext = task.context;
+                if (currContext.getVar<bool>("isAny")&& currContext.getVar<int[]>("playersId").Contains(playerId)
+                    || currContext.getVar<int[]>("playersId").FirstOrDefault() == playerId) {
+                    foreach (var item in responseContext) {
+                        task.context[item.Key] = item.Value;
+                    }
+                    currentTask = resTask;
+                    if (!currContext.getVar<SyncFunc<bool>>("isValidResponse").evaluate(game)) {
+                        currentTask = null;
+                        pauseTask(resTask);
+                    }
+                    else{
+                        currentTask = null;
+                        resTask = resumeTask(resTask);
+                    }
+                    return resTask;
+                }
+            }
+            return resTask;
         }
         public EventContext getResponse(int playerId, SyncTask requestTask)
         {

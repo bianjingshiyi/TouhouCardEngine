@@ -65,7 +65,10 @@ namespace TouhouCardEngine
         }
         public float remainedTime
         {
-            get { return startTime + time - Time.time; }
+            get { 
+                float _remainedTime = startTime + time - Time.time;
+                return _remainedTime > 0 ? _remainedTime : 0;
+            }
         }
         public Timer(float startTime, float time)
         {
