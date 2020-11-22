@@ -366,5 +366,39 @@ namespace Tests
             });
             Assert.AreEqual(SyncTaskState.finished, task.state);
         }
+        [UnityTest]
+        public IEnumerator delayedResponseTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask task = system.request(0, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, 3, ALambda.doNothing);
+            Assert.AreEqual(task, system.getPausedTasks()[0]);
+            yield return new WaitForSeconds(1);
+            system.response(0, new EventContext("discover")
+            {
+                { "card", 3 }
+            });
+            Assert.False(system.getPausedTasks().Contains(task));
+            Assert.AreEqual(SyncTaskState.finished, task.state);
+        }
+        [UnityTest]
+        public IEnumerator timeoutResponseTest()
+        {
+            SyncTriggerSystem system = createSystem();
+            SyncTask task = system.request(0, new EventContext("discover")
+            {
+                { "cards", new int[] { 1, 2, 3 } }
+            }, 3, ALambda.doNothing);
+            Assert.AreEqual(task, system.getPausedTasks()[0]);
+            yield return new WaitForSeconds(3);
+            Assert.AreEqual(0, system.getPausedTasks().Length);
+            system.response(0, new EventContext("discover")
+            {
+                { "card", 3 }
+            });
+            Assert.AreEqual(0, system.getPausedTasks().Length);
+        }
     }
 }
