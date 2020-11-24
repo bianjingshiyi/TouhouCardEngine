@@ -11,7 +11,6 @@ namespace TouhouCardEngine
             float timeout, SyncAction onTimeout,
             SyncFunc<bool> isValidResponse, bool isAny)
         {
-            
             Timer timer = game.time.startTimer(timeout) as Timer;
             requestContext[nameof(timer)] = timer;
             requestContext[nameof(isValidResponse)] = isValidResponse;
@@ -29,7 +28,7 @@ namespace TouhouCardEngine
         public SyncTask request(int playerId, EventContext requestContext,
             float timeout, SyncAction onTimeout)
         {
-            return request(new int[] { playerId }, requestContext, timeout, onTimeout, FLambda<bool>.Default, false);
+            return request(new int[] { playerId }, requestContext, timeout, onTimeout, FLambda<bool>.True, false);
         }
         public SyncTask request(int playerId, EventContext requestContext,
             float timeout, SyncAction onTimeout, SyncFunc<bool> isValidResponse)
