@@ -1,5 +1,6 @@
 ﻿using NitoriNetwork.Common;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TouhouCardEngine.Shared;
 
@@ -14,6 +15,17 @@ namespace TouhouCardEngine
             clientNetwork = new ClientNetworking(logger: logger);
             LANNetwork = new LANNetworking(logger: logger);
         }
+        public void update()
+        {
+            curNetwork.net.PollEvents();
+        }
+        public void Dispose()
+        {
+            if (clientNetwork != null)
+                clientNetwork.Dispose();
+            if (LANNetwork != null)
+                LANNetwork.Dispose();
+        }
         public void createLocalRoom()
         {
             logger?.log("客户端创建本地房间");
@@ -27,36 +39,69 @@ namespace TouhouCardEngine
             if (curNetwork != null)
             {
                 //切换网络注销事件。
+                if (curNetwork == LANNetwork)
+                {
+                    LANNetwork.onGetRoomReq -= onDiscoverRoomReq;
+                    LANNetwork.onNewRoomAck -= onNewRoomAck;
+                }
             }
             if (!LANNetwork.isRunning)
                 LANNetwork.start();
             curNetwork = LANNetwork;
-            LANNetwork.onDiscoverRoom += onDiscoverRoom;
+            LANNetwork.onGetRoomReq += onDiscoverRoomReq;
+            LANNetwork.onNewRoomAck += onNewRoomAck;
         }
-        public async Task createOnlineRoom()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="port">发送或广播创建房间信息的端口</param>
+        /// <returns></returns>
+        /// <remarks>port主要是在局域网测试下有用</remarks>
+        public async Task createOnlineRoom(int port = -1)
         {
             logger?.log("客户端创建在线房间");
-            RoomPlayerData localPlayerData = curNetwork.getJoinPlayerData();
-            RoomData data = await curNetwork.createRoom(localPlayerData);
+            RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
+            RoomData data = await curNetwork.createRoom(localPlayerData, port);
             room = new Room(data);
             room.addPlayer(new ClientLocalRoomPlayer(localPlayerData.id));
             localPlayer = room.getPlayer(localPlayerData.id);
         }
-        public Task<RoomData[]> getRooms()
+        public void refreshRooms(int port = -1)
+        {
+            logger?.log("客户端刷新房间列表");
+            curNetwork.refreshRooms(port);
+        }
+        public Task<RoomData[]> getRooms(int port = -1)
         {
             logger?.log("客户端请求房间列表");
-            return curNetwork.getRooms();
+            return curNetwork.getRooms(port);
         }
-        public async Task<bool> joinOnlineRoom(RoomData roomData)
+        void onNewRoomAck(RoomData roomData)
+        {
+            Room room = _roomList.Find(r => r.data.id == roomData.id);
+            if (room != null)
+            {
+                
+            }
+            else
+            {
+                Room newRoom = new Room(roomData);
+                _roomList.Add(newRoom);
+                onNewRoom?.Invoke(newRoom);
+            }
+        }
+        public event Action<Room> onNewRoom;
+        public event Action<Room> onUpdateRoom;
+        public async Task<bool> joinRoom(RoomData roomData)
         {
             logger?.log("客户端请求加入房间" + roomData);
-            roomData = await curNetwork.joinRoom(roomData, curNetwork.getJoinPlayerData());
+            roomData = await curNetwork.joinRoom(roomData, curNetwork.getLocalPlayerData());
             if (roomData != null)
             {
                 room = new Room(roomData);
                 foreach (var playerData in roomData.playerDataList)
                 {
-                    if (playerData.id == curNetwork.getJoinPlayerData().id)
+                    if (playerData.id == curNetwork.getLocalPlayerData().id)
                         room.addPlayer(new ClientLocalRoomPlayer(playerData.id));
                     else
                         room.addPlayer(new ClientRoomPlayer(playerData.id));
@@ -66,7 +111,7 @@ namespace TouhouCardEngine
             else
                 return false;
         }
-        public async Task roomAddAIPlayer()
+        public async Task addAIPlayer()
         {
             if (curNetwork == null)
             {
@@ -78,18 +123,15 @@ namespace TouhouCardEngine
                 room.addPlayer(new AIRoomPlayer(aiPlayerData.id), aiPlayerData);
             }
         }
-        public void Dispose()
-        {
-            if (clientNetwork != null)
-                clientNetwork.Dispose();
-            if (LANNetwork != null)
-                LANNetwork.Dispose();
-        }
         public RoomPlayer localPlayer { get; private set; } = null;
         public Room room { get; private set; } = null;
+        /// <summary>
+        /// 网络端口
+        /// </summary>
+        public int port => curNetwork != null ? curNetwork.port : -1;
         #endregion
         #region 私有成员
-        private RoomData onDiscoverRoom()
+        private RoomData onDiscoverRoomReq()
         {
             if (room != null)
                 return room.data;
@@ -100,6 +142,7 @@ namespace TouhouCardEngine
         LANNetworking LANNetwork { get; }
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
+        List<Room> _roomList = new List<Room>();
         #endregion
     }
     class ClientLocalRoomPlayer : LocalRoomPlayer
@@ -113,50 +156,5 @@ namespace TouhouCardEngine
         public ClientRoomPlayer(int id) : base(id)
         {
         }
-    }
-    public class LANNetworking : ClientNetworking
-    {
-        #region 公共成员
-        public LANNetworking(ILogger logger = null) : base("LAN", logger)
-        {
-            addRPCMethod(GetType().GetMethod(nameof(discoverRoom)));
-        }
-        /// <summary>
-        /// 局域网默认玩家使用随机Guid，没有玩家名字
-        /// </summary>
-        /// <returns></returns>
-        public override RoomPlayerData getJoinPlayerData()
-        {
-            if (_playerData == null)
-                _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "玩家1", RoomPlayerType.human);
-            return _playerData;
-        }
-        public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData)
-        {
-            RoomData data = new RoomData();
-            data.playerDataList.Add(hostPlayerData);
-            data.ownerId = hostPlayerData.id;
-            return Task.FromResult(data);
-        }
-        public RoomData discoverRoom()
-        {
-            return onDiscoverRoom?.Invoke();
-        }
-        public event Func<RoomData> onDiscoverRoom;
-        public override async Task<RoomData[]> getRooms()
-        {
-            RoomData data = await invokeBroadcast<RoomData>("discoverRoom");
-            return new RoomData[] { data };
-        }
-        public override Task<RoomPlayerData> addAIPlayer()
-        {
-            RoomPlayerData aiPlayerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai);
-            //通知其他玩家添加AI玩家
-            return Task.FromResult(aiPlayerData);
-        }
-        #endregion
-        #region 私有成员
-        RoomPlayerData _playerData;
-        #endregion
     }
 }

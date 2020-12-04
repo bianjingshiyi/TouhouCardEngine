@@ -1,14 +1,24 @@
 ﻿using UnityEngine;
 using System.Threading.Tasks;
+using BJSYGameCore;
+using System;
 
 namespace Tests
 {
     static class TestHelper
     {
-        public static WaitUntil waitTask(Task task)
+        public static WaitUntil waitTask(Task task, float timeout = 30)
         {
+            Timer timer = null;
+            if (timeout > 0)
+            {
+                timer = new Timer() { duration = timeout };
+                timer.start();
+            }
             return new WaitUntil(() =>
             {
+                if (timer != null && timer.isExpired())
+                    return false;
                 if (task.IsCompleted)
                     return true;
                 if (task.IsFaulted)
@@ -37,9 +47,15 @@ namespace Tests
         /// <example>
         /// yield return task.wait()
         /// </example>
-        public static WaitUntil wait(this Task task)
+        public static WaitUntil wait(this Task task, float timeout = 30)
         {
-            return waitTask(task);
+            return waitTask(task, timeout);
+        }
+        public static WaitUntil waitUntil(Func<bool> condition, float timeout)
+        {
+            Timer timer = new Timer() { duration = timeout };
+            timer.start();
+            return new WaitUntil(() => timer.isExpired() || condition());
         }
     }
 }

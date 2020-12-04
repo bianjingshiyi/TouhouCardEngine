@@ -32,14 +32,14 @@ namespace NitoriNetwork.Common
             return peerDict.Values;
         }
 
-        protected override void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
+        protected override void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType, PacketType packetType)
         {
             switch (messageType)
             {
                 // 处理房间发现请求或主机信息更新请求
                 case UnconnectedMessageType.Broadcast:
                 case UnconnectedMessageType.BasicMessage:
-                    if (RoomValid && reader.GetInt() == (int)PacketType.discoveryRequest)
+                    if (packetType == PacketType.discoveryRequest)
                     {
                         logger?.Log($"主机房间收到了局域网发现请求或主机信息更新请求");
                         NetDataWriter writer = room.Write(PacketType.discoveryResponse, reader.GetUInt());
