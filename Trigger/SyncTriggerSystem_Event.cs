@@ -270,5 +270,6 @@ namespace TouhouCardEngine
             return func(game);
         }
         public static readonly FLambda<T> Default = new FLambda<T>(null);
+        public static readonly FLambda<bool> True = new FLambda<bool>(g => true);
     }
 }
