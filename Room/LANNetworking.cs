@@ -38,6 +38,7 @@ namespace TouhouCardEngine
         /// <remarks>游戏大厅的话，就应该是返回游戏大厅构造并且保存在列表里的房间了吧</remarks>
         public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData, int port = -1)
         {
+            log?.log(name + "创建房间");
             RoomData data = new RoomData();
             data.playerDataList.Add(hostPlayerData);
             data.ownerId = hostPlayerData.id;
@@ -50,19 +51,22 @@ namespace TouhouCardEngine
         /// <param name="data"></param>
         public void ackCreateRoom(RoomData data)
         {
-            onNewRoomAck?.Invoke(data);
+            log?.log(name + "收到创建房间消息");
+            onAddOrUpdateRoomAck?.Invoke(data);
         }
-        public event Action<RoomData> onNewRoomAck;
+        public event Action<RoomData> onAddOrUpdateRoomAck;
         /// <summary>
         /// 广播一个刷新房间列表的消息。
         /// </summary>
         /// <param name="port"></param>
         public override void refreshRooms(int port = -1)
         {
+            log?.log(name + "刷新房间");
             invokeBroadcast(nameof(reqGetRoom), port);
         }
         public void reqGetRoom()
         {
+            log?.log(name + "收到请求房间消息");
             RoomData roomData = onGetRoomReq?.Invoke();
             invoke(unconnectedInvokeIP, nameof(ackGetRoom), roomData);
         }
@@ -72,7 +76,8 @@ namespace TouhouCardEngine
         public event Func<RoomData> onGetRoomReq;
         public void ackGetRoom(RoomData roomData)
         {
-            onNewRoomAck?.Invoke(roomData);
+            log?.log(name + "收到获取房间消息");
+            onAddOrUpdateRoomAck?.Invoke(roomData);
         }
         /// <summary>
         /// 获取房间列表，在局域网实现下实际上是返回发现的第一个房间。

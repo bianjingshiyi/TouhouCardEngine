@@ -128,7 +128,7 @@ namespace Tests
         }
         IEnumerator LANRoomCreateAssert(ClientLogic client1, ClientLogic client2)
         {
-            Room room = null;
+            RoomData room = null;
             client2.onNewRoom += r => room = r;
             //客户端创建房间，并且广播新增房间信息
             yield return client1.createOnlineRoom(client2.port).wait();
@@ -148,37 +148,19 @@ namespace Tests
         }
         IEnumerator LANRoomGetRoomsAssert(ClientLogic client1, ClientLogic client2)
         {
+            RoomData room = null;
+            client2.onUpdateRoom += r => room = r;
             //client1先创建房间，但是其实这个时候client2就应该收到消息，得到房间了
             yield return client1.createOnlineRoom(client2.port);
             //client2广播发现房间消息，会得到client1的回应，不过房间里面应该已经有了
             client2.refreshRooms(client1.port);
+            yield return TestHelper.waitUntil(() => room != null, 5);
+            Assert.NotNull(room);
         }
         [UnityTest]
         public IEnumerator LANRoomJoinTest()
         {
             yield return LANRoomCreate2AndAssert(LANRoomJoinAssert);
-        }
-        IEnumerator LANRoomCreateManyAndAssert(int howMany, Func<ClientLogic[], IEnumerator> onAssert)
-        {
-            List<GameObject> updaterList = new List<GameObject>();
-            ClientLogic[] clients = new ClientLogic[howMany];
-            for (int i = 0; i < howMany; i++)
-            {
-                ClientLogic client = clients[i] = new ClientLogic(new UnityLogger("Client" + i));
-                GameObject updaterGameObject = new GameObject("Client" + i + "Updater");
-                updaterGameObject.AddComponent<Updater>().action = () => client.update();
-                updaterList.Add(updaterGameObject);
-                client.switchNetToLAN();
-            }
-            yield return onAssert(clients);
-            foreach (var client in clients)
-            {
-                client.Dispose();
-            }
-            foreach (var gameObject in updaterList)
-            {
-                Object.Destroy(gameObject);
-            }
         }
         IEnumerator LANRoomCreate2AndAssert(Func<ClientLogic, ClientLogic, IEnumerator> onAssert)
         {
@@ -210,111 +192,6 @@ namespace Tests
             Assert.AreEqual(client1.room.getPlayers()[1].id, client2.room.getPlayers()[1].id);
             yield break;
         }
-        //[Test]
-        //public void rpcLocalTest()
-        //{
-        //    ServerNetworking server = new ServerNetworking(null);
-        //    MethodInfo method = GetType().GetMethod(nameof(testRPCMethod));
-        //    Assert.NotNull(method);
-        //    server.addRPCMethod(method);
-        //    var rpcMethod = server.getRPCMethod(nameof(testRPCMethod), 1, null, new RPCArg(), new RPCArg());
-        //    Assert.NotNull(rpcMethod);
-        //    Assert.AreEqual(method, rpcMethod);
-        //}
-        //public void testRPCMethod(int primArg, object objArg, RPCArgBase varArg, IRPCArg iArg)
-        //{
-        //    Debug.Log("参数：" + primArg + objArg + varArg + iArg);
-        //}
-        //public class RPCArgBase { }
-        //public class RPCArg : RPCArgBase, IRPCArg { }
-        //public interface IRPCArg { }
-        ///// <summary>
-        ///// 创建房间测试。
-        ///// </summary>
-        ///// <returns></returns>
-        //[UnityTest]
-        //public IEnumerator clientRoomCreateTest()
-        //{
-        //    yield return createClientRoomAndAssert(onAssert);
-        //    IEnumerator onAssert(Room room)
-        //    {
-        //        createRoomAssert(room);
-        //        yield break;
-        //    }
-        //}
-        //IEnumerator createClientRoomAndAssert(Func<Room, IEnumerator> onAssert)
-        //{
-        //    UnityLogger logger = new UnityLogger("Room");
-        //    using (ClientLogic client = new ClientLogic())
-        //    {
-        //        client.networking.start();
-        //        new GameObject(nameof(client)).AddComponent<Updater>().action = () => client.networking.update();
-        //        using (ServerLogic server = new ServerLogic(logger))
-        //        {
-        //            server.networking.start();
-        //            new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.networking.update();
-        //            //连接到服务器
-        //            yield return client.networking.connect(server.networking.ip, server.networking.port).wait();
-        //            //创建房间
-        //            yield return client.createOnlineRoom(new RoomPlayerData("玩家1", RoomPlayerType.human)).wait();
-        //            yield return onAssert?.Invoke(client.room);
-        //        }
-        //    }
-        //}
-        //[UnityTest]
-        //public IEnumerator clientRoomJoinTest()
-        //{
-        //    yield return createClient2RoomAndAssert(onAssert);
-        //    IEnumerator onAssert(Room room1, Room room2)
-        //    {
-        //        Assert.AreEqual(2, room1.getPlayers().Length);
-        //        Assert.AreEqual(2, room2.getPlayers().Length);
-        //        yield break;
-        //    }
-        //}
-        //IEnumerator createClient2RoomAndAssert(Func<Room, Room, IEnumerator> onAssert)
-        //{
-        //    UnityLogger logger = new UnityLogger("Room");
-        //    using (HostNetworking server = new ServerNetworking(null, logger))
-        //    {
-        //        server.start();
-        //        new GameObject(nameof(server)).AddComponent<Updater>().action = () => server.update();
-        //        using (ClientNetworking client1 = new ClientNetworking(logger))
-        //        {
-        //            client1.start();
-        //            new GameObject(nameof(client1)).AddComponent<Updater>().action = () => client1.update();
-        //            using (ClientNetworking client2 = new ClientNetworking(logger))
-        //            {
-        //                client2.start();
-        //                new GameObject(nameof(client2)).AddComponent<Updater>().action = () => client2.update();
-        //                //连接到服务器
-        //                yield return client1.connect(server.ip, server.port).wait();
-        //                yield return client2.connect(server.ip, server.port).wait();
-        //                //创建房间
-        //                var task = client1.reqCreateRoom(new RoomPlayerData(0, "玩家1", RoomPlayerType.human));
-        //                yield return task.wait();
-        //                RoomData roomData = task.Result;
-        //                OnlineRoom room1 = new OnlineRoom(client1, roomData);
-        //                //加入房间
-        //                task = client2.reqJoinRoom(roomData.id, new RoomPlayerData(0, "玩家2", RoomPlayerType.human));
-        //                yield return task.wait();
-        //                roomData = task.Result;
-        //                OnlineRoom room2 = new OnlineRoom(client2, roomData);
-        //                yield return onAssert?.Invoke(room1, room2);
-        //            }
-        //        }
-        //    }
-        //}
-        //[UnityTest]
-        //public IEnumerator clientRoomAddAIPlayerTest()
-        //{
-        //    yield return createClientRoomAndAssert(onAssert);
-        //    IEnumerator onAssert(Room room)
-        //    {
-        //        yield return room.addAIPlayer().wait();
-        //        addAIPlayerAssert(room);
-        //    }
-        //}
     }
     class Updater : MonoBehaviour, IDisposable
     {

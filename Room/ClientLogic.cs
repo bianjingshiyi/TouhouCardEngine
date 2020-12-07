@@ -42,14 +42,14 @@ namespace TouhouCardEngine
                 if (curNetwork == LANNetwork)
                 {
                     LANNetwork.onGetRoomReq -= onDiscoverRoomReq;
-                    LANNetwork.onNewRoomAck -= onNewRoomAck;
+                    LANNetwork.onAddOrUpdateRoomAck -= onAddOrUpdateRoomAck;
                 }
             }
             if (!LANNetwork.isRunning)
                 LANNetwork.start();
             curNetwork = LANNetwork;
             LANNetwork.onGetRoomReq += onDiscoverRoomReq;
-            LANNetwork.onNewRoomAck += onNewRoomAck;
+            LANNetwork.onAddOrUpdateRoomAck += onAddOrUpdateRoomAck;
         }
         /// <summary>
         /// 
@@ -76,22 +76,23 @@ namespace TouhouCardEngine
             logger?.log("客户端请求房间列表");
             return curNetwork.getRooms(port);
         }
-        void onNewRoomAck(RoomData roomData)
+        void onAddOrUpdateRoomAck(RoomData roomData)
         {
-            Room room = _roomList.Find(r => r.data.id == roomData.id);
-            if (room != null)
+            logger?.log("客户端更新房间" + roomData.id);
+            int index = _lobby.indexOfId(roomData.id);
+            if (index < 0)
             {
-                
+                _lobby.Add(roomData);
+                onNewRoom?.Invoke(roomData);
             }
             else
             {
-                Room newRoom = new Room(roomData);
-                _roomList.Add(newRoom);
-                onNewRoom?.Invoke(newRoom);
+                _lobby.updateAt(index, roomData);
+                onUpdateRoom?.Invoke(roomData);
             }
         }
-        public event Action<Room> onNewRoom;
-        public event Action<Room> onUpdateRoom;
+        public event Action<RoomData> onNewRoom;
+        public event Action<RoomData> onUpdateRoom;
         public async Task<bool> joinRoom(RoomData roomData)
         {
             logger?.log("客户端请求加入房间" + roomData);
@@ -142,7 +143,7 @@ namespace TouhouCardEngine
         LANNetworking LANNetwork { get; }
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
-        List<Room> _roomList = new List<Room>();
+        Lobby _lobby = new Lobby();
         #endregion
     }
     class ClientLocalRoomPlayer : LocalRoomPlayer
