@@ -78,16 +78,15 @@ namespace TouhouCardEngine
         }
         void onAddOrUpdateRoomAck(RoomData roomData)
         {
-            logger?.log("客户端更新房间" + roomData.id);
-            int index = _lobby.indexOfId(roomData.id);
-            if (index < 0)
+            logger?.log("客户端更新房间" + roomData.ID);
+            if (_lobby.containsId(roomData.ID))
             {
                 _lobby.Add(roomData);
                 onNewRoom?.Invoke(roomData);
             }
             else
             {
-                _lobby.updateAt(index, roomData);
+                _lobby.UpdateAt(roomData.ID, roomData);
                 onUpdateRoom?.Invoke(roomData);
             }
         }
@@ -143,7 +142,7 @@ namespace TouhouCardEngine
         LANNetworking LANNetwork { get; }
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
-        Lobby _lobby = new Lobby();
+        LobbyData _lobby = new LobbyData();
         #endregion
     }
     class ClientLocalRoomPlayer : LocalRoomPlayer
