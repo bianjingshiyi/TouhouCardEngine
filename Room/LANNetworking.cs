@@ -1,5 +1,12 @@
-﻿using NitoriNetwork.Common;
+﻿using LiteNetLib;
+using LiteNetLib.Utils;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using NitoriNetwork.Common;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using TouhouCardEngine.Shared;
 
@@ -19,6 +26,7 @@ namespace TouhouCardEngine
         {
             addRPCMethod(this, GetType().GetMethod(nameof(ackCreateRoom)));
             addRPCMethod(this, GetType().GetMethod(nameof(reqGetRoom)));
+            addRPCMethod(this, GetType().GetMethod(nameof(ackGetRoom)));
         }
         /// <summary>
         /// 局域网默认玩家使用随机Guid，没有玩家名字
@@ -39,7 +47,7 @@ namespace TouhouCardEngine
         public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData, int port = -1)
         {
             log?.log(name + "创建房间");
-            RoomData data = new RoomData();
+            RoomData data = new RoomData(Guid.NewGuid().ToString());
             data.playerDataList.Add(hostPlayerData);
             data.ownerId = hostPlayerData.id;
             invokeBroadcast(nameof(ackCreateRoom), port, data);
@@ -52,6 +60,10 @@ namespace TouhouCardEngine
         public void ackCreateRoom(RoomData data)
         {
             log?.log(name + "收到创建房间消息");
+            _roomInfoDict[data] = new LANRoomInfo()
+            {
+                ip = unconnectedInvokeIP
+            };
             onAddOrUpdateRoomAck?.Invoke(data);
         }
         public event Action<RoomData> onAddOrUpdateRoomAck;
@@ -77,6 +89,10 @@ namespace TouhouCardEngine
         public void ackGetRoom(RoomData roomData)
         {
             log?.log(name + "收到获取房间消息");
+            _roomInfoDict[roomData] = new LANRoomInfo()
+            {
+                ip = unconnectedInvokeIP
+            };
             onAddOrUpdateRoomAck?.Invoke(roomData);
         }
         /// <summary>
@@ -108,18 +124,113 @@ namespace TouhouCardEngine
             return Task.FromResult(aiPlayerData);
         }
         /// <summary>
-        /// 
+        /// 加入指定的房间，客户端必须提供自己的玩家数据
         /// </summary>
         /// <param name="roomData"></param>
         /// <param name="joinPlayerData"></param>
         /// <returns></returns>
+        /// <remarks>局域网实现，连接目标房间，通过连接RPC发送加入请求。</remarks>
         public override Task<RoomData> joinRoom(RoomData roomData, RoomPlayerData joinPlayerData)
         {
-            return base.joinRoom(roomData, joinPlayerData);
+            if (opList.Any(o => o is JoinRoomOperation))
+                throw new InvalidOperationException("客户端已经在执行连接操作");
+            var address = _roomInfoDict[roomData].ip;
+            string msg = name + "连接" + address;
+            log?.log(msg);
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.joinRequest);
+            writer.Put(joinPlayerData.ToJson());
+            var peer = net.Connect(address, writer);
+            if (peer == null)
+                throw new InvalidOperationException("客户端已经在执行连接操作");
+            else
+            {
+                host = peer;
+                JoinRoomOperation operation = new JoinRoomOperation();
+                startOperation(operation, () =>
+                {
+                    logger?.Log(msg + "超时");
+                });
+                return operation.task;
+            }
         }
+        public event Action<RoomPlayerData> onJoinRoomReq;
         #endregion
         #region 私有成员
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            PacketType packetType = (PacketType)request.Data.GetInt();
+            switch (packetType)
+            {
+                case PacketType.joinRequest:
+                    RoomPlayerData joinPlayerData = BsonSerializer.Deserialize<RoomPlayerData>(request.Data.GetString());
+                    reqJoinRoom(request, joinPlayerData);
+                    break;
+            }
+        }
+        protected override void OnPeerConnected(NetPeer peer)
+        {
+
+        }
+        protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
+        {
+            log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
+            switch (disconnectInfo.Reason)
+            {
+                case DisconnectReason.ConnectionRejected:
+                    break;
+                case DisconnectReason.ConnectionFailed:
+                    break;
+                case DisconnectReason.DisconnectPeerCalled:
+                    break;
+                case DisconnectReason.HostUnreachable:
+                    break;
+                case DisconnectReason.InvalidProtocol:
+                    break;
+                case DisconnectReason.NetworkUnreachable:
+                    break;
+                case DisconnectReason.Reconnect:
+                    break;
+                case DisconnectReason.RemoteConnectionClose:
+                    break;
+                case DisconnectReason.Timeout:
+                    break;
+                case DisconnectReason.UnknownHost:
+                    break;
+                default:
+                    break;
+            }
+            base.OnPeerDisconnected(peer, disconnectInfo);
+        }
+        void reqJoinRoom(ConnectionRequest request, RoomPlayerData player)
+        {
+            try
+            {
+                onJoinRoomReq?.Invoke(player);
+            }
+            catch (Exception e)
+            {
+                log?.log(request.RemoteEndPoint + "加入房间的请求被拒绝，原因：" + e);
+                NetDataWriter writer = new NetDataWriter();
+                writer.Put((int)PacketType.joinResponse);
+                writer.Put(e.ToJson());
+                request.Reject(writer);
+                return;
+            }
+            request.Accept();
+        }
         RoomPlayerData _playerData;
+        Dictionary<RoomData, LANRoomInfo> _roomInfoDict = new Dictionary<RoomData, LANRoomInfo>();
+        class LANRoomInfo
+        {
+            public IPEndPoint ip;
+        }
+        class JoinRoomOperation : Operation<RoomData>
+        {
+            public JoinRoomOperation() : base(nameof(LANNetworking.joinRoom))
+            {
+            }
+        }
         #endregion
     }
 }

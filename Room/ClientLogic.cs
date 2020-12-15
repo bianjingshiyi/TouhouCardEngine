@@ -29,10 +29,10 @@ namespace TouhouCardEngine
         public void createLocalRoom()
         {
             logger?.log("客户端创建本地房间");
-            room = new Room();
-            localPlayer = new LocalRoomPlayer();
-            room.addPlayer(localPlayer, new RoomPlayerData("本地玩家", RoomPlayerType.human));
-            room.data.ownerId = localPlayer.id;
+            room = new RoomData(string.Empty);
+            localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
+            room.playerDataList.Add(localPlayer);
+            room.ownerId = localPlayer.id;
         }
         public void switchNetToLAN()
         {
@@ -61,10 +61,9 @@ namespace TouhouCardEngine
         {
             logger?.log("客户端创建在线房间");
             RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
-            RoomData data = await curNetwork.createRoom(localPlayerData, port);
-            room = new Room(data);
-            room.addPlayer(new ClientLocalRoomPlayer(localPlayerData.id));
-            localPlayer = room.getPlayer(localPlayerData.id);
+            RoomData room = await curNetwork.createRoom(localPlayerData, port);
+            this.room = room;
+            localPlayer = localPlayerData;
         }
         public void refreshRooms(int port = -1)
         {
@@ -79,33 +78,26 @@ namespace TouhouCardEngine
         void onAddOrUpdateRoomAck(RoomData roomData)
         {
             logger?.log("客户端更新房间" + roomData.ID);
-            if (_lobby.containsId(roomData.ID))
+            if (!_lobby.containsId(roomData.ID))
             {
                 _lobby.Add(roomData);
                 onNewRoom?.Invoke(roomData);
             }
             else
             {
-                _lobby.UpdateAt(roomData.ID, roomData);
+                _lobby.update(roomData);
                 onUpdateRoom?.Invoke(roomData);
             }
         }
         public event Action<RoomData> onNewRoom;
         public event Action<RoomData> onUpdateRoom;
-        public async Task<bool> joinRoom(RoomData roomData)
+        public async Task<bool> joinRoom(RoomData room)
         {
-            logger?.log("客户端请求加入房间" + roomData);
-            roomData = await curNetwork.joinRoom(roomData, curNetwork.getLocalPlayerData());
-            if (roomData != null)
+            logger?.log("客户端请求加入房间" + room);
+            room = await curNetwork.joinRoom(room, curNetwork.getLocalPlayerData());
+            if (room != null)
             {
-                room = new Room(roomData);
-                foreach (var playerData in roomData.playerDataList)
-                {
-                    if (playerData.id == curNetwork.getLocalPlayerData().id)
-                        room.addPlayer(new ClientLocalRoomPlayer(playerData.id));
-                    else
-                        room.addPlayer(new ClientRoomPlayer(playerData.id));
-                }
+                this.room = room;
                 return true;
             }
             else
@@ -114,17 +106,15 @@ namespace TouhouCardEngine
         public async Task addAIPlayer()
         {
             if (curNetwork == null)
-            {
-                room.addPlayer(new AIRoomPlayer(), new RoomPlayerData("AI", RoomPlayerType.ai));
-            }
+                room.playerDataList.Add(new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai));
             else
             {
                 RoomPlayerData aiPlayerData = await curNetwork.addAIPlayer();
-                room.addPlayer(new AIRoomPlayer(aiPlayerData.id), aiPlayerData);
+                room.playerDataList.Add(aiPlayerData);
             }
         }
-        public RoomPlayer localPlayer { get; private set; } = null;
-        public Room room { get; private set; } = null;
+        public RoomPlayerData localPlayer { get; private set; } = null;
+        public RoomData room { get; private set; } = null;
         /// <summary>
         /// 网络端口
         /// </summary>
@@ -134,7 +124,7 @@ namespace TouhouCardEngine
         private RoomData onDiscoverRoomReq()
         {
             if (room != null)
-                return room.data;
+                return room;
             else
                 throw new RPCDontResponseException();
         }

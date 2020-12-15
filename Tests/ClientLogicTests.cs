@@ -13,67 +13,65 @@ namespace Tests
 {
     public class ClientLogicTests
     {
-        [Test]
-        public void localRoomCreateTest()
+        [UnityTest]
+        public IEnumerator localRoomCreateTest()
         {
-            createLocalRoomAndAssert(createRoomAssert);
+            yield return createLocalRoomAndAssert(createRoomAssert);
         }
-        void createLocalRoomAndAssert(Func<ClientLogic, IEnumerator> onAssert)
+        IEnumerator createLocalRoomAndAssert(Func<ClientLogic, IEnumerator> onAssert)
         {
             using (ClientLogic client = new ClientLogic(new UnityLogger("Room")))
             {
                 client.createLocalRoom();
-                onAssert(client);
+                yield return onAssert(client);
             }
         }
         IEnumerator createRoomAssert(ClientLogic client)
         {
-            Room room = client.room;
-            Assert.AreEqual(1, room.getPlayers().Length);
-            Assert.AreNotEqual(0, room.getPlayers()[0].id);
-            Assert.AreNotEqual(RoomPlayerType.human, room.data.getPlayerData(room.getPlayers()[0].id).type);
+            RoomData room = client.room;
+            Assert.AreEqual(1, room.playerDataList.Count);
+            Assert.AreNotEqual(0, room.playerDataList[0].id);
+            Assert.AreNotEqual(RoomPlayerType.human, room.playerDataList[0].type);
             yield break;
         }
-        [Test]
-        public void localRoomAddAIPlayerTest()
+        [UnityTest]
+        public IEnumerator localRoomAddAIPlayerTest()
         {
-            createLocalRoomAndAssert(addAIPlayerAssert);
+            yield return createLocalRoomAndAssert(addAIPlayerAssert);
         }
         IEnumerator addAIPlayerAssert(ClientLogic client)
         {
             yield return client.addAIPlayer().wait();
-            Assert.AreEqual(2, client.room.getPlayers().Length);
-            Assert.AreNotEqual(0, client.room.getPlayers()[0].id);
-            Assert.AreEqual(RoomPlayerType.human, client.room.data.getPlayerData(client.room.getPlayers()[0].id).type);
-            Assert.AreNotEqual(0, client.room.getPlayers()[1].id);
-            Assert.AreEqual(RoomPlayerType.ai, client.room.data.getPlayerData(client.room.getPlayers()[1].id).type);
+            Assert.AreEqual(2, client.room.playerDataList.Count);
+            Assert.AreNotEqual(0, client.room.playerDataList[0].id);
+            Assert.AreEqual(RoomPlayerType.human, client.room.getPlayer(client.room.playerDataList[0].id).type);
+            Assert.AreNotEqual(0, client.room.playerDataList[1].id);
+            Assert.AreEqual(RoomPlayerType.ai, client.room.getPlayer(client.room.playerDataList[1].id).type);
             yield break;
         }
-        [Test]
-        public void localRoomSetPropTest()
+        [UnityTest]
+        public IEnumerator localRoomSetPropTest()
         {
-            createLocalRoomAndAssert(setPropAssert);
+            yield return createLocalRoomAndAssert(setPropAssert);
         }
-
         IEnumerator setPropAssert(ClientLogic client)
         {
-            Room room = client.room;
+            RoomData room = client.room;
             room.setProp("key", "value");
             Assert.AreEqual("value", room.getProp<string>("key"));
             yield break;
         }
-
-        [Test]
-        public void localRoomSetPlayerPropTest()
+        [UnityTest]
+        public IEnumerator localRoomSetPlayerPropTest()
         {
-            createLocalRoomAndAssert(setPlayerPropAssert);
+            yield return createLocalRoomAndAssert(setPlayerPropAssert);
         }
 
         IEnumerator setPlayerPropAssert(ClientLogic client)
         {
-            Room room = client.room;
-            room.setPlayerProp(room.data.ownerId, "key", "value");
-            Assert.AreEqual("value", room.getPlayerProp<string>(room.data.ownerId, "key"));
+            RoomData room = client.room;
+            room.setPlayerProp(room.ownerId, "key", "value");
+            Assert.AreEqual("value", room.getPlayerProp<string>(room.ownerId, "key"));
             yield break;
         }
 
@@ -85,18 +83,18 @@ namespace Tests
 
         IEnumerator removePlayerAssert(ClientLogic client)
         {
-            Room room = client.room;
-            var player = new AIRoomPlayer();
-            room.addPlayer(player, new RoomPlayerData("AI", RoomPlayerType.ai));
-            room.removePlayer(player.id);
-            Assert.Null(room.data.getPlayerData(player.id));
+            RoomData room = client.room;
+            RoomPlayerData player = new RoomPlayerData("AI", RoomPlayerType.ai);
+            room.playerDataList.Add(player);
+            room.playerDataList.Remove(player);
+            Assert.Null(room.getPlayer(player.id));
             yield break;
         }
 
         [Test]
         public void serializeTest()
         {
-            RoomData data = new RoomData { ownerId = 1 };
+            RoomData data = new RoomData(Guid.NewGuid().ToString()) { ownerId = 1 };
             data.propDict.Add("randomSeed", 42);
             data.playerDataList.Add(new RoomPlayerData(1, "玩家", RoomPlayerType.human));
             data.playerDataList[0].propDict.Add("name", "you know who");
@@ -111,6 +109,21 @@ namespace Tests
             Assert.AreEqual("玩家", data.playerDataList[0].name);
             Assert.AreEqual(RoomPlayerType.human, data.playerDataList[0].type);
             Assert.AreEqual("you know who", data.playerDataList[0].propDict["name"]);
+        }
+        IEnumerator LANRoomCreate2AndAssert(Func<ClientLogic, ClientLogic, IEnumerator> onAssert)
+        {
+            using (ClientLogic client1 = new ClientLogic(new UnityLogger("RoomLocal")))
+            {
+                new GameObject("Client1Updater").AddComponent<Updater>().action = () => client1.update();
+                client1.switchNetToLAN();
+                yield return client1.createOnlineRoom().wait();
+                using (ClientLogic client2 = new ClientLogic(new UnityLogger("RoomRemote")))
+                {
+                    new GameObject("Client2Updater").AddComponent<Updater>().action = () => client2.update();
+                    client2.switchNetToLAN();
+                    yield return onAssert(client1, client2);
+                }
+            }
         }
         [UnityTest]
         public IEnumerator LANRoomCreateTest()
@@ -162,34 +175,28 @@ namespace Tests
         {
             yield return LANRoomCreate2AndAssert(LANRoomJoinAssert);
         }
-        IEnumerator LANRoomCreate2AndAssert(Func<ClientLogic, ClientLogic, IEnumerator> onAssert)
-        {
-            using (ClientLogic client1 = new ClientLogic(new UnityLogger("RoomLocal")))
-            {
-                new GameObject("Client1Updater").AddComponent<Updater>().action = () => client1.update();
-                client1.switchNetToLAN();
-                yield return client1.createOnlineRoom().wait();
-                using (ClientLogic client2 = new ClientLogic(new UnityLogger("RoomRemote")))
-                {
-                    new GameObject("Client2Updater").AddComponent<Updater>().action = () => client2.update();
-                    client2.switchNetToLAN();
-                    yield return onAssert(client1, client2);
-                }
-            }
-        }
         IEnumerator LANRoomJoinAssert(ClientLogic client1, ClientLogic client2)
         {
-            Assert.AreEqual(client1.room.getPlayers()[0].id, client1.room.data.ownerId);
-            Assert.AreEqual(2, client1.room.getPlayers().Length);
-            Assert.AreEqual(RoomPlayerType.human, client1.room.data.playerDataList[0].type);
-            Assert.AreEqual(RoomPlayerType.human, client1.room.data.playerDataList[1].type);
-            Assert.AreEqual(client2.room.getPlayers()[0].id, client2.room.data.ownerId);
-            Assert.AreEqual(2, client2.room.getPlayers().Length);
-            Assert.AreEqual(RoomPlayerType.human, client2.room.data.playerDataList[0].type);
-            Assert.AreEqual(RoomPlayerType.human, client2.room.data.playerDataList[1].type);
-            Assert.AreEqual(client1.room.data.ownerId, client2.room.data.ownerId);
-            Assert.AreEqual(client1.room.getPlayers()[0].id, client2.room.getPlayers()[0].id);
-            Assert.AreEqual(client1.room.getPlayers()[1].id, client2.room.getPlayers()[1].id);
+            RoomData room = null;
+            //client1创建房间
+            yield return client1.createOnlineRoom(client2.port);
+            //等待client2获取到房间
+            client2.onNewRoom += r => room = r;
+            yield return TestHelper.waitUntil(() => room != null, 5);
+            //client2加入房间
+            yield return client2.joinRoom(room);
+            room = client2.room;
+            Assert.AreEqual(client1.room.playerDataList[0].id, client1.room.ownerId);
+            Assert.AreEqual(2, client1.room.playerDataList.Count);
+            Assert.AreEqual(RoomPlayerType.human, client1.room.playerDataList[0].type);
+            Assert.AreEqual(RoomPlayerType.human, client1.room.playerDataList[1].type);
+            Assert.AreEqual(client2.room.playerDataList[0].id, client2.room.ownerId);
+            Assert.AreEqual(2, client2.room.playerDataList.Count);
+            Assert.AreEqual(RoomPlayerType.human, client2.room.playerDataList[0].type);
+            Assert.AreEqual(RoomPlayerType.human, client2.room.playerDataList[1].type);
+            Assert.AreEqual(client1.room.ownerId, client2.room.ownerId);
+            Assert.AreEqual(client1.room.playerDataList[0].id, client2.room.playerDataList[0].id);
+            Assert.AreEqual(client1.room.playerDataList[1].id, client2.room.playerDataList[1].id);
             yield break;
         }
     }
