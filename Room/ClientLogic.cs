@@ -43,6 +43,7 @@ namespace TouhouCardEngine
                 {
                     LANNetwork.onGetRoomReq -= onDiscoverRoomReq;
                     LANNetwork.onAddOrUpdateRoomAck -= onAddOrUpdateRoomAck;
+                    LANNetwork.onJoinRoomReq -= onJoinRoomReq;
                 }
             }
             if (!LANNetwork.isRunning)
@@ -50,6 +51,7 @@ namespace TouhouCardEngine
             curNetwork = LANNetwork;
             LANNetwork.onGetRoomReq += onDiscoverRoomReq;
             LANNetwork.onAddOrUpdateRoomAck += onAddOrUpdateRoomAck;
+            LANNetwork.onJoinRoomReq += onJoinRoomReq;
         }
         /// <summary>
         /// 
@@ -127,6 +129,15 @@ namespace TouhouCardEngine
                 return room;
             else
                 throw new RPCDontResponseException();
+        }
+        private void onJoinRoomReq(RoomPlayerData player)
+        {
+            if (room == null)
+                throw new InvalidOperationException("房间不存在");
+            if (room.playerDataList.Count < room.maxPlayerCount)
+                room.playerDataList.Add(player);
+            else
+                throw new InvalidOperationException("房间已满");
         }
         ClientNetworking curNetwork { get; set; } = null;
         LANNetworking LANNetwork { get; }

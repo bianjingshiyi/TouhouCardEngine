@@ -129,7 +129,11 @@ namespace TouhouCardEngine
         /// <param name="roomData"></param>
         /// <param name="joinPlayerData"></param>
         /// <returns></returns>
-        /// <remarks>局域网实现，连接目标房间，通过连接RPC发送加入请求。</remarks>
+        /// <remarks>
+        /// 局域网实现思路，RoomData必然对应局域网中一个ip，连接这个ip，
+        /// 收到连接请求，要客户端来检查是否可以加入，不能加入就拒绝并返回一个异常
+        /// 能加入的话，接受，然后等待玩家连接上来。
+        /// </remarks>
         public override Task<RoomData> joinRoom(RoomData roomData, RoomPlayerData joinPlayerData)
         {
             if (opList.Any(o => o is JoinRoomOperation))
@@ -166,18 +170,23 @@ namespace TouhouCardEngine
                     RoomPlayerData joinPlayerData = BsonSerializer.Deserialize<RoomPlayerData>(request.Data.GetString());
                     reqJoinRoom(request, joinPlayerData);
                     break;
+                default:
+                    log?.log(name + "收到未知的请求连接类型");
+                    break;
             }
         }
         protected override void OnPeerConnected(NetPeer peer)
         {
-
+            
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
+            PacketType packetType = (PacketType)disconnectInfo.AdditionalData.GetInt();
             switch (disconnectInfo.Reason)
             {
                 case DisconnectReason.ConnectionRejected:
+                    ackJoinRoomReject();
                     break;
                 case DisconnectReason.ConnectionFailed:
                     break;
@@ -202,6 +211,11 @@ namespace TouhouCardEngine
             }
             base.OnPeerDisconnected(peer, disconnectInfo);
         }
+        /// <summary>
+        /// 收到玩家加入房间的请求，玩家能否加入房间取决于客户端逻辑（比如房间是否已满）
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="player"></param>
         void reqJoinRoom(ConnectionRequest request, RoomPlayerData player)
         {
             try
@@ -211,13 +225,13 @@ namespace TouhouCardEngine
             catch (Exception e)
             {
                 log?.log(request.RemoteEndPoint + "加入房间的请求被拒绝，原因：" + e);
-                NetDataWriter writer = new NetDataWriter();
-                writer.Put((int)PacketType.joinResponse);
-                writer.Put(e.ToJson());
-                request.Reject(writer);
+                request.Reject(createRPCResponseWriter(PacketType.joinResponse, e));
                 return;
             }
             request.Accept();
+        }
+        void ackJoinRoomReject()
+        {
         }
         RoomPlayerData _playerData;
         Dictionary<RoomData, LANRoomInfo> _roomInfoDict = new Dictionary<RoomData, LANRoomInfo>();
