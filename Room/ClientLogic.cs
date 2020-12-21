@@ -115,6 +115,18 @@ namespace TouhouCardEngine
                 room.playerDataList.Add(aiPlayerData);
             }
         }
+        public Task setRoomProp(string propName, object value)
+        {
+            throw new NotImplementedException();
+        }
+        public Task setPlayerProp(string propName, object value)
+        {
+            throw new NotImplementedException();
+        }
+        public Task quitRoom()
+        {
+            throw new NotImplementedException();
+        }
         public RoomPlayerData localPlayer { get; private set; } = null;
         public RoomData room { get; private set; } = null;
         /// <summary>

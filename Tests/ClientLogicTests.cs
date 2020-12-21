@@ -197,7 +197,74 @@ namespace Tests
             Assert.AreEqual(client1.room.ownerId, client2.room.ownerId);
             Assert.AreEqual(client1.room.playerDataList[0].id, client2.room.playerDataList[0].id);
             Assert.AreEqual(client1.room.playerDataList[1].id, client2.room.playerDataList[1].id);
-            yield break;
+        }
+        [UnityTest]
+        public IEnumerator LANRoomQuitTest()
+        {
+            yield return LANRoomCreate2AndAssert(LANRoomQuitAssert);
+        }
+        IEnumerator LANRoomQuitAssert(ClientLogic client1, ClientLogic client2)
+        {
+            RoomData room = null;
+            //client1创建房间
+            yield return client1.createOnlineRoom(client2.port);
+            //等待client2获取到房间
+            client2.onNewRoom += r => room = r;
+            yield return TestHelper.waitUntil(() => room != null, 5);
+            //client2加入房间
+            yield return client2.joinRoom(room);
+            Assert.AreEqual(2, client1.room.playerDataList.Count);
+            Assert.AreEqual(2, client2.room.playerDataList.Count);
+            //client2退出房间
+            yield return client2.quitRoom();
+            Assert.Null(client2.room);
+            Assert.AreEqual(1, client1.room.playerDataList.Count);
+        }
+        [UnityTest]
+        public IEnumerator LANRoomSetPropTest()
+        {
+            yield return LANRoomCreate2AndAssert(LANRoomSetPropAssert);
+        }
+        IEnumerator LANRoomSetPropAssert(ClientLogic client1, ClientLogic client2)
+        {
+            RoomData room = null;
+            //client1创建房间
+            yield return client1.createOnlineRoom(client2.port);
+            //等待client2获取到房间
+            client2.onNewRoom += r => room = r;
+            yield return TestHelper.waitUntil(() => room != null, 5);
+            //client2加入房间
+            yield return client2.joinRoom(room);
+            Assert.AreEqual(2, client1.room.playerDataList.Count);
+            Assert.AreEqual(2, client2.room.playerDataList.Count);
+            //client1修改房间属性
+            yield return client1.setRoomProp("randomSeed", 42);
+            //client1和client2都有这个属性
+            Assert.AreEqual(42, client1.room.propDict["randomSeed"]);
+            Assert.AreEqual(42, client2.room.propDict["randomSeed"]);
+        }
+        [UnityTest]
+        public IEnumerator LANRoomSetPlayerPropTest()
+        {
+            yield return LANRoomCreate2AndAssert(LANRoomSetPlayerPropAssert);
+        }
+        IEnumerator LANRoomSetPlayerPropAssert(ClientLogic client1, ClientLogic client2)
+        {
+            RoomData room = null;
+            //client1创建房间
+            yield return client1.createOnlineRoom(client2.port);
+            //等待client2获取到房间
+            client2.onNewRoom += r => room = r;
+            yield return TestHelper.waitUntil(() => room != null, 5);
+            //client2加入房间
+            yield return client2.joinRoom(room);
+            Assert.AreEqual(2, client1.room.playerDataList.Count);
+            Assert.AreEqual(2, client2.room.playerDataList.Count);
+            //client2修改自己的属性
+            yield return client2.setPlayerProp("deckCount", 1);
+            //client1和client2都能看到这个属性更改
+            Assert.AreEqual(1, client1.room.playerDataList[1].propDict["deckCount"]);
+            Assert.AreEqual(1, client2.room.playerDataList[1].propDict["deckCount"]);
         }
     }
     class Updater : MonoBehaviour, IDisposable
