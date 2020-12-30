@@ -59,23 +59,23 @@ namespace TouhouCardEngine
         /// <param name="port">发送或广播创建房间信息的端口</param>
         /// <returns></returns>
         /// <remarks>port主要是在局域网测试下有用</remarks>
-        public async Task createOnlineRoom(int port = -1)
+        public async Task createOnlineRoom(int[] ports = null)
         {
             logger?.log("客户端创建在线房间");
             RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
-            RoomData room = await curNetwork.createRoom(localPlayerData, port);
+            RoomData room = await curNetwork.createRoom(localPlayerData, ports);
             this.room = room;
             localPlayer = localPlayerData;
         }
-        public void refreshRooms(int port = -1)
+        public void refreshRooms(int[] ports = null)
         {
             logger?.log("客户端刷新房间列表");
-            curNetwork.refreshRooms(port);
+            curNetwork.refreshRooms(ports);
         }
-        public Task<RoomData[]> getRooms(int port = -1)
+        public Task<RoomData[]> getRooms(int[] ports = null)
         {
             logger?.log("客户端请求房间列表");
-            return curNetwork.getRooms(port);
+            return curNetwork.getRooms();
         }
         void onAddOrUpdateRoomAck(RoomData roomData)
         {
