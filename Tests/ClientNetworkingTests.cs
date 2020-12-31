@@ -152,6 +152,11 @@ namespace Tests
                 }
             }
         }
+        IEnumerator addAIPlayerAssert(ClientNetworking[] clients)
+        {
+            //一个人创建房间
+            yield return clients[0].createRoom(clients[0].getLocalPlayerData(), getPorts(clients)).wait();
+        }
         IEnumerator startNetworkAndAssert(int count, Func<string, ClientNetworking> netStarter, Func<ClientNetworking[], IEnumerator> onAssert)
         {
             ClientNetworking[] clients = new ClientNetworking[count];
