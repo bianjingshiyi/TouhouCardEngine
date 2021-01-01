@@ -45,13 +45,13 @@ namespace TouhouCardEngine
         /// <param name="hostPlayerData"></param>
         /// <returns></returns>
         /// <remarks>游戏大厅的话，就应该是返回游戏大厅构造并且保存在列表里的房间了吧</remarks>
-        public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData, int port = -1)
+        public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData, int[] ports = null)
         {
             log?.log(name + "创建房间");
             RoomData data = new RoomData(Guid.NewGuid().ToString());
             data.playerDataList.Add(hostPlayerData);
             data.ownerId = hostPlayerData.id;
-            invokeBroadcast(nameof(ackCreateRoom), port, data);
+            invokeBroadcast(nameof(ackCreateRoom), ports, data);
             return Task.FromResult(data);
         }
         /// <summary>
@@ -72,10 +72,10 @@ namespace TouhouCardEngine
         /// 广播一个刷新房间列表的消息。
         /// </summary>
         /// <param name="port"></param>
-        public override void refreshRooms(int port = -1)
+        public override void refreshRooms(int[] ports = null)
         {
             log?.log(name + "刷新房间");
-            invokeBroadcast(nameof(reqGetRoom), port);
+            invokeBroadcast(nameof(reqGetRoom), ports);
         }
         public void reqGetRoom()
         {
@@ -97,14 +97,15 @@ namespace TouhouCardEngine
             onAddOrUpdateRoomAck?.Invoke(roomData);
         }
         /// <summary>
-        /// 获取房间列表，在局域网实现下实际上是返回发现的第一个房间。
+        /// 获取房间列表，返回缓存的房间列表
         /// </summary>
         /// <param name="port"></param>
         /// <returns></returns>
-        public override async Task<RoomData[]> getRooms(int port = -1)
+        public override async Task<RoomData[]> getRooms()
         {
-            RoomData data = await invokeBroadcastAny<RoomData>("discoverRoom", port);
-            return new RoomData[] { data };
+            //RoomData data = await invokeBroadcastAny<RoomData>("discoverRoom", ports);
+            //return new RoomData[] { data };
+            throw new NotImplementedException();
         }
         /// <summary>
         /// 被远程调用的发现房间方法，提供事件接口给ClientLogic用于回复存在的房间。
@@ -178,7 +179,7 @@ namespace TouhouCardEngine
         }
         protected override void OnPeerConnected(NetPeer peer)
         {
-            
+
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {

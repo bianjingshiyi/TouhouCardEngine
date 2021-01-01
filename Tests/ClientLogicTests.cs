@@ -112,17 +112,38 @@ namespace Tests
         }
         IEnumerator LANRoomCreate2AndAssert(Func<ClientLogic, ClientLogic, IEnumerator> onAssert)
         {
-            using (ClientLogic client1 = new ClientLogic(new UnityLogger("RoomLocal")))
+            yield return LANRoomCreateManyAndAssert(2, clients => onAssert(clients[0], clients[1]));
+            //using (ClientLogic client1 = new ClientLogic(new UnityLogger("RoomLocal")))
+            //{
+            //    new GameObject("Client1Updater").AddComponent<Updater>().action = () => client1.update();
+            //    client1.switchNetToLAN();
+            //    yield return client1.createOnlineRoom().wait();
+            //    using (ClientLogic client2 = new ClientLogic(new UnityLogger("RoomRemote")))
+            //    {
+            //        new GameObject("Client2Updater").AddComponent<Updater>().action = () => client2.update();
+            //        client2.switchNetToLAN();
+            //        yield return onAssert(client1, client2);
+            //    }
+            //}
+        }
+        IEnumerator LANRoomCreateManyAndAssert(int count, Func<ClientLogic[], IEnumerator> onAssert)
+        {
+            ClientLogic[] clients = new ClientLogic[count];
+            Updater[] updaters = new Updater[count];
+            for (int i = 0; i < count; i++)
             {
-                new GameObject("Client1Updater").AddComponent<Updater>().action = () => client1.update();
-                client1.switchNetToLAN();
-                yield return client1.createOnlineRoom().wait();
-                using (ClientLogic client2 = new ClientLogic(new UnityLogger("RoomRemote")))
-                {
-                    new GameObject("Client2Updater").AddComponent<Updater>().action = () => client2.update();
-                    client2.switchNetToLAN();
-                    yield return onAssert(client1, client2);
-                }
+                ClientLogic client = new ClientLogic(new UnityLogger(i == 0 ? "Local" : "Remote" + i));
+                updaters[i] = new GameObject("Client" + i + "Updater").AddComponent<Updater>();
+                updaters[i].action = () => client.update();
+                client.switchNetToLAN();
+                clients[i] = client;
+            }
+            yield return clients[0].createOnlineRoom().wait();
+            yield return onAssert(clients);
+            for (int i = 0; i < count; i++)
+            {
+                clients[i].Dispose();
+                Object.Destroy(updaters[i].gameObject);
             }
         }
         [UnityTest]
@@ -144,7 +165,7 @@ namespace Tests
             RoomData room = null;
             client2.onNewRoom += r => room = r;
             //客户端创建房间，并且广播新增房间信息
-            yield return client1.createOnlineRoom(client2.port).wait();
+            yield return client1.createOnlineRoom(new int[] { client2.port }).wait();
             //client2应该会收到创建房间信息
             yield return TestHelper.waitUntil(() => room != null, 5);
             Assert.NotNull(room);
@@ -164,9 +185,9 @@ namespace Tests
             RoomData room = null;
             client2.onUpdateRoom += r => room = r;
             //client1先创建房间，但是其实这个时候client2就应该收到消息，得到房间了
-            yield return client1.createOnlineRoom(client2.port);
+            yield return client1.createOnlineRoom(new int[] { client2.port });
             //client2广播发现房间消息，会得到client1的回应，不过房间里面应该已经有了
-            client2.refreshRooms(client1.port);
+            client2.refreshRooms(new int[] { client1.port });
             yield return TestHelper.waitUntil(() => room != null, 5);
             Assert.NotNull(room);
         }
@@ -181,7 +202,7 @@ namespace Tests
             //等待client2获取到房间
             client2.onNewRoom += r => room = r;
             //client1创建房间
-            yield return client1.createOnlineRoom(client2.port);
+            yield return client1.createOnlineRoom(new int[] { client2.port });
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
             yield return client2.joinRoom(room);
@@ -207,7 +228,7 @@ namespace Tests
         {
             RoomData room = null;
             //client1创建房间
-            yield return client1.createOnlineRoom(client2.port);
+            yield return client1.createOnlineRoom(new int[] { client2.port });
             //等待client2获取到房间
             client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
@@ -229,7 +250,7 @@ namespace Tests
         {
             RoomData room = null;
             //client1创建房间
-            yield return client1.createOnlineRoom(client2.port);
+            yield return client1.createOnlineRoom(new int[] { client2.port });
             //等待client2获取到房间
             client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
@@ -252,7 +273,7 @@ namespace Tests
         {
             RoomData room = null;
             //client1创建房间
-            yield return client1.createOnlineRoom(client2.port);
+            yield return client1.createOnlineRoom(new int[] { client2.port });
             //等待client2获取到房间
             client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
