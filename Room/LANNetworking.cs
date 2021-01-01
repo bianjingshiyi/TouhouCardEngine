@@ -27,6 +27,7 @@ namespace TouhouCardEngine
             addRPCMethod(this, GetType().GetMethod(nameof(ackCreateRoom)));
             addRPCMethod(this, GetType().GetMethod(nameof(reqGetRoom)));
             addRPCMethod(this, GetType().GetMethod(nameof(ackGetRoom)));
+            addRPCMethod(this, GetType().GetMethod(nameof(ackJoinRoom)));
         }
         /// <summary>
         /// 局域网默认玩家使用随机Guid，没有玩家名字
@@ -158,7 +159,7 @@ namespace TouhouCardEngine
                 return operation.task;
             }
         }
-        public event Action<RoomPlayerData> onJoinRoomReq;
+        public event Func<RoomPlayerData,RoomData> onJoinRoomReq;
         #endregion
         #region 私有成员
         protected override void OnConnectionRequest(ConnectionRequest request)
@@ -220,7 +221,8 @@ namespace TouhouCardEngine
         {
             try
             {
-                onJoinRoomReq?.Invoke(player);
+                RoomData roomData = onJoinRoomReq?.Invoke(player);
+                invoke(request.RemoteEndPoint, nameof(ackJoinRoom), roomData);
             }
             catch (Exception e)
             {
@@ -229,6 +231,15 @@ namespace TouhouCardEngine
                 return;
             }
             request.Accept();
+        }
+
+        /// <summary>
+        /// 加入一方收到加入成功确认，得到房间信息
+        /// </summary>
+        /// <param name="roomData">房间信息</param>
+        public void ackJoinRoom(RoomData roomData) {
+            JoinRoomOperation operation = opList.OfType<JoinRoomOperation>().FirstOrDefault();
+            completeOperation(operation, roomData);
         }
         void ackJoinRoomReject()
         {

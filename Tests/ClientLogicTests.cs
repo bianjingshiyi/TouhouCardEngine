@@ -31,7 +31,7 @@ namespace Tests
             RoomData room = client.room;
             Assert.AreEqual(1, room.playerDataList.Count);
             Assert.AreNotEqual(0, room.playerDataList[0].id);
-            Assert.AreNotEqual(RoomPlayerType.human, room.playerDataList[0].type);
+            Assert.AreEqual(RoomPlayerType.human, room.playerDataList[0].type);
             yield break;
         }
         [UnityTest]
@@ -178,10 +178,10 @@ namespace Tests
         IEnumerator LANRoomJoinAssert(ClientLogic client1, ClientLogic client2)
         {
             RoomData room = null;
-            //client1创建房间
-            yield return client1.createOnlineRoom(client2.port);
             //等待client2获取到房间
             client2.onNewRoom += r => room = r;
+            //client1创建房间
+            yield return client1.createOnlineRoom(client2.port);
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
             yield return client2.joinRoom(room);
