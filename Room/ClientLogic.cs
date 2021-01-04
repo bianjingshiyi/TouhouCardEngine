@@ -8,6 +8,8 @@ namespace TouhouCardEngine
 {
     public class ClientLogic : IDisposable
     {
+        const int MAX_PLAYER_COUNT = 2;
+
         #region 公共成员
         public ClientLogic(ILogger logger = null)
         {
@@ -65,6 +67,7 @@ namespace TouhouCardEngine
             RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
             RoomData room = await curNetwork.createRoom(localPlayerData, ports);
             this.room = room;
+            this.room.maxPlayerCount = MAX_PLAYER_COUNT;
             localPlayer = localPlayerData;
         }
         public void refreshRooms(int[] ports = null)
@@ -142,12 +145,14 @@ namespace TouhouCardEngine
             else
                 throw new RPCDontResponseException();
         }
-        private void onJoinRoomReq(RoomPlayerData player)
+        private RoomData onJoinRoomReq(RoomPlayerData player)
         {
             if (room == null)
                 throw new InvalidOperationException("房间不存在");
-            if (room.playerDataList.Count < room.maxPlayerCount)
+            if (room.playerDataList.Count < room.maxPlayerCount) {
                 room.playerDataList.Add(player);
+                return room;
+            }
             else
                 throw new InvalidOperationException("房间已满");
         }

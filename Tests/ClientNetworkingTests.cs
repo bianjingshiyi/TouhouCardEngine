@@ -106,6 +106,7 @@ namespace Tests
             Task<RoomData[]> roomsTask = clients[1].getRooms();
             yield return roomsTask.wait();
             RoomData room = roomsTask.Result[0];
+            regLANOnJoinRoomReq((clients[0] as LANNetworking), room);
             Assert.NotNull(room);
             Task<RoomData> roomTask = clients[1].joinRoom(room, clients[1].getLocalPlayerData());
             yield return roomTask.wait();
@@ -186,6 +187,12 @@ namespace Tests
         LANNetworking startLANNetworking(string name)
         {
             return new LANNetworking(new UnityLogger(name));
+        }
+        void regLANOnJoinRoomReq(LANNetworking lanNet, RoomData room) {
+            lanNet.onJoinRoomReq += playerData => {
+                room.playerDataList.Add(playerData);
+                return room;
+            };
         }
         ClientNetworking startClientNetworking(string name)
         {

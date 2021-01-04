@@ -27,6 +27,7 @@ namespace TouhouCardEngine
             addRPCMethod(this, GetType().GetMethod(nameof(ackCreateRoom)));
             addRPCMethod(this, GetType().GetMethod(nameof(reqGetRoom)));
             addRPCMethod(this, GetType().GetMethod(nameof(ackGetRoom)));
+            addRPCMethod(this, GetType().GetMethod(nameof(ackJoinRoom)));
         }
         /// <summary>
         /// 局域网默认玩家使用随机Guid，没有玩家名字
@@ -64,8 +65,11 @@ namespace TouhouCardEngine
             {
                 ip = unconnectedInvokeIP
             };
+            onNewRoom?.Invoke(data);
             onAddOrUpdateRoomAck?.Invoke(data);
         }
+        public override event Action<RoomData> onNewRoom;
+        [Obsolete("应该注册更高层的onNewRoom")]
         public event Action<RoomData> onAddOrUpdateRoomAck;
         /// <summary>
         /// 广播一个刷新房间列表的消息。
@@ -93,8 +97,10 @@ namespace TouhouCardEngine
             {
                 ip = unconnectedInvokeIP
             };
+            onUpdateRoom?.Invoke(roomData);
             onAddOrUpdateRoomAck?.Invoke(roomData);
         }
+        public override event Action<RoomData> onUpdateRoom;
         /// <summary>
         /// 获取房间列表，返回缓存的房间列表
         /// </summary>
@@ -104,7 +110,7 @@ namespace TouhouCardEngine
         {
             //RoomData data = await invokeBroadcastAny<RoomData>("discoverRoom", ports);
             //return new RoomData[] { data };
-            throw new NotImplementedException();
+            return _roomInfoDict.Keys.ToArray();
         }
         /// <summary>
         /// 被远程调用的发现房间方法，提供事件接口给ClientLogic用于回复存在的房间。
@@ -159,7 +165,7 @@ namespace TouhouCardEngine
                 return operation.task;
             }
         }
-        public event Action<RoomPlayerData> onJoinRoomReq;
+        public event Func<RoomPlayerData,RoomData> onJoinRoomReq;
         #endregion
         #region 私有成员
         protected override void OnConnectionRequest(ConnectionRequest request)
@@ -221,7 +227,9 @@ namespace TouhouCardEngine
         {
             try
             {
-                onJoinRoomReq?.Invoke(player);
+                RoomData roomData = onJoinRoomReq?.Invoke(player);
+                 onUpdateRoom?.Invoke(roomData);
+                invoke(request.RemoteEndPoint, nameof(ackJoinRoom), roomData);
             }
             catch (Exception e)
             {
@@ -230,6 +238,16 @@ namespace TouhouCardEngine
                 return;
             }
             request.Accept();
+        }
+
+        /// <summary>
+        /// 加入一方收到加入成功确认，得到房间信息
+        /// </summary>
+        /// <param name="roomData">房间信息</param>
+        public void ackJoinRoom(RoomData roomData) {
+            JoinRoomOperation operation = opList.OfType<JoinRoomOperation>().FirstOrDefault();
+            onUpdateRoom?.Invoke(roomData);
+            completeOperation(operation, roomData);
         }
         void ackJoinRoomReject()
         {
