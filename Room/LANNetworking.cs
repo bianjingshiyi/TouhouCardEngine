@@ -89,7 +89,7 @@ namespace TouhouCardEngine
         /// <summary>
         /// 当局域网收到发现房间的请求的时候被调用，需要返回当前ClientLogic的房间信息。
         /// </summary>
-        public event Func<RoomData> onGetRoomReq;
+        public override event Func<RoomData> onGetRoomReq;
         public void ackGetRoom(RoomData roomData)
         {
             log?.log(name + "收到获取房间消息");
@@ -165,7 +165,7 @@ namespace TouhouCardEngine
                 return operation.task;
             }
         }
-        public event Func<RoomPlayerData,RoomData> onJoinRoomReq;
+        public override event Func<RoomPlayerData,RoomData> onJoinRoomReq;
         #endregion
         #region 私有成员
         protected override void OnConnectionRequest(ConnectionRequest request)

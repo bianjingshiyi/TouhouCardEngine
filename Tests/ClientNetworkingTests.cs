@@ -8,11 +8,14 @@ using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Tests
 {
     public class ClientNetworkingTests
     {
+       
+
         #region 局域网测试
         [UnityTest]
         public IEnumerator LANGetLocalPlayerTest()
@@ -64,14 +67,16 @@ namespace Tests
         }
         IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
         {
-            RoomData[] rooms = new RoomData[clients.Length];
             //第一个人创建房间，但是谁都不告诉
-            yield return clients[0].createRoom(clients[0].getLocalPlayerData(), new int[0]).wait();
+            RoomData[] rooms = new RoomData[clients.Length];
+            Task<RoomData> rdt = clients[0].createRoom(clients[0].getLocalPlayerData(), new int[0]);
+            yield return rdt.wait();
+            clients[0].onGetRoomReq +=()=> rdt.Result;
             //所有人刷新房间，应该可以刷出来这个房间
             for (int i = 0; i < clients.Length; i++)
             {
                 int I = i;
-                clients[i].onNewRoom += r => rooms[I] = r;
+                clients[i].onUpdateRoom += r => rooms[I] = r;
                 clients[i].refreshRooms(getPorts(clients));
             }
             yield return TestHelper.waitUntil(() => rooms.All(r => r != null), 5);
@@ -118,7 +123,8 @@ namespace Tests
             Assert.AreEqual(clients[1].getLocalPlayerData().id, room.playerDataList[1].id);
             //预期其他人看到房间更新了，里面有两个人
             yield return TestHelper.waitUntil(() => updateRooms.All(r => r != null), 5);
-            for (int i = 0; i < updateRooms.Length; i++)
+            Debug.Log(Thread.CurrentThread.ManagedThreadId);
+            for (int i = 0; i < updateRooms.Length && updateRooms[i]!=null; i++)
             {
                 var updateRoom = updateRooms[i];
                 Assert.AreEqual(room.ID, updateRoom.ID);
@@ -140,11 +146,11 @@ namespace Tests
             Assert.AreEqual(clients[2].getLocalPlayerData().id, room.playerDataList[2].id);
             //预期其他人看见房间更新了，房间里的人可以看到细节，外面的人只能看到数量变化
             yield return TestHelper.waitUntil(() => updateRooms.All(r => r != null), 5);
-            for (int i = 0; i < updateRooms.Length; i++)
+            for (int i = 0; i < updateRooms.Length&&updateRooms[i]!=null; i++)
             {
                 var updateRoom = updateRooms[i];
                 Assert.AreEqual(room.ID, updateRoom.ID);
-                Assert.AreEqual(2, updateRoom.playerDataList.Count);
+                Assert.AreEqual(3, updateRoom.playerDataList.Count);
                 if (i < 3)
                 {
                     Assert.AreEqual(clients[0].getLocalPlayerData().id, updateRoom.playerDataList[0].id);
