@@ -105,7 +105,6 @@ namespace NitoriNetwork.Common
             sb.Append(" Lang/");
             var culture = CultureInfo.CurrentCulture;
             sb.Append(culture.Name);
-            UnityEngine.Debug.Log(sb.ToString());
             return sb.ToString();
         }
 
