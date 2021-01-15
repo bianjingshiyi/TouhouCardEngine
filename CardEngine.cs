@@ -308,6 +308,12 @@ namespace TouhouCardEngine
         /// <returns>介于最大值与最小值之间，可能为最大值也可能为最小值</returns>
         public int randomInt(int min, int max)
         {
+            if (nextRandomIntList.Count > 0)
+            {
+                int result = nextRandomIntList[0];
+                nextRandomIntList.RemoveAt(0);
+                return result;
+            }
             return random.Next(min, max + 1);
         }
         /// <summary>
@@ -320,6 +326,12 @@ namespace TouhouCardEngine
         {
             return (float)(random.NextDouble() * (max - min) + min);
         }
+        public void setNextRandomInt(params int[] results)
+        {
+            nextRandomIntList.Clear();
+            nextRandomIntList.AddRange(results);
+        }
+        List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
     }
     public enum EventPhase
