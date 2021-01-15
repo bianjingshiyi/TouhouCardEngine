@@ -86,5 +86,26 @@ namespace Tests
             Assert.AreEqual(0, client.id);
             Assert.True(isConnected);
         }
+
+        [Test]
+        public void VersionInfoTest()
+        {
+            // 最新版本
+            var latest = serverClient.GetLatestUpdate();
+            Assert.NotNull(latest);
+
+            // 指定版本
+            var spec = serverClient.GetUpdateByVersion(latest.Version);
+            Assert.NotNull(spec);
+
+            Assert.AreEqual(latest.Version, spec.Version);
+            Assert.AreEqual(latest.Date, spec.Date);
+            Assert.AreEqual(latest.DeltaPackageUrl, spec.DeltaPackageUrl);
+            Assert.AreEqual(latest.FullPackageUrl, spec.FullPackageUrl);
+
+            // 版本列表
+            var list = serverClient.GetUpdateDeltaByVersion(spec.Version);
+            Assert.IsEmpty(list);
+        }
     }
 }

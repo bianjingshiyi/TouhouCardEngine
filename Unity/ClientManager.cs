@@ -388,11 +388,12 @@ namespace TouhouCardEngine
         /// 初始化服务器的客户端
         /// </summary>
         /// <param name="uri"></param>
-        public void InitServerClient(string uri)
+        public void InitServerClient(string uri, string gameVersion = "1.0")
         {
             if (_serverClient == null)
             {
-                _serverClient = new ServerClient(uri, System.IO.Path.Combine(Application.persistentDataPath, "token"));
+                // todo: 传入正确的游戏版本
+                _serverClient = new ServerClient(uri, gameVersion, System.IO.Path.Combine(Application.persistentDataPath, "token"));
                 try
                 {
                     var userInfo = _serverClient.GetUserInfo();

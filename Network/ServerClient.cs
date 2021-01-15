@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System;
+using System.Text;
+using System.Globalization;
 
 namespace NitoriNetwork.Common
 {
@@ -17,8 +19,7 @@ namespace NitoriNetwork.Common
     /// </summary>
     public class ServerClient
     {
-        const string Server = "https://serv.igsk.fun";
-        const string ua = "ZMCS/1.0 NitoriNetwork/1.0";
+        const string uaVersionKey = "zmcs";
 
         /// <summary>
         /// 用户Session
@@ -35,18 +36,13 @@ namespace NitoriNetwork.Common
         string cookieFilePath { get; }
 
         /// <summary>
-        /// 使用默认服务器初始化客户端
-        /// </summary>
-        public ServerClient() : this(Server) { }
-
-        /// <summary>
         /// 指定一个服务器初始化Client
         /// </summary>
         /// <param name="baseUri"></param>
-        public ServerClient(string baseUri, string cookieFile = "")
+        public ServerClient(string baseUri, string gameVersion = "1.0", string cookieFile = "")
         {
             client = new RestClient(baseUri);
-            client.UserAgent = ua;
+            client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
             cookieFilePath = cookieFile;
 
             if (string.IsNullOrEmpty(cookieFile))
@@ -96,13 +92,23 @@ namespace NitoriNetwork.Common
             }
         }
 
-        class ResponseData<T>
+        /// <summary>
+        /// 附加的UserAgent，用于统计
+        /// </summary>
+        /// <returns></returns>
+        string additionalUserAgent()
         {
-            public int code;
-            public string message;
-            public T result;
+            StringBuilder sb = new StringBuilder();
+            var os = Environment.OSVersion;
+            sb.Append("OS/");
+            sb.Append(os.VersionString);
+            sb.Append(" Lang/");
+            var culture = CultureInfo.CurrentCulture;
+            sb.Append(culture.Name);
+            return sb.ToString();
         }
 
+        #region Login
         /// <summary>
         /// 用户登录
         /// 需要先获取验证码图像
@@ -120,12 +126,13 @@ namespace NitoriNetwork.Common
             request.AddParameter("username", user);
             request.AddParameter("password", pass);
 
-            var response = client.Execute<ResponseData<string>>(request);
+            var response = client.Execute<ExecuteResult<string>>(request);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    if (response.Data.code == 1) return false;
+                    // 用户名/密码不正确
+                    if (response.Data.code == ResultCode.Fail) return false;
 
                     throw new NetClientException(response.Data.message);
                 }
@@ -135,7 +142,7 @@ namespace NitoriNetwork.Common
                 }
             }
 
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 return false;
             }
@@ -166,13 +173,13 @@ namespace NitoriNetwork.Common
             request.AddParameter("username", user);
             request.AddParameter("password", pass);
 
-            var response = await client.ExecuteAsync<ResponseData<string>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
                     // 登录失败
-                    if (response.Data.code == 1) return false;
+                    if (response.Data.code == ResultCode.Fail) return false;
 
                     throw new NetClientException(response.Data.message);
                 }
@@ -182,7 +189,7 @@ namespace NitoriNetwork.Common
                 }
             }
 
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 return false;
             }
@@ -195,7 +202,8 @@ namespace NitoriNetwork.Common
 
             return true;
         }
-
+        #endregion
+        #region Register
         /// <summary>
         /// 注册用户
         /// 需要先获取验证码图像
@@ -219,7 +227,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("nickname", nickname);
             request.AddParameter("invite", invite);
 
-            var response = client.Execute<ResponseData<string>>(request);
+            var response = client.Execute<ExecuteResult<string>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -233,7 +241,7 @@ namespace NitoriNetwork.Common
                 }
             }
 
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -262,7 +270,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("nickname", nickname);
             request.AddParameter("invite", invite);
 
-            var response = await client.ExecuteAsync<ResponseData<string>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -276,12 +284,13 @@ namespace NitoriNetwork.Common
                 }
             }
 
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
         }
-
+        #endregion
+        #region Captcha
         /// <summary>
         /// 获取验证码图像
         /// </summary>
@@ -315,8 +324,8 @@ namespace NitoriNetwork.Common
 
             return response.RawBytes;
         }
-
-
+        #endregion
+        #region Room
         /// <summary>
         /// 创建一个房间
         /// </summary>
@@ -324,13 +333,13 @@ namespace NitoriNetwork.Common
         public BriefRoomInfo CreateRoom()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = client.Execute<ResponseData<BriefRoomInfo>>(request);
+            var response = client.Execute<ExecuteResult<BriefRoomInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -344,13 +353,13 @@ namespace NitoriNetwork.Common
         public async Task<BriefRoomInfo> CreateRoomAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = await client.ExecuteAsync<ResponseData<BriefRoomInfo>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -364,13 +373,13 @@ namespace NitoriNetwork.Common
         public BriefRoomInfo[] GetRoomInfos()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = client.Execute<ResponseData<BriefRoomInfo[]>>(request);
+            var response = client.Execute<ExecuteResult<BriefRoomInfo[]>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -384,19 +393,20 @@ namespace NitoriNetwork.Common
         public async Task<BriefRoomInfo[]> GetRoomInfosAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = await client.ExecuteAsync<ResponseData<BriefRoomInfo[]>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo[]>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
             return response.Data.result;
         }
-
+        #endregion
+        #region User
         /// <summary>
         /// 获取自己的UID
         /// </summary>
@@ -422,13 +432,13 @@ namespace NitoriNetwork.Common
         public PublicBasicUserInfo GetUserInfo()
         {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
-            var response = client.Execute<ResponseData<PublicBasicUserInfo>>(request);
+            var response = client.Execute<ExecuteResult<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -443,13 +453,13 @@ namespace NitoriNetwork.Common
         public PublicBasicUserInfo GetUserInfo(int uid)
         {
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
-            var response = client.Execute<ResponseData<PublicBasicUserInfo>>(request);
+            var response = client.Execute<ExecuteResult<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -463,13 +473,13 @@ namespace NitoriNetwork.Common
         public async Task<PublicBasicUserInfo> GetUserInfoAsync()
         {
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
-            var response = await client.ExecuteAsync<ResponseData<PublicBasicUserInfo>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -483,13 +493,13 @@ namespace NitoriNetwork.Common
         public async Task<PublicBasicUserInfo> GetUserInfoAsync(int uid)
         {
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
-            var response = await client.ExecuteAsync<ResponseData<PublicBasicUserInfo>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<PublicBasicUserInfo>>(request);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
             }
-            if (response.Data.code != 0)
+            if (response.Data.code != ResultCode.Success)
             {
                 throw new NetClientException(response.Data.message);
             }
@@ -517,6 +527,133 @@ namespace NitoriNetwork.Common
             // 暂时没有异步的实现
             Logout();
         }
+        #endregion
+        #region Update
+        /// <summary>
+        /// 获取最新的版本更新信息
+        /// </summary>
+        /// <returns></returns>
+        public ClientUpdateInfo GetLatestUpdate()
+        {
+            RestRequest request = new RestRequest("/api/Update/latest", Method.GET);
+            var response = client.Execute<ExecuteResult<ClientUpdateInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取最新的版本更新信息
+        /// </summary>
+        /// <returns></returns>
+        public async Task<ClientUpdateInfo> GetLatestUpdateAsync()
+        {
+            RestRequest request = new RestRequest("/api/Update/latest", Method.GET);
+            var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取指定版本的更新信息
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public ClientUpdateInfo GetUpdateByVersion(string version)
+        {
+            RestRequest request = new RestRequest("/api/Update/" + version, Method.GET);
+            var response = client.Execute<ExecuteResult<ClientUpdateInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取指定版本的更新信息
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public async Task<ClientUpdateInfo> GetUpdateByVersionAsync(string version)
+        {
+            RestRequest request = new RestRequest("/api/Update/" + version, Method.GET);
+            var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取指定版本之后到最新版本的所有更新信息
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public ClientUpdateInfo[] GetUpdateDeltaByVersion(string version)
+        {
+            RestRequest request = new RestRequest("/api/Update/" + version + "/delta", Method.GET);
+            var response = client.Execute<ExecuteResult<ClientUpdateInfo[]>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取指定版本之后到最新版本的所有更新信息
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public async Task<ClientUpdateInfo[]> GetUpdateDeltaByVersionAsync(string version)
+        {
+            RestRequest request = new RestRequest("/api/Update/" + version + "/delta", Method.GET);
+            var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo[]>>(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+            return response.Data.result;
+        }
+
+        #endregion 
     }
 
     [System.Serializable]
