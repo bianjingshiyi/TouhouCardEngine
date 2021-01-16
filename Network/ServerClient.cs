@@ -101,7 +101,7 @@ namespace NitoriNetwork.Common
             StringBuilder sb = new StringBuilder();
             var os = Environment.OSVersion;
             sb.Append("OS/");
-            sb.Append(os.VersionString);
+            sb.Append(os.VersionString.Replace(" ", "_"));
             sb.Append(" Lang/");
             var culture = CultureInfo.CurrentCulture;
             sb.Append(culture.Name);
@@ -653,7 +653,107 @@ namespace NitoriNetwork.Common
             return response.Data.result;
         }
 
-        #endregion 
+        #endregion
+        #region RecoverPassword
+        /// <summary>
+        /// 请求找回密码
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="captcha"></param>
+        public void RecoverRequest(string mail, string captcha)
+        {
+            RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
+
+            request.AddHeader("x-captcha", captcha);
+            request.AddParameter("mail", mail);
+
+            var response = client.Execute<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+        }
+        /// <summary>
+        /// 请求找回密码
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="captcha"></param>
+        /// <returns></returns>
+        public async Task RecoverRequestAsync(string mail, string captcha)
+        {
+            RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
+
+            request.AddHeader("x-captcha", captcha);
+            request.AddParameter("mail", mail);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+        }
+        /// <summary>
+        /// 请求找回密码
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="captcha"></param>
+        /// <param name="code"></param>
+        /// <param name="password"></param>
+        public void RecoverPassword(string mail, string code, string password, string captcha)
+        {
+            RestRequest request = new RestRequest("/api/User/recover", Method.POST);
+
+            request.AddHeader("x-captcha", captcha);
+            request.AddParameter("mail", mail);
+            request.AddParameter("code", code);
+            request.AddParameter("password", password);
+
+            var response = client.Execute<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+        }
+
+        /// <summary>
+        /// 请求找回密码
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="captcha"></param>
+        /// <param name="code"></param>
+        /// <param name="password"></param>
+        public async Task RecoverPasswordAsync(string mail, string code, string password, string captcha)
+        {
+            RestRequest request = new RestRequest("/api/User/recover", Method.POST);
+
+            request.AddHeader("x-captcha", captcha);
+            request.AddParameter("mail", mail);
+            request.AddParameter("code", code);
+            request.AddParameter("password", password);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            if (response.Data.code != ResultCode.Success)
+            {
+                throw new NetClientException(response.Data.message);
+            }
+        }
+        #endregion
     }
 
     [System.Serializable]
