@@ -68,5 +68,15 @@ namespace TouhouCardEngine
             else
                 Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
         }
+
+        public void logTrace(string msg)
+        {
+            // 不记录
+        }
+
+        public void logTrace(string channel, string msg)
+        {
+            // 不记录
+        }
     }
 }

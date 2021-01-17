@@ -49,5 +49,16 @@ namespace TouhouCardEngine
         {
             TextComponent.text = $"[Warning][{channel}] {msg}";
         }
+
+        public void logTrace(string msg)
+        {
+            TextComponent.text = $"[Trace] {msg}";
+        }
+
+        public void logTrace(string channel, string msg)
+        {
+            TextComponent.text = $"[Trace][{channel}] {msg}";
+        }
+
     }
 }
