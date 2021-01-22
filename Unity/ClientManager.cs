@@ -415,6 +415,7 @@ namespace TouhouCardEngine
         [SerializeField]
         AccountInfo _account;
         ServerClient _serverClient;
+        public ServerClient ServerClient => _serverClient;
         #endregion
     }
     [Serializable]
