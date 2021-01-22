@@ -163,16 +163,4 @@ namespace TouhouCardEngine
         LobbyData _lobby = new LobbyData();
         #endregion
     }
-    class ClientLocalRoomPlayer : LocalRoomPlayer
-    {
-        public ClientLocalRoomPlayer(int id) : base(id)
-        {
-        }
-    }
-    class ClientRoomPlayer : RoomPlayer
-    {
-        public ClientRoomPlayer(int id) : base(id)
-        {
-        }
-    }
 }

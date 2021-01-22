@@ -14,7 +14,7 @@ namespace Tests
 {
     public class ClientNetworkingTests
     {
-       
+
 
         #region 局域网测试
         [UnityTest]
@@ -67,11 +67,11 @@ namespace Tests
         }
         IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
         {
-            //第一个人创建房间，但是谁都不告诉
             RoomData[] rooms = new RoomData[clients.Length];
+            //第一个人创建房间，但是谁都不告诉
             Task<RoomData> rdt = clients[0].createRoom(clients[0].getLocalPlayerData(), new int[0]);
             yield return rdt.wait();
-            clients[0].onGetRoomReq +=()=> rdt.Result;
+            clients[0].onGetRoomReq += () => rdt.Result;
             //所有人刷新房间，应该可以刷出来这个房间
             for (int i = 0; i < clients.Length; i++)
             {
@@ -111,7 +111,7 @@ namespace Tests
             Task<RoomData[]> roomsTask = clients[1].getRooms();
             yield return roomsTask.wait();
             RoomData room = roomsTask.Result[0];
-            regLANOnJoinRoomReq((clients[0] as LANNetworking), room);
+            //regLANOnJoinRoomReq(clients[0] as LANNetworking, room);
             Assert.NotNull(room);
             Task<RoomData> roomTask = clients[1].joinRoom(room, clients[1].getLocalPlayerData());
             yield return roomTask.wait();
@@ -124,7 +124,7 @@ namespace Tests
             //预期其他人看到房间更新了，里面有两个人
             yield return TestHelper.waitUntil(() => updateRooms.All(r => r != null), 5);
             Debug.Log(Thread.CurrentThread.ManagedThreadId);
-            for (int i = 0; i < updateRooms.Length && updateRooms[i]!=null; i++)
+            for (int i = 0; i < updateRooms.Length && updateRooms[i] != null; i++)
             {
                 var updateRoom = updateRooms[i];
                 Assert.AreEqual(room.ID, updateRoom.ID);
@@ -146,7 +146,7 @@ namespace Tests
             Assert.AreEqual(clients[2].getLocalPlayerData().id, room.playerDataList[2].id);
             //预期其他人看见房间更新了，房间里的人可以看到细节，外面的人只能看到数量变化
             yield return TestHelper.waitUntil(() => updateRooms.All(r => r != null), 5);
-            for (int i = 0; i < updateRooms.Length&&updateRooms[i]!=null; i++)
+            for (int i = 0; i < updateRooms.Length && updateRooms[i] != null; i++)
             {
                 var updateRoom = updateRooms[i];
                 Assert.AreEqual(room.ID, updateRoom.ID);
@@ -163,6 +163,21 @@ namespace Tests
         {
             //一个人创建房间
             yield return clients[0].createRoom(clients[0].getLocalPlayerData(), getPorts(clients)).wait();
+            //向房间中添加AI玩家
+            yield return clients[0].addAIPlayer().wait();
+            //所有人都会收到
+        }
+        IEnumerator setRoomPropAssert(ClientNetworking[] clients)
+        {
+            throw new NotImplementedException();
+        }
+        IEnumerator setPlayerPropAssert(ClientNetworking[] clients)
+        {
+            throw new NotImplementedException();
+        }
+        IEnumerator quitRoomAssert(ClientNetworking[] clients)
+        {
+            throw new NotImplementedException();
         }
         IEnumerator startNetworkAndAssert(int count, Func<string, ClientNetworking> netStarter, Func<ClientNetworking[], IEnumerator> onAssert)
         {
@@ -194,11 +209,14 @@ namespace Tests
         {
             return new LANNetworking(new UnityLogger(name));
         }
-        void regLANOnJoinRoomReq(LANNetworking lanNet, RoomData room) {
-            lanNet.onJoinRoomReq += playerData => {
-                room.playerDataList.Add(playerData);
-                return room;
-            };
+        void regLANOnJoinRoomReq(LANNetworking lanNet, RoomData room)
+        {
+            //lanNet.onJoinRoomReq += playerData =>
+            //{
+            //    room.playerDataList.Add(playerData);
+            //    return room;
+            //};
+            throw new NotImplementedException();
         }
         ClientNetworking startClientNetworking(string name)
         {
