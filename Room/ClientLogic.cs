@@ -82,17 +82,17 @@ namespace TouhouCardEngine
         }
         void onAddOrUpdateRoomAck(RoomData roomData)
         {
-            logger?.log("客户端更新房间" + roomData.ID);
-            if (!_lobby.containsId(roomData.ID))
-            {
-                _lobby.Add(roomData);
-                onNewRoom?.Invoke(roomData);
-            }
-            else
-            {
-                _lobby.update(roomData);
-                onUpdateRoom?.Invoke(roomData);
-            }
+            //logger?.log("客户端更新房间" + roomData.ID);
+            //if (!_lobby.containsId(roomData.ID))
+            //{
+            //    _lobby.Add(roomData);
+            //    onNewRoom?.Invoke(roomData);
+            //}
+            //else
+            //{
+            //    _lobby.update(roomData);
+            //    onUpdateRoom?.Invoke(roomData);
+            //}
         }
         public event Action<RoomData> onNewRoom;
         public event Action<RoomData> onUpdateRoom;
@@ -160,7 +160,7 @@ namespace TouhouCardEngine
         LANNetworking LANNetwork { get; }
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
-        LobbyData _lobby = new LobbyData();
+        //LobbyData _lobby = new LobbyData();
         #endregion
     }
 }
