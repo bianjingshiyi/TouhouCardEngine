@@ -6,7 +6,7 @@ using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
-    public class ClientLogic : IDisposable
+    public partial class ClientLogic : IDisposable
     {
         const int MAX_PLAYER_COUNT = 2;
 
@@ -41,19 +41,16 @@ namespace TouhouCardEngine
             if (curNetwork != null)
             {
                 //切换网络注销事件。
-                if (curNetwork == LANNetwork)
-                {
-                    LANNetwork.onGetRoomReq -= onDiscoverRoomReq;
-                    LANNetwork.onAddOrUpdateRoomAck -= onAddOrUpdateRoomAck;
-                    LANNetwork.onJoinRoomReq -= onJoinRoomReq;
-                }
+                LANNetwork.onGetRoom -= onGetRoom;
+                curNetwork.onNewRoom -= onNewOrUpdateRoomAck;
+                curNetwork.onJoinRoomReq -= onJoinRoomReq;
             }
             if (!LANNetwork.isRunning)
                 LANNetwork.start();
             curNetwork = LANNetwork;
-            LANNetwork.onGetRoomReq += onDiscoverRoomReq;
-            LANNetwork.onAddOrUpdateRoomAck += onAddOrUpdateRoomAck;
-            LANNetwork.onJoinRoomReq += onJoinRoomReq;
+            LANNetwork.onGetRoom += onGetRoom;
+            curNetwork.onNewRoom += onNewOrUpdateRoomAck;
+            curNetwork.onJoinRoomReq += onJoinRoomReq;
         }
         /// <summary>
         /// 
@@ -67,7 +64,7 @@ namespace TouhouCardEngine
             RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
             RoomData room = await curNetwork.createRoom(localPlayerData, ports);
             this.room = room;
-            this.room.maxPlayerCount = MAX_PLAYER_COUNT;
+            //this.room.maxPlayerCount = MAX_PLAYER_COUNT;
             localPlayer = localPlayerData;
         }
         public void refreshRooms(int[] ports = null)
@@ -80,22 +77,15 @@ namespace TouhouCardEngine
             logger?.log("客户端请求房间列表");
             return curNetwork.getRooms();
         }
-        void onAddOrUpdateRoomAck(RoomData roomData)
+        void onNewOrUpdateRoomAck(RoomData roomData)
         {
-            //logger?.log("客户端更新房间" + roomData.ID);
-            //if (!_lobby.containsId(roomData.ID))
-            //{
-            //    _lobby.Add(roomData);
-            //    onNewRoom?.Invoke(roomData);
-            //}
-            //else
-            //{
-            //    _lobby.update(roomData);
-            //    onUpdateRoom?.Invoke(roomData);
-            //}
+            logger?.log("客户端更新房间" + roomData.ID);
+            lobby.updateOrAddRoom(roomData, out var newRoom);
+            if (newRoom)
+                onNewRoom?.Invoke(roomData);
+            else
+                onUpdateRoom.Invoke(roomData);
         }
-        public event Action<RoomData> onNewRoom;
-        public event Action<RoomData> onUpdateRoom;
         public async Task<bool> joinRoom(RoomData room)
         {
             logger?.log("客户端请求加入房间" + room);
@@ -130,15 +120,18 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+        public event Action<RoomData> onNewRoom;
+        public event Action<RoomData> onUpdateRoom;
         public RoomPlayerData localPlayer { get; private set; } = null;
         public RoomData room { get; private set; } = null;
+        public Lobby lobby { get; } = new Lobby();
         /// <summary>
         /// 网络端口
         /// </summary>
         public int port => curNetwork != null ? curNetwork.port : -1;
         #endregion
         #region 私有成员
-        private RoomData onDiscoverRoomReq()
+        private RoomData onGetRoom()
         {
             if (room != null)
                 return room;
@@ -149,7 +142,8 @@ namespace TouhouCardEngine
         {
             if (room == null)
                 throw new InvalidOperationException("房间不存在");
-            if (room.playerDataList.Count < room.maxPlayerCount) {
+            if (room.playerDataList.Count < room.maxPlayerCount)
+            {
                 room.playerDataList.Add(player);
                 return room;
             }

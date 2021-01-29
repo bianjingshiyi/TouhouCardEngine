@@ -9,13 +9,12 @@ using Object = UnityEngine.Object;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace Tests
 {
     public class ClientNetworkingTests
     {
-
-
         #region 局域网测试
         [UnityTest]
         public IEnumerator LANGetLocalPlayerTest()
@@ -27,11 +26,11 @@ namespace Tests
         {
             yield return startNetworkAndAssert(10, startLANNetworking, createRoomAssert);
         }
-        [UnityTest]
-        public IEnumerator LANRefreshRoomsTest()
-        {
-            yield return startNetworkAndAssert(10, startLANNetworking, refreshRoomsAssert);
-        }
+        //[UnityTest]
+        //public IEnumerator LANRefreshRoomsTest()
+        //{
+        //    yield return startNetworkAndAssert(10, startLANNetworking, refreshRoomsAssert);
+        //}
         [UnityTest]
         public IEnumerator LANGetRoomsTest()
         {
@@ -65,25 +64,38 @@ namespace Tests
             yield return TestHelper.waitUntil(() => rooms.All(r => r != null), 5);
             Assert.True(rooms.All(r => r != null));
         }
-        IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
+        //IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
+        //{
+        //    RoomData[] rooms = new RoomData[clients.Length];
+        //    //第一个人创建房间，但是谁都不告诉
+        //    Task<RoomData> rdt = clients[0].createRoom(clients[0].getLocalPlayerData(), new int[0]);
+        //    yield return rdt.wait();
+        //    clients[0].onGetRoomReq += () => rdt.Result;
+        //    //所有人刷新房间，应该可以刷出来这个房间
+        //    for (int i = 0; i < clients.Length; i++)
+        //    {
+        //        int I = i;
+        //        clients[i].onUpdateRoom += r => rooms[I] = r;
+        //        clients[i].refreshRooms(getPorts(clients));
+        //    }
+        //    yield return TestHelper.waitUntil(() => rooms.All(r => r != null), 5);
+        //    Assert.True(rooms.All(r => r != null));
+        //}
+        /// <summary>
+        /// 获取当前所连接网络中所有创建的房间，可以立刻返回，也可以在不超时的范围内通过onNewRoom返回。
+        /// </summary>
+        /// <param name="clients"></param>
+        /// <returns></returns>
+        IEnumerator getRoomsAssert(ClientNetworking[] clients)
         {
-            RoomData[] rooms = new RoomData[clients.Length];
-            //第一个人创建房间，但是谁都不告诉
-            Task<RoomData> rdt = clients[0].createRoom(clients[0].getLocalPlayerData(), new int[0]);
-            yield return rdt.wait();
-            clients[0].onGetRoomReq += () => rdt.Result;
-            //所有人刷新房间，应该可以刷出来这个房间
+            bool result = true;
+            List<RoomData>[] rooms = new List<RoomData>[clients.Length];
             for (int i = 0; i < clients.Length; i++)
             {
                 int I = i;
-                clients[i].onUpdateRoom += r => rooms[I] = r;
-                clients[i].refreshRooms(getPorts(clients));
+                rooms[I] = new List<RoomData>();
+                clients[I].onNewRoom += r => rooms[I].Add(r);
             }
-            yield return TestHelper.waitUntil(() => rooms.All(r => r != null), 5);
-            Assert.True(rooms.All(r => r != null));
-        }
-        IEnumerator getRoomsAssert(ClientNetworking[] clients)
-        {
             //一个人创建房间，发送广播通知给所有人
             yield return clients[0].createRoom(clients[0].getLocalPlayerData(), getPorts(clients)).wait();
             //第二个人创建房间，发送广播通知给所有人
@@ -93,8 +105,13 @@ namespace Tests
             {
                 Task<RoomData[]> roomsTask = client.getRooms();
                 yield return roomsTask.wait(5);
-                Assert.AreEqual(2, roomsTask.Result.Length);
+                if (roomsTask.Result.Length != 2)
+                    result = false;
             }
+            if (result)
+                yield break;
+            yield return new WaitForSeconds(5);
+            Assert.True(rooms.All(l => l.Count == 2));
         }
         IEnumerator joinRoomAssert(ClientNetworking[] clients)
         {
