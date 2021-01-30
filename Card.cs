@@ -97,19 +97,25 @@ namespace TouhouCardEngine
             if (game != null && game.triggers != null)
                 return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg()
                 { game = game, card = this, modifier = modifier, valueBefore = getProp(game, modifier.propName) },
-                arg =>
+                async arg =>
                 {
                     Card card = arg.card as Card;
                     modifier = arg.modifier as PropModifier;
                     if (modifier == null)
                         throw new ArgumentNullException(nameof(modifier));
-                    modifier.beforeAdd(game, card);
+                    object beforeValue = card.getProp(game, modifier.propName);
+                    await modifier.beforeAdd(game, card);
                     card.modifierList.Add(modifier);
-                    modifier.afterAdd(game, card);
-                    object prop = card.getProp(game, modifier.propName);
-                    (arg as AddModiEventArg).valueAfter = prop;
-                    game?.logger?.log("PropModifier", card + "获得属性修正" + modifier + "=>" + propToString(prop));
-                    return Task.CompletedTask;
+                    await modifier.afterAdd(game, card);
+                    object value = card.getProp(game, modifier.propName);
+                    (arg as AddModiEventArg).valueAfter = value;
+                    game?.logger?.log(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + propToString(value));
+                    await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.propName, beforeValue = beforeValue, value = value },
+                    arg2 =>
+                    {
+                        arg2.game?.logger?.log(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + propToString(arg2.value));
+                        return Task.CompletedTask;
+                    });
                 });
             else
             {
@@ -286,34 +292,34 @@ namespace TouhouCardEngine
             return buffList.Exists(b => b.id == buffId);
         }
         #region 属性
-        public Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value)
+        public Task<IPropChangeEventArg> setProp<T>(IGame game, string propName, T value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<ISetPropEventArg>(new SetPropEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
+                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
                 {
                     Card card = arg.card as Card;
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
-                    game.logger?.log("Game", card + "的" + propName + "=>" + propToString(v));
+                    game.logger?.log("Game", card + "的属性" + propName + "=>" + propToString(v));
                     return Task.CompletedTask;
                 });
             else
             {
                 propDic[propName] = value;
-                return Task.FromResult<ISetPropEventArg>(default);
+                return Task.FromResult<IPropChangeEventArg>(default);
             }
         }
-        public class SetPropEventArg : EventArg, ISetPropEventArg
+        public class PropChangeEventArg : EventArg, IPropChangeEventArg
         {
             public Card card;
             public string propName;
             public object beforeValue;
             public object value;
-            ICard ISetPropEventArg.card => card;
-            string ISetPropEventArg.propName => propName;
-            object ISetPropEventArg.beforeValue => beforeValue;
-            object ISetPropEventArg.value => value;
+            ICard IPropChangeEventArg.card => card;
+            string IPropChangeEventArg.propName => propName;
+            object IPropChangeEventArg.beforeValue => beforeValue;
+            object IPropChangeEventArg.value => value;
         }
         public T getProp<T>(IGame game, string propName)
         {

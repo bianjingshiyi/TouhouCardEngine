@@ -43,7 +43,7 @@ namespace TouhouCardEngine
             propName = origin.propName;
             hookPropName = origin.hookPropName;
         }
-        Trigger<ISetPropEventArg> trigger { get; set; }
+        Trigger<IPropChangeEventArg> trigger { get; set; }
         public override async Task beforeAdd(IGame game, Card card)
         {
             Card hookedCard = hookCard.getValue(game, null, card, null) ?? card;
@@ -57,7 +57,7 @@ namespace TouhouCardEngine
                 game.triggers.removeAfter(trigger);
                 trigger = null;
             }
-            trigger = new Trigger<ISetPropEventArg>(arg =>
+            trigger = new Trigger<IPropChangeEventArg>(arg =>
             {
                 Card hookedCard = hookCard.getValue(game, null, card, null) ?? card;
                 if (arg.card == hookCard && arg.propName == hookPropName)

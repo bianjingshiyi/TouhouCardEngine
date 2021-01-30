@@ -30,10 +30,10 @@ namespace TouhouCardEngine
         /// <param name="logger"></param>
         public LANNetworking(ILogger logger = null) : base("LAN", logger)
         {
-            addRPCMethod(this, GetType().GetMethod(nameof(ntfNewRoom), BindingFlags.Public | BindingFlags.NonPublic));
-            addRPCMethod(this, GetType().GetMethod(nameof(reqGetRoom), BindingFlags.Public | BindingFlags.NonPublic));
-            addRPCMethod(this, GetType().GetMethod(nameof(ackGetRoom), BindingFlags.Public | BindingFlags.NonPublic));
-            addRPCMethod(this, GetType().GetMethod(nameof(ackJoinRoom), BindingFlags.Public | BindingFlags.NonPublic));
+            addRPCMethod(this, nameof(reqGetRoom));
+            addRPCMethod(this, nameof(ackGetRoom));
+            addRPCMethod(this, nameof(ntfNewRoom));
+            addRPCMethod(this, nameof(ackJoinRoom));
         }
         /// <summary>
         /// 局域网默认玩家使用随机Guid，没有玩家名字
@@ -67,13 +67,46 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public override Task<RoomData[]> getRooms(int[] ports = null)
         {
-            //RoomData data = await invokeBroadcastAny<RoomData>("discoverRoom", ports);
-            //return new RoomData[] { data };
-
-            //return _roomInfoDict.Keys.ToArray();
-
             invokeBroadcast(nameof(reqGetRoom), ports);
             return Task.FromResult(new RoomData[0]);
+        }
+        /// <summary>
+        /// 加入指定的房间，客户端必须提供自己的玩家数据
+        /// </summary>
+        /// <param name="roomData"></param>
+        /// <param name="joinPlayerData"></param>
+        /// <returns></returns>
+        /// <remarks>
+        /// 局域网实现思路，RoomData必然对应局域网中一个ip，连接这个ip，
+        /// 收到连接请求，要客户端来检查是否可以加入，不能加入就拒绝并返回一个异常
+        /// 能加入的话，接受，然后等待玩家连接上来。
+        /// </remarks>
+        public override Task<RoomData> joinRoom(RoomData roomData, RoomPlayerData joinPlayerData)
+        {
+            if (opList.Any(o => o is JoinRoomOperation))
+                throw new InvalidOperationException("客户端已经在执行连接操作");
+            //获取缓存的IP地址
+            var address = _roomInfoDict[roomData.ID].ip;
+            string msg = name + "连接" + address;
+            log?.log(msg);
+            //发送链接请求
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.joinRequest);
+            writer.Put(joinPlayerData.ToJson());
+            var peer = net.Connect(address, writer);
+            //peer为null表示已经有一个操作在进行了
+            if (peer == null)
+                throw new InvalidOperationException("客户端已经在执行连接操作");
+            else
+            {
+                host = peer;
+                JoinRoomOperation operation = new JoinRoomOperation();
+                startOperation(operation, () =>
+                {
+                    logger?.Log(msg + "超时");
+                });
+                return operation.task;
+            }
         }
         public override event Action<RoomData> onNewRoom;
         [Obsolete("应该注册更高层的onNewRoom")]
@@ -86,15 +119,6 @@ namespace TouhouCardEngine
         {
             log?.log(name + "刷新房间");
             invokeBroadcast(nameof(reqGetRoom), ports);
-        }
-        public void ackGetRoom(RoomData roomData)
-        {
-            log?.log(name + "收到获取房间消息");
-            //_roomInfoDict[roomData] = new LANRoomInfo()
-            //{
-            //    ip = unconnectedInvokeIP
-            //};
-            onUpdateRoom?.Invoke(roomData);
         }
         public override event Action<RoomData> onUpdateRoom;
         /// <summary>
@@ -114,41 +138,6 @@ namespace TouhouCardEngine
             RoomPlayerData aiPlayerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai);
             //通知其他玩家添加AI玩家
             return Task.FromResult(aiPlayerData);
-        }
-        /// <summary>
-        /// 加入指定的房间，客户端必须提供自己的玩家数据
-        /// </summary>
-        /// <param name="roomData"></param>
-        /// <param name="joinPlayerData"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// 局域网实现思路，RoomData必然对应局域网中一个ip，连接这个ip，
-        /// 收到连接请求，要客户端来检查是否可以加入，不能加入就拒绝并返回一个异常
-        /// 能加入的话，接受，然后等待玩家连接上来。
-        /// </remarks>
-        public override Task<RoomData> joinRoom(RoomData roomData, RoomPlayerData joinPlayerData)
-        {
-            if (opList.Any(o => o is JoinRoomOperation))
-                throw new InvalidOperationException("客户端已经在执行连接操作");
-            var address = _roomInfoDict[roomData].ip;
-            string msg = name + "连接" + address;
-            log?.log(msg);
-            NetDataWriter writer = new NetDataWriter();
-            writer.Put((int)PacketType.joinRequest);
-            writer.Put(joinPlayerData.ToJson());
-            var peer = net.Connect(address, writer);
-            if (peer == null)
-                throw new InvalidOperationException("客户端已经在执行连接操作");
-            else
-            {
-                host = peer;
-                JoinRoomOperation operation = new JoinRoomOperation();
-                startOperation(operation, () =>
-                {
-                    logger?.Log(msg + "超时");
-                });
-                return operation.task;
-            }
         }
         public override event Func<RoomPlayerData, RoomData> onJoinRoomReq;
         #endregion
@@ -211,6 +200,15 @@ namespace TouhouCardEngine
             RoomData roomData = onGetRoom?.Invoke();
             invoke(unconnectedInvokeIP, nameof(ackGetRoom), roomData);
         }
+        void ackGetRoom(RoomData roomData)
+        {
+            log?.log(name + "收到获取房间消息");
+            _roomInfoDict[roomData.ID] = new LANRoomInfo()
+            {
+                ip = unconnectedInvokeIP
+            };
+            onUpdateRoom?.Invoke(roomData);
+        }
         /// <summary>
         /// 远程调用方法，当收到创建房间消息时被调用
         /// </summary>
@@ -218,10 +216,10 @@ namespace TouhouCardEngine
         void ntfNewRoom(RoomData data)
         {
             log?.log(name + "收到创建房间消息");
-            //_roomInfoDict[data] = new LANRoomInfo()
-            //{
-            //    ip = unconnectedInvokeIP
-            //};
+            _roomInfoDict[data.ID] = new LANRoomInfo()
+            {
+                ip = unconnectedInvokeIP
+            };
             onNewRoom?.Invoke(data);
         }
         /// <summary>
@@ -260,7 +258,7 @@ namespace TouhouCardEngine
         {
         }
         RoomPlayerData _playerData;
-        Dictionary<RoomData, LANRoomInfo> _roomInfoDict = new Dictionary<RoomData, LANRoomInfo>();
+        Dictionary<string, LANRoomInfo> _roomInfoDict = new Dictionary<string, LANRoomInfo>();
         /// <summary>
         /// 当局域网收到发现房间的请求的时候被调用，需要返回当前ClientLogic的房间信息。
         /// </summary>
