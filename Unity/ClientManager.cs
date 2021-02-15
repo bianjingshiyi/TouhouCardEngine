@@ -12,6 +12,13 @@ namespace TouhouCardEngine
 {
     public class ClientManager : MonoBehaviour, IClientManager
     {
+        #region 公共成员
+        public async Task<string> getNewVersionUrl(string currentVersion)
+        {
+            var info = await _serverClient.GetUpdateByVersionAsync(currentVersion);
+            return info != null ? info.FullPackageUrl : string.Empty;
+        }
+        #endregion
         [SerializeField]
         int _port = 9050;
         public int port
