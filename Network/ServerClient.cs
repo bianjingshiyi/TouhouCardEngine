@@ -153,6 +153,16 @@ namespace NitoriNetwork.Common
             UID = GetUID();
             saveCookie();
 
+            try
+            {
+                GetSession();
+            }
+            catch (Exception e)
+            {
+                // polyfill
+                // 旧版服务器不存在这个API，新版存在。这里直接Catch掉
+            }
+
             return true;
         }
 
@@ -200,7 +210,75 @@ namespace NitoriNetwork.Common
             UID = await GetUIDAsync();
             saveCookie();
 
+            try
+            {
+                await GetSessionAsync();
+            } 
+            catch(Exception e)
+            {
+                // polyfill
+                // 旧版服务器不存在这个API，新版存在。这里直接Catch掉
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// 获取Session
+        /// </summary>
+        /// <returns></returns>
+        public string GetSession()
+        {
+            RestRequest request = new RestRequest("/api/User/session", Method.GET);
+
+            var response = client.Execute<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            // 更新暂存的Session
+            // 虽然Cookie里面也能获取到，但是获取比较麻烦
+            UserSession = response.Data.result;
+            saveCookie();
+
+            return UserSession;
+        }
+
+        /// <summary>
+        /// 获取Session
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string> GetSessionAsync()
+        {
+            RestRequest request = new RestRequest("/api/User/session", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            // 更新暂存的Session
+            // 虽然Cookie里面也能获取到，但是获取比较麻烦
+            UserSession = response.Data.result;
+            saveCookie();
+
+            return UserSession;
         }
         #endregion
         #region Register

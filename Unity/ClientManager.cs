@@ -354,11 +354,19 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public async Task login(string account, string password, string captcha)
+        public async Task<bool> login(string account, string password, string captcha)
         {
-            await _serverClient.LoginAsync(account, password, captcha);
-            var userInfo = await _serverClient.GetUserInfoAsync();
-            this.account = new AccountInfo(account, password, userInfo.Name, _serverClient.UID);
+            bool success = await _serverClient.LoginAsync(account, password, captcha);
+            if (success)
+            {
+                var userInfo = await _serverClient.GetUserInfoAsync();
+                this.account = new AccountInfo(account, password, userInfo.Name, _serverClient.UID);
+            }
+            else
+            {
+                this.account = null;
+            }
+            return success;
         }
         /// <summary>
         /// 从服务器登出，在服务器返回消息之后返回。
@@ -392,12 +400,21 @@ namespace TouhouCardEngine
         {
             if (_serverClient == null)
             {
-                // todo: 传入正确的游戏版本
                 _serverClient = new ServerClient(uri, gameVersion, System.IO.Path.Combine(Application.persistentDataPath, "token"));
                 try
                 {
                     var userInfo = _serverClient.GetUserInfo();
                     account = new AccountInfo("", "", userInfo.Name, userInfo.UID);
+
+                    // 更新Session，防止Session太旧没更新导致无法连接服务器
+                    try
+                    {
+                        _serverClient.GetSession();
+                    }
+                    catch
+                    {
+                        // polyfill: 旧版服务器没有这个API，先Catch掉
+                    }
                 }
                 catch (NetClientException)
                 {
