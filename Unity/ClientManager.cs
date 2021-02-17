@@ -13,6 +13,10 @@ namespace TouhouCardEngine
     public class ClientManager : MonoBehaviour, IClientManager
     {
         #region 公共成员
+        public Task<ClientUpdateInfo> getLatestVersion()
+        {
+            return _serverClient.GetLatestUpdateAsync();
+        }
         public async Task<string> getNewVersionUrl(string currentVersion)
         {
             var info = await _serverClient.GetUpdateByVersionAsync(currentVersion);

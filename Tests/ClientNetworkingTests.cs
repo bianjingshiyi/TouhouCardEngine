@@ -39,7 +39,7 @@ namespace Tests
         [UnityTest]
         public IEnumerator LANJoinRoomTest()
         {
-            yield return startNetworkAndAssert(10, startLANNetworking, joinRoomAssert);
+            yield return startNetworkAndAssert(10, startLANClient, joinRoomAssert);
         }
         #endregion
         #region 通用测试
@@ -176,6 +176,45 @@ namespace Tests
                 }
             }
         }
+        IEnumerator joinRoomAssert(ClientLogic[] clients)
+        {
+            //一个人创建房间
+            yield return clients[0].createOnlineRoom(getPorts(clients)).wait();
+            //第二个人加入房间
+            yield return TestHelper.waitUntil(() => clients[1].lobby.getRooms().Length > 0, 5);
+            RoomData roomData = clients[1].lobby.getRooms()[0].data;
+            Assert.NotNull(roomData);
+            yield return clients[1].joinRoom(roomData).wait();
+            //预期收到自己加入了房间，里面有两个人
+            Assert.AreEqual(roomData.ID, clients[1].room.ID);
+            roomData = clients[1].room;
+            Assert.AreEqual(2, roomData.playerDataList.Count);
+            Assert.AreEqual(clients[0].getLocalPlayerData().id, roomData.playerDataList[0].id);
+            Assert.AreEqual(clients[1].getLocalPlayerData().id, roomData.playerDataList[1].id);
+            //预期其他人看到房间更新了，里面有两个人
+            yield return TestHelper.waitUntil(() => clients.All(c =>
+            {
+                RoomData rd = c.lobby.getRooms()[0].data;
+                return roomData.ID == rd.ID && rd.playerDataList.Count == 2;
+            }), 5);
+            //第三个人加入房间
+            yield return TestHelper.waitUntil(() => clients[2].lobby.getRooms().Length > 0, 5);
+            roomData = clients[2].lobby.getRooms()[0].data;
+            yield return clients[2].joinRoom(roomData).wait();
+            //预期自己加入了房间，里面有3个人
+            Assert.AreEqual(roomData.ID, clients[2].room.ID);
+            roomData = clients[2].room;
+            Assert.AreEqual(3, roomData.playerDataList.Count);
+            Assert.AreEqual(clients[0].getLocalPlayerData().id, roomData.playerDataList[0].id);
+            Assert.AreEqual(clients[1].getLocalPlayerData().id, roomData.playerDataList[1].id);
+            Assert.AreEqual(clients[2].getLocalPlayerData().id, roomData.playerDataList[2].id);
+            //预期其他人看见房间更新了，房间里的人可以看到细节，外面的人只能看到数量变化
+            yield return TestHelper.waitUntil(() => clients.All(c =>
+            {
+                RoomData rd = c.lobby.getRooms()[0].data;
+                return roomData.ID == rd.ID && rd.playerDataList.Count == 3;
+            }), 5);
+        }
         IEnumerator addAIPlayerAssert(ClientNetworking[] clients)
         {
             //一个人创建房间
@@ -204,7 +243,27 @@ namespace Tests
             {
                 string name = i == 0 ? "Local" : "Remote" + i;
                 ClientNetworking client = netStarter(name);
-                client.start();
+                if (!client.isRunning)
+                    client.start();
+                updaters[i] = new GameObject(name).AddComponent<Updater>();
+                updaters[i].action = () => client.update();
+                clients[i] = client;
+            }
+            yield return onAssert(clients);
+            for (int i = 0; i < count; i++)
+            {
+                clients[i].Dispose();
+                Object.Destroy(updaters[i].gameObject);
+            }
+        }
+        IEnumerator startNetworkAndAssert(int count, Func<string, ClientLogic> netStarter, Func<ClientLogic[], IEnumerator> onAssert)
+        {
+            ClientLogic[] clients = new ClientLogic[count];
+            Updater[] updaters = new Updater[count];
+            for (int i = 0; i < count; i++)
+            {
+                string name = i == 0 ? "Local" : "Remote" + i;
+                ClientLogic client = netStarter(name);
                 updaters[i] = new GameObject(name).AddComponent<Updater>();
                 updaters[i].action = () => client.update();
                 clients[i] = client;
@@ -220,20 +279,25 @@ namespace Tests
         {
             return clients.Select(c => c.port).ToArray();
         }
+        int[] getPorts(ClientLogic[] clients)
+        {
+            return clients.Select(c => c.LANNetwork.port).ToArray();
+        }
         #endregion
         #region 具体网络实现
         LANNetworking startLANNetworking(string name)
         {
-            return new LANNetworking(new UnityLogger(name));
+            //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
+            ClientLogic client = new ClientLogic(new UnityLogger(name));
+            client.switchNetToLAN();
+            return client.LANNetwork;
         }
-        void regLANOnJoinRoomReq(LANNetworking lanNet, RoomData room)
+        ClientLogic startLANClient(string name)
         {
-            //lanNet.onJoinRoomReq += playerData =>
-            //{
-            //    room.playerDataList.Add(playerData);
-            //    return room;
-            //};
-            throw new NotImplementedException();
+            //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
+            ClientLogic client = new ClientLogic(new UnityLogger(name));
+            client.switchNetToLAN();
+            return client;
         }
         ClientNetworking startClientNetworking(string name)
         {

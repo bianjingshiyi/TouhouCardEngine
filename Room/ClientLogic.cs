@@ -43,6 +43,7 @@ namespace TouhouCardEngine
                 //切换网络注销事件。
                 LANNetwork.onGetRoom -= onGetRoom;
                 curNetwork.onNewRoom -= onNewOrUpdateRoomAck;
+                curNetwork.onUpdateRoom -= onNewOrUpdateRoomAck;
                 curNetwork.onJoinRoomReq -= onJoinRoomReq;
             }
             if (!LANNetwork.isRunning)
@@ -50,7 +51,12 @@ namespace TouhouCardEngine
             curNetwork = LANNetwork;
             LANNetwork.onGetRoom += onGetRoom;
             curNetwork.onNewRoom += onNewOrUpdateRoomAck;
+            curNetwork.onUpdateRoom += onNewOrUpdateRoomAck;
             curNetwork.onJoinRoomReq += onJoinRoomReq;
+        }
+        public RoomPlayerData getLocalPlayerData()
+        {
+            return curNetwork.getLocalPlayerData();
         }
         /// <summary>
         /// 
@@ -151,7 +157,7 @@ namespace TouhouCardEngine
                 throw new InvalidOperationException("房间已满");
         }
         ClientNetworking curNetwork { get; set; } = null;
-        LANNetworking LANNetwork { get; }
+        public LANNetworking LANNetwork { get; }
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
         //LobbyData _lobby = new LobbyData();

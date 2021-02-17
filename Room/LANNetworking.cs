@@ -14,10 +14,6 @@ using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
-    partial class ClientLogic
-    {
-
-    }
     /// <summary>
     /// 网络的局域网实现
     /// </summary>
@@ -33,7 +29,7 @@ namespace TouhouCardEngine
             addRPCMethod(this, nameof(reqGetRoom));
             addRPCMethod(this, nameof(ackGetRoom));
             addRPCMethod(this, nameof(ntfNewRoom));
-            addRPCMethod(this, nameof(ackJoinRoom));
+            addRPCMethod(this, nameof(ntfUpdateRoom));
         }
         /// <summary>
         /// 局域网默认玩家使用随机Guid，没有玩家名字
@@ -109,8 +105,6 @@ namespace TouhouCardEngine
             }
         }
         public override event Action<RoomData> onNewRoom;
-        [Obsolete("应该注册更高层的onNewRoom")]
-        public event Action<RoomData> onAddOrUpdateRoomAck;
         /// <summary>
         /// 广播一个刷新房间列表的消息。
         /// </summary>
@@ -158,7 +152,10 @@ namespace TouhouCardEngine
         }
         protected override void OnPeerConnected(NetPeer peer)
         {
+            if (peer == host)
+            {
 
+            }
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
@@ -216,11 +213,24 @@ namespace TouhouCardEngine
         void ntfNewRoom(RoomData data)
         {
             log?.log(name + "收到创建房间消息");
-            _roomInfoDict[data.ID] = new LANRoomInfo()
-            {
-                ip = unconnectedInvokeIP
-            };
+            updateRoomInfo(data);
             onNewRoom?.Invoke(data);
+        }
+        void ntfUpdateRoom(RoomData data)
+        {
+            log?.log(name + "收到房间信息更新消息");
+            updateRoomInfo(data);
+            onUpdateRoom?.Invoke(data);
+        }
+        void updateRoomInfo(RoomData data)
+        {
+            if (!_roomInfoDict.ContainsKey(data.ID))
+            {
+                _roomInfoDict[data.ID] = new LANRoomInfo()
+                {
+                    ip = unconnectedInvokeIP
+                };
+            }
         }
         /// <summary>
         /// 收到玩家加入房间的请求，玩家能否加入房间取决于客户端逻辑（比如房间是否已满）
@@ -229,11 +239,10 @@ namespace TouhouCardEngine
         /// <param name="player"></param>
         void reqJoinRoom(ConnectionRequest request, RoomPlayerData player)
         {
+            RoomData roomData = null;
             try
             {
-                RoomData roomData = onJoinRoomReq?.Invoke(player);
-                onUpdateRoom?.Invoke(roomData);
-                invoke(request.RemoteEndPoint, nameof(ackJoinRoom), roomData);
+                roomData = onJoinRoomReq?.Invoke(player);
             }
             catch (Exception e)
             {
@@ -241,18 +250,9 @@ namespace TouhouCardEngine
                 request.Reject(createRPCResponseWriter(PacketType.joinResponse, e));
                 return;
             }
+            //接受了加入请求，回复请求并广播房间更新信息。
             request.Accept();
-        }
-
-        /// <summary>
-        /// 加入一方收到加入成功确认，得到房间信息
-        /// </summary>
-        /// <param name="roomData">房间信息</param>
-        public void ackJoinRoom(RoomData roomData)
-        {
-            JoinRoomOperation operation = opList.OfType<JoinRoomOperation>().FirstOrDefault();
-            onUpdateRoom?.Invoke(roomData);
-            completeOperation(operation, roomData);
+            invokeBroadcast(nameof(ntfUpdateRoom), roomData);
         }
         void ackJoinRoomReject()
         {
