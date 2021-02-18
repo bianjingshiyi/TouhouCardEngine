@@ -2,6 +2,9 @@
 using System.Threading.Tasks;
 using BJSYGameCore;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Tests
 {
@@ -55,7 +58,35 @@ namespace Tests
         {
             Timer timer = new Timer() { duration = timeout };
             timer.start();
-            return new WaitUntil(() => timer.isExpired() || condition());
+            return new WaitUntil(() =>
+            {
+                if (timer.isExpired())
+                {
+                    Debug.LogError("测试等待超时");
+                    throw new TimeoutException();
+                }
+                return condition();
+            });
+        }
+        public static IEnumerator waitUntilEventTrig<T>(T target, Action<T, Action> regAction, Func<IEnumerator> trigAction)
+        {
+            bool flag = false;
+            regAction(target, () => flag = true);
+            yield return trigAction();
+            yield return waitUntil(() => flag, 5);
+        }
+        public static IEnumerator waitUntilAllEventTrig<T>(IEnumerable<T> targets, Action<T, Action> reg, Func<IEnumerator> trigAction, float timeout = 5)
+        {
+            Dictionary<T, bool> flagDict = new Dictionary<T, bool>();
+            foreach (var target in targets)
+            {
+                flagDict[target] = false;
+                reg(target, () => flagDict[target] = true);
+            }
+            //做一些会引发事件的事情
+            yield return trigAction();
+            //预期所有目标都会触发事件
+            yield return waitUntil(() => targets.All(t => flagDict[t]), timeout);
         }
     }
 }
