@@ -56,6 +56,11 @@ namespace Tests
         {
             yield return startNetworkAndAssert(10, startLANClient, setPlayerPropAssert);
         }
+        [UnityTest]
+        public IEnumerator LANQuitRoomTest()
+        {
+            yield return startNetworkAndAssert(10, startLANClient, quitRoomAssert);
+        }
         #endregion
         #region 通用测试
         IEnumerator getLocalPlayerAssert(ClientNetworking[] clients)
@@ -304,7 +309,30 @@ namespace Tests
         IEnumerator quitRoomAssert(ClientLogic[] clients)
         {
             yield return createAndJoinRoom(clients);
-            //
+            foreach (var client in clients)
+            {
+                Room room = client.lobby.getRooms().First();
+                Assert.AreEqual(2, room.data.playerDataList.Count);
+            }
+            //玩家2退出房间，所有人都可以看到房间中人数的减少
+            yield return TestHelper.waitUntilAllEventTrig(clients,
+                (c, a) => c.LANNetwork.onRoomRemovePlayerNtf += (s, i) => a(),
+                () => clients[1].quitRoom().wait());
+            Assert.Null(clients[1].room);
+            foreach (var client in clients)
+            {
+                Room room = client.lobby.getRooms().First();
+                Assert.AreEqual(1, room.data.playerDataList.Count);
+            }
+            //玩家1退出房间，所有人都可以看到房间中人无了
+            yield return TestHelper.waitUntilAllEventTrig(clients.Skip(1),
+                (c, a) => c.LANNetwork.onRemoveRoomNtf += s => a(),
+                () => clients[0].quitRoom().wait());
+            Assert.Null(clients[0].room);
+            foreach (var client in clients)
+            {
+                Assert.AreEqual(0, client.lobby.getRooms().Length);
+            }
         }
         IEnumerator startNetworkAndAssert(int count, Func<string, ClientNetworking> netStarter, Func<ClientNetworking[], IEnumerator> onAssert)
         {

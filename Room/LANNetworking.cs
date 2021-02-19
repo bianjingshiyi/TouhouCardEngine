@@ -31,8 +31,10 @@ namespace TouhouCardEngine
             addRPCMethod(this, nameof(ackGetRoom));
             addRPCMethod(this, nameof(ntfNewRoom));
             addRPCMethod(this, nameof(ntfUpdateRoom));
+            addRPCMethod(this, nameof(ntfRemoveRoom));
             addRPCMethod(this, nameof(rpcConfirmJoin));
             addRPCMethod(this, nameof(ntfRoomAddPlayer));
+            addRPCMethod(this, nameof(ntfRoomRemovePlayer));
             addRPCMethod(this, nameof(ntfRoomSetProp));
             addRPCMethod(this, nameof(rpcRoomPlayerSetProp));
             addRPCMethod(this, nameof(ntfRoomPlayerSetProp));
@@ -144,7 +146,36 @@ namespace TouhouCardEngine
                 await invoke<object>(nameof(rpcRoomPlayerSetProp), playerId, key, value);
             }
         }
+        public override void quitRoom(int playerId)
+        {
+            if (_roomData == null)
+                return;//你本来就不在房间里，退个屁？
+            if (_roomData.ownerId == playerId)
+            {
+                //主机退出了，和所有其他玩家断开连接，然后广播房间没了
+                foreach (var peer in _playerInfoDict.Values.Select(i => i.peer))
+                {
+                    peer.Disconnect();
+                }
+                _playerInfoDict.Clear();
+                invokeBroadcast(nameof(ntfRemoveRoom), _roomData.ID);
+            }
+            else
+            {
+                //是其他玩家，直接断开连接
+                host.Disconnect();
+                host = null;
+            }
+            _roomData = null;
+        }
+        /// <summary>
+        /// 当局域网中发现新的房间
+        /// </summary>
         public override event Action<RoomData> onNewRoomNtf;
+        /// <summary>
+        /// 当局域网的房间被移除
+        /// </summary>
+        public override event Action<string> onRemoveRoomNtf;
         /// <summary>
         /// 一次更新一整个房间的开销真的可以，这个事件应该被拆成若干个更新房间的事件。
         /// </summary>
@@ -170,6 +201,10 @@ namespace TouhouCardEngine
         /// 当房间添加玩家时收到通知。
         /// </summary>
         public override event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
+        /// <summary>
+        /// 当房间移除玩家时收到通知。
+        /// </summary>
+        public override event Action<string, int> onRoomRemovePlayerNtf;
         /// <summary>
         /// 当房间属性更改时收到通知。
         /// </summary>
@@ -205,15 +240,16 @@ namespace TouhouCardEngine
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
-            PacketType packetType = (PacketType)disconnectInfo.AdditionalData.GetInt();
             switch (disconnectInfo.Reason)
             {
                 case DisconnectReason.ConnectionRejected:
                     ackJoinRoomReject();
                     break;
                 case DisconnectReason.ConnectionFailed:
+                    ackJoinRoomFailed();
                     break;
                 case DisconnectReason.DisconnectPeerCalled:
+                    //与Peer断开连接的本地消息
                     break;
                 case DisconnectReason.HostUnreachable:
                     break;
@@ -224,6 +260,14 @@ namespace TouhouCardEngine
                 case DisconnectReason.Reconnect:
                     break;
                 case DisconnectReason.RemoteConnectionClose:
+                    if (disconnectInfo.AdditionalData.TryGetInt(out int packetInt))
+                    {
+                        PacketType packetType = (PacketType)packetInt;
+                    }
+                    if (peer == host)
+                        ntfRemoveRoom(_roomData.ID);
+                    else
+                        ntfRoomRemovePlayer(_roomData.ID, _playerInfoDict.First(p => p.Value.peer == peer).Key);
                     break;
                 case DisconnectReason.Timeout:
                     break;
@@ -266,6 +310,15 @@ namespace TouhouCardEngine
             log?.log(name + "收到房间信息更新消息");
             updateRoomInfo(room);
             onUpdateRoom?.Invoke(room);
+        }
+        void ntfRemoveRoom(string roomId)
+        {
+            log?.log(name + "收到房间" + roomId + "移除消息");
+            if (_roomInfoDict.ContainsKey(roomId))
+                _roomInfoDict.Remove(roomId);
+            if (_roomData != null && _roomData.ID == roomId)
+                _roomData = null;
+            onRemoveRoomNtf?.Invoke(roomId);
         }
         void updateRoomInfo(RoomData room)
         {
@@ -319,6 +372,10 @@ namespace TouhouCardEngine
         void ackJoinRoomReject()
         {
         }
+        void ackJoinRoomFailed()
+        {
+
+        }
         void ntfRoomAddPlayer(string roomId, RoomPlayerData playerData)
         {
             log?.log(name + "收到通知房间" + roomId + "加入玩家" + playerData.name);
@@ -342,7 +399,22 @@ namespace TouhouCardEngine
             log?.log(name + "收到通知玩家" + playerId + "将属性" + propName + "更改为" + value);
             onRoomPlayerSetPropNtf?.Invoke(playerId, propName, value);
         }
-        RoomPlayerData _playerData;
+        void ntfRoomRemovePlayer(string roomId, int playerId)
+        {
+            log?.log(name + "收到通知玩家" + playerId + "退出了房间" + roomId);
+            onRoomRemovePlayerNtf?.Invoke(roomId, playerId);
+            if (_roomData != null && _roomData.ownerId == _playerData.id && _playerInfoDict.ContainsKey(playerId))
+            {
+                //是主机，退出的是房间里的人，把这个消息再广播一遍，以及直接通知其他玩家。
+                _playerInfoDict.Remove(playerId);
+                invokeBroadcast(nameof(ntfRoomRemovePlayer), roomId, playerId);
+                foreach (var peer in _playerInfoDict.Values.Select(i => i.peer))
+                {
+                    notify(peer, nameof(ntfRoomRemovePlayer), roomId, playerId);
+                }
+            }
+        }
+        readonly RoomPlayerData _playerData;
         RoomData _roomData;
         Dictionary<string, LANRoomInfo> _roomInfoDict = new Dictionary<string, LANRoomInfo>();
         Dictionary<int, LANPlayerInfo> _playerInfoDict = new Dictionary<int, LANPlayerInfo>();

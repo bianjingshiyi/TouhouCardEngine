@@ -44,8 +44,10 @@ namespace TouhouCardEngine
                 //切换网络注销事件。
                 curNetwork.onNewRoomNtf -= onNewOrUpdateRoomNtf;
                 curNetwork.onUpdateRoom -= onNewOrUpdateRoomNtf;
+                curNetwork.onRemoveRoomNtf -= onRemoveRoomNtf;
                 curNetwork.onJoinRoomReq -= onJoinRoomReq;
                 curNetwork.onRoomAddPlayerNtf -= onRoomAddPlayerNtf;
+                curNetwork.onRoomRemovePlayerNtf -= onRoomRemovePlayerNtf;
                 curNetwork.onRoomSetPropNtf -= onRoomSetPropNtf;
                 curNetwork.onRoomPlayerSetPropNtf -= onRoomPlayerSetPropNtf;
                 if (curNetwork == LANNetwork)
@@ -60,8 +62,10 @@ namespace TouhouCardEngine
             curNetwork = LANNetwork;
             curNetwork.onNewRoomNtf += onNewOrUpdateRoomNtf;
             curNetwork.onUpdateRoom += onNewOrUpdateRoomNtf;
+            curNetwork.onRemoveRoomNtf += onRemoveRoomNtf;
             curNetwork.onJoinRoomReq += onJoinRoomReq;
             curNetwork.onRoomAddPlayerNtf += onRoomAddPlayerNtf;
+            curNetwork.onRoomRemovePlayerNtf += onRoomRemovePlayerNtf;
             curNetwork.onRoomSetPropNtf += onRoomSetPropNtf;
             curNetwork.onRoomPlayerSetPropNtf += onRoomPlayerSetPropNtf;
             if (curNetwork == LANNetwork)
@@ -134,7 +138,11 @@ namespace TouhouCardEngine
         }
         public Task quitRoom()
         {
-            throw new NotImplementedException();
+            logger?.log("玩家退出房间" + room.ID);
+            room = null;
+            if (curNetwork != null)
+                curNetwork.quitRoom(localPlayer.id);
+            return Task.CompletedTask;
         }
         public event Action<RoomData> onNewRoom;
         public event Action<RoomData> onUpdateRoom;
@@ -163,6 +171,17 @@ namespace TouhouCardEngine
                 onNewRoom?.Invoke(roomData);
             else
                 onUpdateRoom.Invoke(roomData);
+        }
+        void onRemoveRoomNtf(string roomId)
+        {
+            if (room != null && room.ID == roomId)
+            {
+                logger?.log("客户端与房间" + roomId + "断开连接");
+                room = null;
+            }
+            else
+                logger?.log("客户端移除房间" + roomId);
+            lobby.removeRoom(roomId);
         }
         private RoomData onJoinRoomReq(RoomPlayerData player)
         {
@@ -210,6 +229,20 @@ namespace TouhouCardEngine
                 return;
             }
             room.data.playerDataList.Add(playerData);
+        }
+        private void onRoomRemovePlayerNtf(string roomId, int playerId)
+        {
+            if (!lobby.tryGetRoom(roomId, out var room))
+            {
+                logger?.logWarn("房间" + roomId + "不存在");
+                return;
+            }
+            room.removePlayer(playerId);
+            if (this.room != null && this.room.ID == roomId && localPlayer.id == playerId)
+            {
+                logger?.log("客户端被从房间" + roomId + "中移除");
+                this.room = null;
+            }
         }
         private void onRoomSetPropNtf(string roomId, string propName, object value)
         {
