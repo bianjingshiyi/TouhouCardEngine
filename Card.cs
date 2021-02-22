@@ -185,11 +185,18 @@ namespace TouhouCardEngine
                     {
                         Card card = arg.card as Card;
                         modifier = arg.modifier as PropModifier;
+                        object beforeValue = card.getProp(game, modifier.propName);
                         await modifier.beforeRemove(game, card);
                         card.modifierList.Remove(modifier);
                         await modifier.afterRemove(game, card);
-                        object prop = card.getProp(game, modifier.propName);
-                        game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propToString(prop));
+                        object value = card.getProp(game, modifier.propName);
+                        game?.logger?.log("PropModifier", card + "移除属性修正" + modifier + "=>" + propToString(value));
+                        await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.propName, beforeValue = beforeValue, value = value },
+                        arg2 =>
+                        {
+                            arg2.game?.logger?.log(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + propToString(arg2.value));
+                            return Task.CompletedTask;
+                        });
                     });
                 else
                 {
