@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "TouhouCardEngine.Shared",
         "TouhouCardEngine.Library",
-        "BJSYGameCore"
+        "BJSYGameCore",
+        "BJSYGameCore.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -9,6 +9,7 @@ using TouhouCardEngine;
 using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
+using BJSYGameCore;
 namespace Tests
 {
     public class ClientLogicTests

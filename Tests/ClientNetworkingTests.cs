@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
-
+using BJSYGameCore;
 namespace Tests
 {
     public class ClientNetworkingTests
