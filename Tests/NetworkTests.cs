@@ -16,6 +16,7 @@ using NitoriNetwork.Common;
 using UObject = UnityEngine.Object;
 using LiteNetLib;
 using ILogger = TouhouCardEngine.Shared.ILogger;
+using BJSYGameCore;
 namespace Tests
 {
     public class NetworkTests
