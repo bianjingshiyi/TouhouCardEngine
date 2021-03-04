@@ -280,6 +280,63 @@ namespace NitoriNetwork.Common
 
             return UserSession;
         }
+
+        /// <summary>
+        /// 游客登录
+        /// </summary>
+        /// <return>是否登录成功，失败则意味着服务器压力过大</return>
+        public bool GuestLogin() 
+        {
+            RestRequest request = new RestRequest("/api/User/guest", Method.POST);
+
+            var response = client.Execute<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            if (response.Data.code != ResultCode.Success)
+                return false;
+
+            UserSession = response.Data.result;
+            saveCookie();
+            return true;
+        }
+
+        /// <summary>
+        /// 游客登录
+        /// </summary>
+        public async Task<bool> GuestLoginAsync() 
+        {
+            RestRequest request = new RestRequest("/api/User/guest", Method.POST);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            if (response.Data.code != ResultCode.Success)
+                return false;
+
+            UserSession = response.Data.result;
+            saveCookie();
+            return true;
+        }
         #endregion
         #region Register
         /// <summary>
@@ -587,12 +644,25 @@ namespace NitoriNetwork.Common
         /// <summary>
         /// 注销
         /// </summary>
-        public void Logout()
+        public void Logout() 
         {
-            UserSession = "";
+            RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
+
+            var response = client.Execute<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
             UID = 0;
-            // todo: 发送给服务器注销
-            client.CookieContainer = new CookieContainer();
+            UserSession = "";
             saveCookie();
         }
 
@@ -600,10 +670,26 @@ namespace NitoriNetwork.Common
         /// 注销
         /// </summary>
         /// <returns></returns>
-        public async Task LogoutAsync()
+        public async Task LogoutAsync() 
         {
-            // 暂时没有异步的实现
-            Logout();
+            RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            UID = 0;
+            UserSession = "";
+            saveCookie();
         }
         #endregion
         #region Update
