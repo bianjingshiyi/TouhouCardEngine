@@ -918,6 +918,65 @@ namespace NitoriNetwork.Common
             }
         }
         #endregion
+        #region
+        /// <summary>
+        /// 获取用户许可协议的HTML
+        /// </summary>
+        /// <returns></returns>
+        public string GetEULA()
+        {
+            RestRequest request = new RestRequest("/api/EULA/EULA", Method.GET);
+            var response = client.Execute(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            return response.Content;
+        }
+        /// <summary>
+        /// 获取用户许可协议的HTML
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string> GetEULAAsync()
+        {
+            RestRequest request = new RestRequest("/api/EULA/EULA", Method.GET);
+            var response = await client.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            return response.Content;
+        }
+
+        /// <summary>
+        /// 获取用户许可协议的HTML
+        /// </summary>
+        /// <returns></returns>
+        public string GetPrivacyPolicy()
+        {
+            RestRequest request = new RestRequest("/api/EULA/Privacy", Method.GET);
+            var response = client.Execute(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            return response.Content;
+        }
+        /// <summary>
+        /// 获取用户许可协议的HTML
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string> GetPrivacyPolicyAsync()
+        {
+            RestRequest request = new RestRequest("/api/EULA/Privacy", Method.GET);
+            var response = await client.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+            return response.Content;
+        }
+        #endregion
     }
 
     [System.Serializable]

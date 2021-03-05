@@ -403,6 +403,18 @@ namespace TouhouCardEngine
         {
             return client.join(ip, port, session, roomID);
         }
+
+        /// <summary>
+        /// 获取许可协议等内容
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string> GetEULAAndPrivacyPolicy()
+        {
+            var eula = await _serverClient.GetEULAAsync();
+            var pp = await _serverClient.GetPrivacyPolicyAsync();
+            return eula + "\n" + pp;
+        } 
+
         /// <summary>
         /// 初始化服务器的客户端
         /// </summary>
@@ -418,14 +430,7 @@ namespace TouhouCardEngine
                     account = new AccountInfo("", "", userInfo.Name, userInfo.UID);
 
                     // 更新Session，防止Session太旧没更新导致无法连接服务器
-                    try
-                    {
-                        _serverClient.GetSession();
-                    }
-                    catch
-                    {
-                        // polyfill: 旧版服务器没有这个API，先Catch掉
-                    }
+                    _serverClient.GetSession();
                 }
                 catch (NetClientException)
                 {
