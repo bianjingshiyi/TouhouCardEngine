@@ -726,6 +726,9 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/latest", Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo>>(request);
 
+            if (response.ErrorException != null)
+                throw response.ErrorException;
+
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 throw new NetClientException(response.StatusDescription);
