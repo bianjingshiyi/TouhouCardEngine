@@ -10,6 +10,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System;
 using System.Text;
 using System.Globalization;
+using System.Collections.Generic;
 
 namespace NitoriNetwork.Common
 {
@@ -35,6 +36,8 @@ namespace NitoriNetwork.Common
 
         string cookieFilePath { get; }
 
+        Dictionary<int, PublicBasicUserInfo> userInfoCache = new Dictionary<int, PublicBasicUserInfo>();
+
         /// <summary>
         /// 指定一个服务器初始化Client
         /// </summary>
@@ -44,6 +47,7 @@ namespace NitoriNetwork.Common
             client = new RestClient(baseUri);
             client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
             cookieFilePath = cookieFile;
+            client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
 
             if (string.IsNullOrEmpty(cookieFile))
                 client.CookieContainer = new CookieContainer();
@@ -153,16 +157,7 @@ namespace NitoriNetwork.Common
             UID = GetUID();
             saveCookie();
 
-            try
-            {
-                GetSession();
-            }
-            catch (Exception e)
-            {
-                // polyfill
-                // 旧版服务器不存在这个API，新版存在。这里直接Catch掉
-            }
-
+            GetSession();
             return true;
         }
 
@@ -210,16 +205,7 @@ namespace NitoriNetwork.Common
             UID = await GetUIDAsync();
             saveCookie();
 
-            try
-            {
-                await GetSessionAsync();
-            } 
-            catch(Exception e)
-            {
-                // polyfill
-                // 旧版服务器不存在这个API，新版存在。这里直接Catch掉
-            }
-
+            await GetSessionAsync();
             return true;
         }
 
@@ -561,7 +547,7 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
-        /// 获取用户信息
+        /// 获取当前登录用户的信息
         /// </summary>
         /// <returns></returns>
         public PublicBasicUserInfo GetUserInfo()
@@ -577,6 +563,8 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
+
+            userInfoCache.Add(response.Data.result.UID, response.Data.result);
             return response.Data.result;
         }
 
@@ -585,8 +573,13 @@ namespace NitoriNetwork.Common
         /// </summary>
         /// <param name="uid"></param>
         /// <returns></returns>
-        public PublicBasicUserInfo GetUserInfo(int uid)
+        public PublicBasicUserInfo GetUserInfo(int uid, bool refresh = false)
         {
+            if (!refresh && userInfoCache.ContainsKey(uid))
+            {
+                return userInfoCache[uid];
+            }
+
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
             var response = client.Execute<ExecuteResult<PublicBasicUserInfo>>(request);
 
@@ -598,11 +591,13 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
+
+            userInfoCache.Add(uid, response.Data.result);
             return response.Data.result;
         }
 
         /// <summary>
-        /// 获取用户信息
+        /// 获取当前登录用户的信息
         /// </summary>
         /// <returns></returns>
         public async Task<PublicBasicUserInfo> GetUserInfoAsync()
@@ -618,6 +613,8 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
+
+            userInfoCache.Add(response.Data.result.UID, response.Data.result);
             return response.Data.result;
         }
 
@@ -625,8 +622,13 @@ namespace NitoriNetwork.Common
         /// 获取指定用户的信息
         /// </summary>
         /// <returns></returns>
-        public async Task<PublicBasicUserInfo> GetUserInfoAsync(int uid)
+        public async Task<PublicBasicUserInfo> GetUserInfoAsync(int uid, bool refresh)
         {
+            if (!refresh && userInfoCache.ContainsKey(uid))
+            {
+                return userInfoCache[uid];
+            }
+
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<PublicBasicUserInfo>>(request);
 
@@ -638,6 +640,8 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
+
+            userInfoCache.Add(uid, response.Data.result);
             return response.Data.result;
         }
 
@@ -918,7 +922,7 @@ namespace NitoriNetwork.Common
             }
         }
         #endregion
-        #region
+        #region EULA
         /// <summary>
         /// 获取用户许可协议的HTML
         /// </summary>

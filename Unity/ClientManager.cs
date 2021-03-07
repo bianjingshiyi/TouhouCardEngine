@@ -434,7 +434,17 @@ namespace TouhouCardEngine
                 }
                 catch (NetClientException)
                 {
-                    account = null;
+                    try
+                    {
+                        _serverClient.GuestLogin();
+                        var userInfo = _serverClient.GetUserInfo();
+                        account = new AccountInfo("", "", userInfo.Name, userInfo.UID, true);
+                        // 游客不需要手动更新Session，因为在登录的时候默认换取的是Session
+                    }
+                    catch (NetClientException)
+                    {
+                        account = null;
+                    }
                 }
             }
         }
@@ -460,6 +470,8 @@ namespace TouhouCardEngine
         public string nickName;
         public int uid;
         public string invite;
+        public bool guest = false;
+
         /// <summary>
         /// 登录账号构造器
         /// </summary>
@@ -467,8 +479,10 @@ namespace TouhouCardEngine
         /// <param name="password"></param>
         /// <param name="nickName"></param>
         /// <param name="uid"></param>
-        public AccountInfo(string userName, string password, string nickName, int uid) : this(userName, password, null, nickName, uid, null)
+        /// <param name="guest"></param>
+        public AccountInfo(string userName, string password, string nickName, int uid, bool guest = false) : this(userName, password, null, nickName, uid, null)
         {
+            this.guest = guest;
         }
         /// <summary>
         /// 注册账号构造器
