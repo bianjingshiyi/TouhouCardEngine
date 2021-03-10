@@ -108,4 +108,21 @@ namespace Tests
             Assert.IsEmpty(list);
         }
     }
+
+    public class WPClientTests
+    {
+        WordpressRestfulClient wpc = new WordpressRestfulClient("https://thg.igsk.fun");
+
+        /// <summary>
+        /// 用户登录测试
+        /// </summary>
+        [Test]
+        public void GetPostsTest()
+        {
+            var posts = wpc.GetPosts(new int[] { 3 });
+            Assert.Greater(posts.Length, 0);
+
+            Debug.Log(posts[0].date);
+        }
+    }
 }
