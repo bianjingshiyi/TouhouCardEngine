@@ -11,6 +11,8 @@ using System;
 using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Linq;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace NitoriNetwork.Common
 {
@@ -983,6 +985,78 @@ namespace NitoriNetwork.Common
             return response.Content;
         }
         #endregion
+    }
+
+    /// <summary>
+    /// Wordpress 内容服务
+    /// </summary>
+    public class WordpressRestfulClient
+    {
+        RestClient client { get; }
+
+        /// <summary>
+        /// Wordpress 内容服务
+        /// </summary>
+        /// <param name="baseURL"></param>
+        public WordpressRestfulClient(string baseURL)
+        {
+            client = new RestClient(baseURL);
+            client.ThrowOnDeserializationError = true;
+            client.UseSerializer(
+                () => new MongoDBJsonSerializer()
+            );
+        }
+
+        /// <summary>
+        /// 获取指定分类的文章
+        /// </summary>
+        /// <param name="categories"></param>
+        /// <param name="count"></param>
+        /// <param name="offset"></param>
+        /// <returns></returns>
+        public WordPressPost[] GetPosts(int[] categories = null, int count = 10, int offset = 0)
+        {
+            RestRequest request = new RestRequest("/wp-json/wp/v2/posts", Method.GET);
+            if (categories != null)
+            {
+                request.AddParameter("categories", String.Join(",", categories.Select(p => p.ToString()).ToArray()));
+            }
+            request.AddParameter("offset", offset);
+            request.AddParameter("count", count);
+
+            var result = client.Execute<WordPressPost[]>(request);
+            if (result.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(result.StatusDescription);
+            }
+            return result.Data;
+        }
+
+        [BsonIgnoreExtraElements]
+        public class WordPressPost
+        {
+            public DateTime? date;
+            public DateTime? date_gmt;
+            public int id;
+            public string link;
+            public DateTime? modified;
+            public DateTime? modified_gmt;
+            public string slug;
+            public string status;
+            public string type;
+            public WordPressHTMLContent title;
+            public WordPressHTMLContent content;
+            public WordPressHTMLContent excerpt;
+            public int author;
+            public int[] categories;
+            public int[] tags;
+        }
+
+        [BsonIgnoreExtraElements]
+        public class WordPressHTMLContent
+        {
+            public string rendered;
+        }
     }
 
     [System.Serializable]
