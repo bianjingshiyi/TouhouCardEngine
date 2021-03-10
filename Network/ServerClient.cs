@@ -564,7 +564,7 @@ namespace NitoriNetwork.Common
                 throw new NetClientException(response.Data.message);
             }
 
-            userInfoCache.Add(response.Data.result.UID, response.Data.result);
+            userInfoCache[response.Data.result.UID] = response.Data.result;
             return response.Data.result;
         }
 
@@ -592,7 +592,7 @@ namespace NitoriNetwork.Common
                 throw new NetClientException(response.Data.message);
             }
 
-            userInfoCache.Add(uid, response.Data.result);
+            userInfoCache[uid] = response.Data.result;
             return response.Data.result;
         }
 
@@ -614,7 +614,7 @@ namespace NitoriNetwork.Common
                 throw new NetClientException(response.Data.message);
             }
 
-            userInfoCache.Add(response.Data.result.UID, response.Data.result);
+            userInfoCache[response.Data.result.UID] = response.Data.result;
             return response.Data.result;
         }
 
@@ -640,8 +640,7 @@ namespace NitoriNetwork.Common
             {
                 throw new NetClientException(response.Data.message);
             }
-
-            userInfoCache.Add(uid, response.Data.result);
+            userInfoCache[uid] = response.Data.result;
             return response.Data.result;
         }
 
