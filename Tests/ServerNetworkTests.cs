@@ -111,7 +111,7 @@ namespace Tests
 
     public class WPClientTests
     {
-        WordpressRestfulClient wpc = new WordpressRestfulClient("https://thg.igsk.fun");
+        WordPressRestfulClient wpc = new WordPressRestfulClient("https://thg.igsk.fun");
 
         /// <summary>
         /// 用户登录测试
