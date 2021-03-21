@@ -112,6 +112,53 @@ namespace NitoriNetwork.Common
             sb.Append(culture.Name);
             return sb.ToString();
         }
+
+        /// <summary>
+        /// 错误处理
+        /// 当HTTP代码不为200时报错
+        /// </summary>
+        /// <param name="response"></param>
+        void errorHandler(IRestResponse response)
+        {
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusCode);
+            }
+        }
+        /// <summary>
+        /// 错误处理
+        /// 当结果代码不为Success时报错
+        /// </summary>
+        /// <param name="data"></param>
+        void errorHandler(IExecuteResult data)
+        {
+            if (data.code != ResultCode.Success)
+            {
+                throw new NetClientException(data.message);
+            }
+        }
+        /// <summary>
+        /// 错误处理
+        /// 当HTTP代码不为200时报错
+        /// 当HTTP代码为400时，报Data的错误
+        /// </summary>
+        /// <param name="response"></param>
+        /// <param name="data"></param>
+        void errorHandler(IRestResponse response, IExecuteResult data)
+        {
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    throw new NetClientException(data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusCode);
+                }
+            }
+        }
+
         #endregion
         #region Login
         /// <summary>
@@ -219,17 +266,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/session", Method.GET);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             // 更新暂存的Session
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
@@ -248,17 +285,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/session", Method.GET);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             // 更新暂存的Session
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
@@ -277,17 +304,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             if (response.Data.code != ResultCode.Success)
                 return false;
@@ -305,17 +322,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             if (response.Data.code != ResultCode.Success)
                 return false;
@@ -351,22 +358,8 @@ namespace NitoriNetwork.Common
 
             var response = client.Execute<ExecuteResult<string>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
-
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
         }
 
         /// <summary>
@@ -394,22 +387,8 @@ namespace NitoriNetwork.Common
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
-
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
         }
         #endregion
         #region Captcha
@@ -422,10 +401,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Captcha/image", Method.GET);
 
             var response = client.Execute(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
 
             return response.RawBytes;
         }
@@ -439,10 +415,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Captcha/image", Method.GET);
 
             var response = await client.ExecuteAsync(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
 
             return response.RawBytes;
         }
@@ -457,14 +430,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Room", Method.POST);
             var response = client.Execute<ExecuteResult<BriefRoomInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -477,14 +444,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Room", Method.POST);
             var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -497,14 +458,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Room", Method.GET);
             var response = client.Execute<ExecuteResult<BriefRoomInfo[]>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -517,14 +472,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Room", Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo[]>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
         #endregion
@@ -556,14 +505,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
             var response = client.Execute<ExecuteResult<PublicBasicUserInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
 
             userInfoCache[response.Data.result.UID] = response.Data.result;
             return response.Data.result;
@@ -584,14 +527,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
             var response = client.Execute<ExecuteResult<PublicBasicUserInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
 
             userInfoCache[uid] = response.Data.result;
             return response.Data.result;
@@ -606,14 +543,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/me", Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<PublicBasicUserInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
 
             userInfoCache[response.Data.result.UID] = response.Data.result;
             return response.Data.result;
@@ -633,14 +564,9 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/" + uid, Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<PublicBasicUserInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
+
             userInfoCache[uid] = response.Data.result;
             return response.Data.result;
         }
@@ -653,17 +579,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             UID = 0;
             UserSession = "";
@@ -679,17 +595,7 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
+            errorHandler(response, response.Data);
 
             UID = 0;
             UserSession = "";
@@ -706,14 +612,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/latest", Method.GET);
             var response = client.Execute<ExecuteResult<ClientUpdateInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -729,14 +629,8 @@ namespace NitoriNetwork.Common
             if (response.ErrorException != null)
                 throw response.ErrorException;
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -750,14 +644,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/" + version, Method.GET);
             var response = client.Execute<ExecuteResult<ClientUpdateInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -771,14 +659,9 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/" + version, Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
+
             return response.Data.result;
         }
 
@@ -792,14 +675,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/" + version + "/delta", Method.GET);
             var response = client.Execute<ExecuteResult<ClientUpdateInfo[]>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -813,14 +690,8 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/Update/" + version + "/delta", Method.GET);
             var response = await client.ExecuteAsync<ExecuteResult<ClientUpdateInfo[]>>(request);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
             return response.Data.result;
         }
 
@@ -839,14 +710,8 @@ namespace NitoriNetwork.Common
             request.AddParameter("mail", mail);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
         }
         /// <summary>
         /// 请求找回密码
@@ -862,14 +727,8 @@ namespace NitoriNetwork.Common
             request.AddParameter("mail", mail);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
         }
         /// <summary>
         /// 请求找回密码
@@ -888,14 +747,8 @@ namespace NitoriNetwork.Common
             request.AddParameter("password", password);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
         }
 
         /// <summary>
@@ -915,14 +768,8 @@ namespace NitoriNetwork.Common
             request.AddParameter("password", password);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
-            if (response.Data.code != ResultCode.Success)
-            {
-                throw new NetClientException(response.Data.message);
-            }
+            errorHandler(response);
+            errorHandler(response.Data);
         }
         #endregion
         #region EULA
@@ -934,10 +781,8 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/api/EULA/EULA", Method.GET);
             var response = client.Execute(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
+
             return response.Content;
         }
         /// <summary>
@@ -948,10 +793,8 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/api/EULA/EULA", Method.GET);
             var response = await client.ExecuteAsync(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
+
             return response.Content;
         }
 
@@ -963,10 +806,8 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/api/EULA/Privacy", Method.GET);
             var response = client.Execute(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
+
             return response.Content;
         }
         /// <summary>
@@ -977,12 +818,72 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/api/EULA/Privacy", Method.GET);
             var response = await client.ExecuteAsync(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(response.StatusDescription);
-            }
+            errorHandler(response);
+
             return response.Content;
         }
+        #endregion
+        #region
+        /// <summary>
+        /// 设置用户卡组
+        /// </summary>
+        /// <param name="decks"></param>
+        public void SetUserDecks(DeckDataItem[] decks)
+        {
+            RestRequest request = new RestRequest("/api/Deck", Method.POST);
+            request.AddParameter("decks", decks.ToJson());
+
+            var response = client.Execute<ExecuteResult>(request);
+
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
+        }
+
+        /// <summary>
+        /// 设置用户卡组
+        /// </summary>
+        /// <param name="decks"></param>
+        public async Task SetUserDecksAsync(DeckDataItem[] decks)
+        {
+            RestRequest request = new RestRequest("/api/Deck", Method.POST);
+            request.AddParameter("decks", decks.ToJson());
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
+        }
+
+        /// <summary>
+        /// 获取用户卡组
+        /// </summary>
+        /// <returns></returns>
+        public DeckDataItem[] GetUserDecks()
+        {
+            RestRequest request = new RestRequest("/api/Deck", Method.GET);
+            var response = client.Execute<ExecuteResult<DeckDataItem[]>>(request);
+
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
+
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 获取用户卡组
+        /// </summary>
+        /// <returns></returns>
+        public async Task<DeckDataItem[]> GetUserDecksAsync()
+        {
+            RestRequest request = new RestRequest("/api/Deck", Method.GET);
+            var response = await client.ExecuteAsync<ExecuteResult<DeckDataItem[]>>(request);
+
+            errorHandler(response, response.Data);
+            errorHandler(response.Data);
+
+            return response.Data.result;
+        }
+
         #endregion
     }
 
@@ -991,6 +892,7 @@ namespace NitoriNetwork.Common
     {
         public NetClientException() { }
         public NetClientException(string message) : base(message) { }
+        public NetClientException(HttpStatusCode code) : base($"HTTP {(int)code}: {code}") { }
         public NetClientException(string message, System.Exception inner) : base(message, inner) { }
         protected NetClientException(
           System.Runtime.Serialization.SerializationInfo info,

@@ -454,6 +454,11 @@ namespace TouhouCardEngine
             private set { _account = value; }
         }
 
+        /// <summary>
+        /// 判断是否登录（非游客）
+        /// </summary>
+        public bool AccountIsValid => account != null && !account.guest;
+
         [Header("Server")]
         [SerializeField]
         AccountInfo _account;

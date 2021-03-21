@@ -46,10 +46,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("count", count);
 
             var result = client.Execute<WordPressPost[]>(request);
-            if (result.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(result.StatusDescription);
-            }
+            errorHandler(result);
             return result.Data;
         }
 
@@ -71,10 +68,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("count", count);
 
             var result = await client.ExecuteAsync<WordPressPost[]>(request);
-            if (result.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(result.StatusDescription);
-            }
+            errorHandler(result);
             return result.Data;
         }
 
@@ -87,10 +81,7 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/wp-json/wp/v2/media/" + mediaID, Method.GET);
             var result = client.Execute<WordPressMedia>(request);
-            if (result.StatusCode != HttpStatusCode.OK)
-            {
-                throw new NetClientException(result.StatusDescription);
-            }
+            errorHandler(result);
             return result.Data;
         }
 
@@ -103,11 +94,16 @@ namespace NitoriNetwork.Common
         {
             RestRequest request = new RestRequest("/wp-json/wp/v2/media/" + mediaID, Method.GET);
             var result = await client.ExecuteAsync<WordPressMedia>(request);
+            errorHandler(result);
+            return result.Data;
+        }
+
+        void errorHandler(IRestResponse result)
+        {
             if (result.StatusCode != HttpStatusCode.OK)
             {
-                throw new NetClientException(result.StatusDescription);
+                throw new NetClientException(result.StatusCode);
             }
-            return result.Data;
         }
 
         /// <summary>

@@ -42,7 +42,12 @@ namespace Tests
                 serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
             }
             catch { }
-            _ = serverClient.Login("testuser1", "123456", "xxxx");
+            bool success = serverClient.Login("testuser1", "123456", "xxxx");
+            if (!success)
+            {
+                throw new Exception("测试用账户无法登录，请确保测试用服务器数据库干净");
+            }
+            serverClient.GetSession();
         }
 
         /// <summary>
@@ -106,6 +111,36 @@ namespace Tests
             // 版本列表
             var list = serverClient.GetUpdateDeltaByVersion(spec.Version);
             Assert.IsEmpty(list);
+        }
+
+        [Test]
+        public void DeckTests()
+        {
+            tryLogin();
+
+            var decks = new DeckDataItem[] {
+                new DeckDataItem()
+                {
+                     ID = 0,
+                     Name = "测试卡组0",
+                     Content = "AAAA",
+                },
+                new DeckDataItem()
+                {
+                     ID = 1,
+                     Name = "测试卡组1",
+                     Content = "BBBB",
+                },
+            };
+
+            serverClient.SetUserDecks(decks);
+
+            var getDecks = serverClient.GetUserDecks();
+
+            Assert.AreEqual(decks[0].Name, getDecks[0].Name);
+            Assert.AreEqual(decks[0].ID, getDecks[0].ID);
+            Assert.AreEqual(decks[1].Name, getDecks[1].Name);
+            Assert.AreEqual(decks[1].ID, getDecks[1].ID);
         }
     }
 
