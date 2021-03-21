@@ -57,5 +57,8 @@ namespace TouhouCardEngine.Interfaces
         ICard getCard(IGame game, IPlayer viewer);
         ICard[] getTargets(IGame game, IPlayer viewer);
         string toString(IGame game, IPlayer viewer);
+
+        object[] localizeStringArgs(IGame game, IPlayer viewer);
+        string localizeTemplateString(IGame game, IPlayer viewer);
     }
 }

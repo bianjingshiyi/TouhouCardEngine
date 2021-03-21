@@ -82,10 +82,22 @@ namespace TouhouCardEngine
             {
                 return null;
             }
+
+            public object[] localizeStringArgs(IGame game, IPlayer viewer)
+            {
+                return new object[] { card.getFormatString() };
+            }
+            const string TEXT_TEMPLATE = "一张牌变形为{0}";
+
+            public string localizeTemplateString(IGame game, IPlayer viewer)
+            {
+                return TEXT_TEMPLATE;
+            }
+
             public string toString(IGame game, IPlayer viewer)
             {
                 //TODO:可见性问题
-                return "一张牌变形为" + card.getFormatString();
+                return string.Format(TEXT_TEMPLATE, localizeStringArgs(game, viewer));
             }
         }
         public PropModifier[] getModifiers()
