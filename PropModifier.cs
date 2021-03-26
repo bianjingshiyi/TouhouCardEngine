@@ -48,15 +48,20 @@ namespace TouhouCardEngine
         /// <param name="value"></param>
         public virtual Task setValue(IGame game, Card card, T value)
         {
+            if (Equals(this.value, value))
+            {
+                return Task.CompletedTask;
+            }
             object beforeValue = card.getProp(game, propName);
             this.value = value;
             return game.triggers.doEvent(new Card.PropChangeEventArg()
             {
+                game = game,
                 card = card,
                 propName = propName,
                 beforeValue = beforeValue,
                 value = card.getProp(game, propName)
-            });
+            },arg => Task.CompletedTask);
         }
         public sealed override object calc(IGame game, Card card, object value)
         {
