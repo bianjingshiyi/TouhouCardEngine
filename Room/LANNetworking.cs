@@ -280,12 +280,21 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有成员
+        /// <summary>
+        /// LAN广播搜索局域网上现有房间请求
+        /// 以广播形式发送此请求。
+        /// </summary>
         void reqGetRoom()
         {
             log?.log(name + "收到请求房间消息");
             RoomData roomData = onGetRoom?.Invoke();
             invoke(unconnectedInvokeIP, nameof(ackGetRoom), roomData);
         }
+        /// <summary>
+        /// LAN搜索房间响应
+        /// 收到发现房间请求后，向来源发送此请求，指示此房间存在于网络上
+        /// </summary>
+        /// <param name="room"></param>
         void ackGetRoom(RoomData room)
         {
             log?.log(name + "收到获取房间消息");
@@ -296,7 +305,8 @@ namespace TouhouCardEngine
             onUpdateRoom?.Invoke(room);
         }
         /// <summary>
-        /// 远程调用方法，当收到创建房间消息时被调用
+        /// 创建房间后广播
+        /// 远程调用方法，当收到房间创建后广播到局域网中。其他客户端收到此调用，更新房间信息。
         /// </summary>
         /// <param name="room"></param>
         void ntfNewRoom(RoomData room)
@@ -305,12 +315,22 @@ namespace TouhouCardEngine
             updateRoomInfo(room);
             onNewRoomNtf?.Invoke(room);
         }
+        /// <summary>
+        /// 房间更新后广播
+        /// 远程调用方法。当房间信息更新后广播到局域网中。其他客户端收到此调用后，更新房间信息。
+        /// </summary>
+        /// <param name="room"></param>
         void ntfUpdateRoom(RoomData room)
         {
             log?.log(name + "收到房间信息更新消息");
             updateRoomInfo(room);
             onUpdateRoom?.Invoke(room);
         }
+        /// <summary>
+        /// 房间移除后广播
+        /// 远程调用方法。当房间被移除后广播到局域网中。其他客户端收到此调用后，更新房间信息。
+        /// </summary>
+        /// <param name="roomId"></param>
         void ntfRemoveRoom(string roomId)
         {
             log?.log(name + "收到房间" + roomId + "移除消息");
