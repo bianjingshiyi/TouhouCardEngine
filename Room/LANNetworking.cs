@@ -17,7 +17,7 @@ namespace TouhouCardEngine
     /// <summary>
     /// 网络的局域网实现
     /// </summary>
-    public class LANNetworking : ClientNetworking
+    public class LANNetworking : ClientNetworking, IClientNetworking
     {
         #region 公共成员
         /// <summary>
@@ -46,7 +46,7 @@ namespace TouhouCardEngine
         /// 局域网默认玩家使用随机Guid，没有玩家名字
         /// </summary>
         /// <returns></returns>
-        public override RoomPlayerData getLocalPlayerData()
+        public RoomPlayerData getLocalPlayerData()
         {
             return _playerData;
         }
@@ -56,7 +56,7 @@ namespace TouhouCardEngine
         /// <param name="hostPlayerData"></param>
         /// <returns></returns>
         /// <remarks>游戏大厅的话，就应该是返回游戏大厅构造并且保存在列表里的房间了吧</remarks>
-        public override Task<RoomData> createRoom(RoomPlayerData hostPlayerData)
+        public Task<RoomData> createRoom(RoomPlayerData hostPlayerData)
         {
             log?.log(name + "创建房间");
             _roomData = new RoomData(Guid.NewGuid().ToString());
@@ -70,7 +70,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="port"></param>
         /// <returns></returns>
-        public override Task<RoomData[]> getRooms()
+        public Task<RoomData[]> getRooms()
         {
             invokeBroadcast(nameof(reqGetRoom));
             return Task.FromResult(new RoomData[0]);
@@ -86,7 +86,7 @@ namespace TouhouCardEngine
         /// 收到连接请求，要客户端来检查是否可以加入，不能加入就拒绝并返回一个异常
         /// 能加入的话，接受，然后等待玩家连接上来。
         /// </remarks>
-        public override Task<RoomData> joinRoom(string roomId, RoomPlayerData joinPlayerData)
+        public Task<RoomData> joinRoom(string roomId, RoomPlayerData joinPlayerData)
         {
             if (opList.Any(o => o is JoinRoomOperation))
                 throw new InvalidOperationException("客户端已经在执行连接操作");
@@ -118,7 +118,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="roomData"></param>
         /// <returns></returns>
-        public override Task addPlayer(RoomPlayerData playerData)
+        public Task addPlayer(RoomPlayerData playerData)
         {
             //广播房间中玩家数量变化
             invokeBroadcast(nameof(ntfRoomAddPlayer), _roomData.ID, playerData);
@@ -126,14 +126,14 @@ namespace TouhouCardEngine
             return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomAddPlayer), _roomData.ID, playerData)));
             //invokeAll<object>(_playerInfoDict.Values.Select(i => i.peer), nameof(ntfRoomAddPlayer), _roomData.ID, playerData);
         }
-        public override Task setRoomProp(string key, object value)
+        public Task setRoomProp(string key, object value)
         {
             //广播房间中的属性变化
             invokeBroadcast(nameof(ntfRoomSetProp), _roomData.ID, key, value);
             //想房间中的其他玩家发送属性变化通知
             return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomSetProp), _roomData.ID, key, value)));
         }
-        public override async Task setRoomPlayerProp(int playerId, string key, object value)
+        public async Task setRoomPlayerProp(int playerId, string key, object value)
         {
             if (_roomData.ownerId == playerId)
             {
@@ -175,7 +175,7 @@ namespace TouhouCardEngine
         /// <summary>
         /// 当局域网的房间被移除
         /// </summary>
-        public override event Action<string> onRemoveRoomNtf;
+        public event Action<string> onRemoveRoomNtf;
         /// <summary>
         /// 一次更新一整个房间的开销真的可以，这个事件应该被拆成若干个更新房间的事件。
         /// </summary>
@@ -200,19 +200,21 @@ namespace TouhouCardEngine
         /// <summary>
         /// 当房间添加玩家时收到通知。
         /// </summary>
-        public override event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
+        public event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
         /// <summary>
         /// 当房间移除玩家时收到通知。
         /// </summary>
-        public override event Action<string, int> onRoomRemovePlayerNtf;
+        public event Action<string, int> onRoomRemovePlayerNtf;
         /// <summary>
         /// 当房间属性更改时收到通知。
         /// </summary>
-        public override event Action<string, string, object> onRoomSetPropNtf;
+        public event Action<string, string, object> onRoomSetPropNtf;
         /// <summary>
         /// 当房间中的玩家更改属性时收到通知。
         /// </summary>
-        public override event Action<int, string, object> onRoomPlayerSetPropNtf;
+        public event Action<int, string, object> onRoomPlayerSetPropNtf;
+        public event Action<RoomData> onRoomDiscovered;
+        public event Action<RoomData> onRoomDataChanged;
         #endregion
         #region 方法重写
         protected override void OnConnectionRequest(ConnectionRequest request)
@@ -375,7 +377,8 @@ namespace TouhouCardEngine
                 ip = request.RemoteEndPoint,
                 peer = peer
             };
-            invokeBroadcast(nameof(ntfUpdateRoom), roomData);
+            invokeBroadcast(nameof(ntfRoomAddPlayer), roomData.ID, player);
+            //invokeBroadcast(nameof(ntfUpdateRoom), roomData);
         }
         async Task confirmJoin(JoinRoomOperation joinRoomOperation)
         {

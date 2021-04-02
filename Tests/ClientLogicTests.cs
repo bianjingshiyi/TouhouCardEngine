@@ -176,22 +176,22 @@ namespace Tests
         {
             yield return LANRoomCreateAndAssert(addAIPlayerAssert);
         }
-        [UnityTest]
-        public IEnumerator LANRoomGetRoomsTest()
-        {
-            yield return LANRoomCreate2AndAssert(LANRoomGetRoomsAssert);
-        }
-        IEnumerator LANRoomGetRoomsAssert(ClientLogic client1, ClientLogic client2)
-        {
-            RoomData room = null;
-            client2.onUpdateRoom += r => room = r;
-            //client1先创建房间，但是其实这个时候client2就应该收到消息，得到房间了
-            yield return client1.createOnlineRoom();
-            //client2广播发现房间消息，会得到client1的回应，不过房间里面应该已经有了
-            client2.refreshRooms();
-            yield return TestHelper.waitUntil(() => room != null, 5);
-            Assert.NotNull(room);
-        }
+        //[UnityTest]
+        //public IEnumerator LANRoomGetRoomsTest()
+        //{
+        //    yield return LANRoomCreate2AndAssert(LANRoomGetRoomsAssert);
+        //}
+        //IEnumerator LANRoomGetRoomsAssert(ClientLogic client1, ClientLogic client2)
+        //{
+        //    RoomData room = null;
+        //    client2.onUpdateRoom += r => room = r;
+        //    //client1先创建房间，但是其实这个时候client2就应该收到消息，得到房间了
+        //    yield return client1.createOnlineRoom();
+        //    //client2广播发现房间消息，会得到client1的回应，不过房间里面应该已经有了
+        //    client2.refreshRooms();
+        //    yield return TestHelper.waitUntil(() => room != null, 5);
+        //    Assert.NotNull(room);
+        //}
         [UnityTest]
         public IEnumerator LANRoomJoinTest()
         {

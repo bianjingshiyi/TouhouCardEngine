@@ -20,7 +20,8 @@ namespace TouhouCardEngine
         }
         public void update()
         {
-            curNetwork.net.PollEvents();
+            curNetwork.pollEvents();
+            //curNetwork.net.PollEvents();
         }
         public void Dispose()
         {
@@ -43,7 +44,7 @@ namespace TouhouCardEngine
             {
                 //切换网络注销事件。
                 curNetwork.onNewRoomNtf -= onNewOrUpdateRoomNtf;
-                curNetwork.onUpdateRoom -= onNewOrUpdateRoomNtf;
+                //curNetwork.onUpdateRoom -= onNewOrUpdateRoomNtf;
                 curNetwork.onRemoveRoomNtf -= onRemoveRoomNtf;
                 curNetwork.onJoinRoomReq -= onJoinRoomReq;
                 curNetwork.onRoomAddPlayerNtf -= onRoomAddPlayerNtf;
@@ -61,7 +62,7 @@ namespace TouhouCardEngine
                 LANNetwork.start();
             curNetwork = LANNetwork;
             curNetwork.onNewRoomNtf += onNewOrUpdateRoomNtf;
-            curNetwork.onUpdateRoom += onNewOrUpdateRoomNtf;
+            //curNetwork.onUpdateRoom += onNewOrUpdateRoomNtf;
             curNetwork.onRemoveRoomNtf += onRemoveRoomNtf;
             curNetwork.onJoinRoomReq += onJoinRoomReq;
             curNetwork.onRoomAddPlayerNtf += onRoomAddPlayerNtf;
@@ -96,11 +97,11 @@ namespace TouhouCardEngine
             lobby.addRoom(room);
             //this.room.maxPlayerCount = MAX_PLAYER_COUNT;
         }
-        public void refreshRooms()
-        {
-            logger?.log("客户端刷新房间列表");
-            curNetwork.refreshRooms();
-        }
+        //public void refreshRooms()
+        //{
+        //    logger?.log("客户端刷新房间列表");
+        //    curNetwork.refreshRooms();
+        //}
         public Task<RoomData[]> getRooms()
         {
             logger?.log("客户端请求房间列表");
@@ -154,6 +155,7 @@ namespace TouhouCardEngine
         /// </summary>
         public int port => curNetwork != null ? curNetwork.port : -1;
         public LANNetworking LANNetwork { get; }
+        public IClientNetworking curNetwork { get; set; } = null;
         #endregion
         #region 私有成员
         private RoomData onGetRoomReq()
@@ -257,7 +259,6 @@ namespace TouhouCardEngine
         {
             room.setPlayerProp(playerId, propName, value);
         }
-        ClientNetworking curNetwork { get; set; } = null;
         ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
         #endregion
