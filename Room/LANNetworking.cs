@@ -214,7 +214,9 @@ namespace TouhouCardEngine
         /// </summary>
         public event Action<int, string, object> onRoomPlayerSetPropNtf;
         public event Action<RoomData> onRoomDiscovered;
-        public event Action<RoomData> onRoomDataChanged;
+        public event Action<string, string, object> onRoomDataChanged;
+        public event Action<string, RoomPlayerData> onJoinRoomNtf;
+        public event Action<string, int> onConfirmJoinNtf;
         #endregion
         #region 方法重写
         protected override void OnConnectionRequest(ConnectionRequest request)
@@ -391,6 +393,10 @@ namespace TouhouCardEngine
             RoomData data = onConfirmJoinReq.Invoke(player);
             invokeBroadcast(nameof(ntfUpdateRoom), data);
             return data;
+        }
+        void ntfConfirmJoin(string roomId, int playerId)
+        {
+            onConfirmJoinNtf?.Invoke(roomId, playerId);
         }
         void ackJoinRoomReject()
         {

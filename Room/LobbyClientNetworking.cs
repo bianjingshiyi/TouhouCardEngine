@@ -8,7 +8,7 @@ using LiteNetLib.Utils;
 
 namespace TouhouCardEngine
 {
-    public class LobbyClientNetworking : ClientNetworking, IClientNetworking
+    public class LobbyClientNetworking : ClientNetworking
     {
         int connectionTimeout = 3;
 
@@ -165,7 +165,7 @@ namespace TouhouCardEngine
         }
 
         public event Action<RoomData> onRoomDiscovered;
-        public event Action<RoomData> onRoomDataChanged;
+        public event Action<string, string, object> onRoomDataChanged;
         public event Action<string> onRemoveRoomNtf;
         public event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
         public event Action<string, int> onRoomRemovePlayerNtf;
