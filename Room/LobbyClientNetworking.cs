@@ -5,18 +5,18 @@ using System.Collections.Generic;
 using MongoDB.Bson.Serialization;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using System.Net;
+using System.Net.Sockets;
 
 namespace TouhouCardEngine
 {
-    public class LobbyClientNetworking : ClientNetworking
+    public class LobbyClientNetworking : Networking, INetworkingV3Client
     {
-        int connectionTimeout = 3;
-
         ServerClient serverClient { get; }
 
         RoomPlayerData localPlayer { get; set; } = null;
 
-        public LobbyClientNetworking(ServerClient servClient)
+        public LobbyClientNetworking(ServerClient servClient, Shared.ILogger logger) : base("lobbyClient", logger)
         {
             serverClient = servClient;
         }
@@ -27,32 +27,21 @@ namespace TouhouCardEngine
         public NetPeer hostPeer { get; set; } = null;
 
         /// <summary>
-        /// 设置当前用户的信息
-        /// 用户登录成功或注销后，应当调用此方法设置/更新用户信息。
+        /// 获取当前用户的数据
         /// </summary>
-        /// <param name="info"></param>
-        public void SetUserInfo(PublicBasicUserInfo info)
+        /// <returns></returns>
+        public RoomPlayerData GetSelfPlayerData()
         {
-            if (info == null)
-            {
-                localPlayer = null;
-            }
-            else
-            {
+            // 仅在更换了用户后更新这个PlayerData
+            var info = serverClient.GetUserInfoCached();
+            if (localPlayer?.id != info.UID)
                 localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
-            }
-        }
-
-        public RoomPlayerData getLocalPlayerData()
-        {
+            
             return localPlayer;
         }
 
-        public async Task<RoomData> createRoom(RoomPlayerData hostPlayerData)
+        public async Task<RoomData> CreateRoom()
         {
-            if (hostPlayerData != null && hostPlayerData != localPlayer)
-                throw new ArgumentException("房主玩家和当前玩家不是同一个玩家。");
-
             // todo: 这里需要与其他地方配合，得到真正的房间信息。
             // 在没有连接到房间之前，房间内玩家是0，所以不设置房间。
             var roomInfo = await serverClient.CreateRoomAsync();
@@ -61,24 +50,13 @@ namespace TouhouCardEngine
             return roomData;
         }
 
-        /// <summary>
-        /// DO NOT CALL THIS!
-        /// 在服务器上无法加入一个新的玩家。
-        /// </summary>
-        /// <param name="playerData"></param>
-        /// <returns></returns>
-        public Task addPlayer(RoomPlayerData playerData)
-        {
-            throw new NotImplementedException();
-        }
-
         Dictionary<string, BriefRoomInfo> cachedRoomInfos = new Dictionary<string, BriefRoomInfo>();
 
         /// <summary>
         /// 获取当前服务器的房间信息
         /// </summary>
         /// <returns></returns>
-        public async Task<RoomData[]> getRooms()
+        public async Task<RoomData[]> GetRooms()
         {
             var roomInfos = await serverClient.GetRoomInfosAsync();
             List<RoomData> rooms = new List<RoomData>();
@@ -105,7 +83,7 @@ namespace TouhouCardEngine
             return rooms.ToArray();
         }
 
-        public Task<RoomData> joinRoom(string roomId, RoomPlayerData joinPlayerData)
+        public Task<RoomData> JoinRoom(string roomId)
         {
             if (!cachedRoomInfos.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException("roomID", "指定ID的房间不存在");
@@ -125,23 +103,79 @@ namespace TouhouCardEngine
             return op.task;
         }
 
-        public Task setRoomProp(string key, object value)
+        public Task SetRoomProp(string key, object value)
         {
             // todo: 这个应该是调用一个RPC
             return invoke<object>(hostPeer, "setRoomProp", key, value);
         }
 
-        public Task setRoomPlayerProp(int playerId, string key, object value)
+        public Task SetPlayerProp(int playerId, string key, object value)
         {
             // todo: 这个应该是调用一个RPC
-            return invoke<object>(hostPeer, "setRoomPlayerProp", playerId, key, value);
+            return invoke<object>(hostPeer, "setPlayerProp", playerId, key, value);
         }
 
         class JoinLobbyRoomOperation : Operation<RoomData>
         {
-            public JoinLobbyRoomOperation() : base(nameof(LobbyClientNetworking.joinRoom))
+            public JoinLobbyRoomOperation() : base(nameof(LobbyClientNetworking.JoinRoom))
             {
             }
+        }
+
+        /// <summary>
+        /// 销毁房间。
+        /// 这个方法不要使用，请使用QuitRoom退出当前房间，服务器会在没有更多玩家的情况下销毁房间。
+        /// </summary>
+        /// <returns></returns>
+        public Task DestroyRoom()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 修改房间信息
+        /// </summary>
+        /// <param name="changedInfo"></param>
+        /// <returns></returns>
+        public Task AlterRoomInfo(RoomInfo changedInfo)
+        {
+            // todo: 应该是调用一个RPC，和SetProp差不多
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 退出房间
+        /// </summary>
+        /// <returns></returns>
+        public void QuitRoom()
+        {
+            // 直接断开就好了吧
+            net.DisconnectPeer(hostPeer);
+        }
+
+        /// <summary>
+        /// 获取所有用户信息
+        /// </summary>
+        /// <returns></returns>
+        public Task<RoomPlayerData> QueryAllPlayerData()
+        {
+            // todo: 请求拉取，或者从缓存中返回一个值
+            throw new NotImplementedException();
+        }
+
+        public Task SetPlayerProp(string name, object val)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<object> GetRoomProp(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task GameStart()
+        {
+            throw new NotImplementedException();
         }
 
         protected override Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
@@ -151,12 +185,12 @@ namespace TouhouCardEngine
 
         protected override void OnPeerConnected(NetPeer peer)
         {
-            base.OnPeerConnected(peer);
+            // todo
         }
 
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            base.OnPeerDisconnected(peer, disconnectInfo);
+            // todo
         }
 
         public void pollEvents()
@@ -164,12 +198,124 @@ namespace TouhouCardEngine
             throw new NotImplementedException();
         }
 
-        public event Action<RoomData> onRoomDiscovered;
-        public event Action<string, string, object> onRoomDataChanged;
-        public event Action<string> onRemoveRoomNtf;
-        public event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
-        public event Action<string, int> onRoomRemovePlayerNtf;
-        public event Action<string, string, object> onRoomSetPropNtf;
-        public event Action<int, string, object> onRoomPlayerSetPropNtf;
+        public override Task<T> invoke<T>(string mehtod, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Type getType(string typeName)
+        {
+            return TypeHelper.getType(typeName);
+        }
+
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    interface INetworkingV3Client
+    {
+        #region Player
+        /// <summary>
+        /// 获取当前玩家（自己）的玩家信息
+        /// </summary>
+        /// <returns></returns>
+        RoomPlayerData GetSelfPlayerData();
+        #endregion
+
+        #region Lobby
+        /// <summary>
+        /// 以当前玩家为房主创建一个房间
+        /// </summary>
+        /// <returns></returns>
+        Task<RoomData> CreateRoom();
+
+        /// <summary>
+        /// 关闭当前已经创建的房间（部分情况下用不上）
+        /// </summary>
+        /// <returns></returns>
+        Task DestroyRoom();
+
+        /// <summary>
+        /// 获取当前课加入的房间信息
+        /// </summary>
+        /// <remarks>
+        /// 对开发者的提示：
+        /// 请在实现时缓存详细的IP和端口等信息，方便后面JoinRoom时连接。
+        /// </remarks>
+        /// <returns></returns>
+        Task<RoomData[]> GetRooms();
+
+        /// <summary>
+        /// 修改当前房间的信息
+        /// </summary>
+        /// <param name="changedInfo"></param>
+        /// <returns></returns>
+        Task AlterRoomInfo(RoomInfo changedInfo);
+        #endregion
+
+        #region Room
+        /// <summary>
+        /// 使用当前用户加入一个房间
+        /// </summary>
+        /// <param name="room"></param>
+        /// <returns></returns>
+        Task<RoomData> JoinRoom(string roomID);
+
+        /// <summary>
+        /// 退出当前加入的房间
+        /// </summary>
+        /// <returns></returns>
+        void QuitRoom();
+
+        /// <summary>
+        /// 获取房间内所有玩家的数据
+        /// //? 为啥会有这个API？
+        /// </summary>
+        /// <returns></returns>
+        Task<RoomPlayerData> QueryAllPlayerData();
+
+        /// <summary>
+        /// 修改玩家的属性
+        /// </summary>
+        /// <returns></returns>
+        Task SetPlayerProp(string name, object val);
+
+        /// <summary>
+        /// 获取房间属性
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        Task<object> GetRoomProp(string name);
+
+        /// <summary>
+        /// 修改房间的属性
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        Task SetRoomProp(string name, object val);
+
+        /// <summary>
+        /// 开始游戏！
+        /// </summary>
+        /// <returns></returns>
+        Task GameStart();
+        #endregion
+
+        #region Game
+        // todo
+        #endregion
     }
 }

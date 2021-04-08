@@ -513,6 +513,15 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
+        /// 获取缓存的当前用户登录的信息
+        /// </summary>
+        /// <returns></returns>
+        public PublicBasicUserInfo GetUserInfoCached()
+        {
+            return userInfoCache[UID];
+        }
+
+        /// <summary>
         /// 获取指定ID用户的用户信息
         /// </summary>
         /// <param name="uid"></param>
