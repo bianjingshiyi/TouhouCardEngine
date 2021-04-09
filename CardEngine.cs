@@ -177,7 +177,12 @@ namespace TouhouCardEngine
         Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
         #endregion
         #region Card
-        public virtual Card createCard(CardDefine define)
+        /// <summary>
+        /// Create one uninitialized card with only card define and record the card in the engine's bank
+        /// </summary>
+        /// <param name="define"></param>
+        /// <returns></returns>
+        public Card issueCard(CardDefine define)
         {
             int id = cardDic.Count + 1;
             while (cardDic.ContainsKey(id))
@@ -185,13 +190,6 @@ namespace TouhouCardEngine
             Card card = new Card(id, define);
             cardDic.Add(id, card);
             return card;
-        }
-        public Card createCardById(int id)
-        {
-            CardDefine define = getDefine(id);
-            if (define == null)
-                throw new NoCardDefineException(id);
-            return createCard(define);
         }
         public Card getCard(int id)
         {
