@@ -10,37 +10,50 @@ using System.Net.Sockets;
 
 namespace TouhouCardEngine
 {
-    public class LobbyClientNetworking : Networking, INetworkingV3Client
+    public class LobbyClientNetworking : CommonClientNetwokingV3, IRoomRPCMethodClient
     {
+        /// <summary>
+        /// 服务器通信客户端
+        /// </summary>
         ServerClient serverClient { get; }
 
+        /// <summary>
+        /// 本地玩家
+        /// </summary>
         RoomPlayerData localPlayer { get; set; } = null;
+
+        /// <summary>
+        /// 主机对端
+        /// </summary>
+        public NetPeer hostPeer { get; set; } = null;
 
         public LobbyClientNetworking(ServerClient servClient, Shared.ILogger logger) : base("lobbyClient", logger)
         {
             serverClient = servClient;
+            initRpcMethods();
         }
 
-        /// <summary>
-        /// host peer 
-        /// </summary>
-        public NetPeer hostPeer { get; set; } = null;
+        #region 外部方法实现
 
         /// <summary>
         /// 获取当前用户的数据
         /// </summary>
         /// <returns></returns>
-        public RoomPlayerData GetSelfPlayerData()
+        public override RoomPlayerData GetSelfPlayerData()
         {
             // 仅在更换了用户后更新这个PlayerData
             var info = serverClient.GetUserInfoCached();
             if (localPlayer?.id != info.UID)
                 localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
-            
+
             return localPlayer;
         }
 
-        public async Task<RoomData> CreateRoom()
+        /// <summary>
+        /// 创建一个空房间，房主为自己
+        /// </summary>
+        /// <returns></returns>
+        public async override Task<RoomData> CreateRoom()
         {
             // todo: 这里需要与其他地方配合，得到真正的房间信息。
             // 在没有连接到房间之前，房间内玩家是0，所以不设置房间。
@@ -50,21 +63,24 @@ namespace TouhouCardEngine
             return roomData;
         }
 
-        Dictionary<string, BriefRoomInfo> cachedRoomInfos = new Dictionary<string, BriefRoomInfo>();
+        /// <summary>
+        /// 缓存的服务器上房间列表
+        /// </summary>
+        Dictionary<string, BriefRoomInfo> cachedRoomsInfo = new Dictionary<string, BriefRoomInfo>();
 
         /// <summary>
         /// 获取当前服务器的房间信息
         /// </summary>
         /// <returns></returns>
-        public async Task<RoomData[]> GetRooms()
+        public async override Task<RoomData[]> GetRooms()
         {
             var roomInfos = await serverClient.GetRoomInfosAsync();
             List<RoomData> rooms = new List<RoomData>();
 
-            cachedRoomInfos.Clear();
+            cachedRoomsInfo.Clear();
             foreach (var item in roomInfos)
             {
-                cachedRoomInfos.Add(item.id, item);
+                cachedRoomsInfo.Add(item.id, item);
 
                 var room = new RoomData(item.id);
                 room.ownerId = item.ownerID;
@@ -83,19 +99,19 @@ namespace TouhouCardEngine
             return rooms.ToArray();
         }
 
-        public Task<RoomData> JoinRoom(string roomId)
+        public override Task<RoomData> JoinRoom(string roomId)
         {
-            if (!cachedRoomInfos.ContainsKey(roomId))
+            if (!cachedRoomsInfo.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException("roomID", "指定ID的房间不存在");
 
-            var roomInfo = cachedRoomInfos[roomId];
+            var roomInfo = cachedRoomsInfo[roomId];
             var writer = new NetDataWriter();
             // todo: 规定加入的数据格式。
-            // 在老的网络中，Connect和JoinRoom是两个操作，但在新的网络中似乎是一个。
             writer.Put(roomId);
+            writer.Put(localPlayer.id);
 
             hostPeer = net.Connect(roomInfo.ip, roomInfo.port, writer);
-            JoinLobbyRoomOperation op = new JoinLobbyRoomOperation();
+            JoinRoomOperation op = new JoinRoomOperation();
             startOperation(op, () =>
             {
                 log?.logWarn($"连接到 {roomInfo} 响应超时。");
@@ -103,43 +119,24 @@ namespace TouhouCardEngine
             return op.task;
         }
 
-        public Task SetRoomProp(string key, object value)
-        {
-            // todo: 这个应该是调用一个RPC
-            return invoke<object>(hostPeer, "setRoomProp", key, value);
-        }
-
-        public Task SetPlayerProp(int playerId, string key, object value)
-        {
-            // todo: 这个应该是调用一个RPC
-            return invoke<object>(hostPeer, "setPlayerProp", playerId, key, value);
-        }
-
-        class JoinLobbyRoomOperation : Operation<RoomData>
-        {
-            public JoinLobbyRoomOperation() : base(nameof(LobbyClientNetworking.JoinRoom))
-            {
-            }
-        }
-
         /// <summary>
         /// 销毁房间。
         /// 这个方法不要使用，请使用QuitRoom退出当前房间，服务器会在没有更多玩家的情况下销毁房间。
         /// </summary>
         /// <returns></returns>
-        public Task DestroyRoom()
+        public override Task DestroyRoom()
         {
             throw new NotImplementedException();
         }
 
         /// <summary>
         /// 修改房间信息
+        /// 暂时不知道能修改什么房间信息，先不实现
         /// </summary>
         /// <param name="changedInfo"></param>
         /// <returns></returns>
-        public Task AlterRoomInfo(RoomInfo changedInfo)
+        public override Task AlterRoomInfo(RoomInfo changedInfo)
         {
-            // todo: 应该是调用一个RPC，和SetProp差不多
             throw new NotImplementedException();
         }
 
@@ -147,7 +144,7 @@ namespace TouhouCardEngine
         /// 退出房间
         /// </summary>
         /// <returns></returns>
-        public void QuitRoom()
+        public override void QuitRoom()
         {
             // 直接断开就好了吧
             net.DisconnectPeer(hostPeer);
@@ -157,50 +154,170 @@ namespace TouhouCardEngine
         /// 获取所有用户信息
         /// </summary>
         /// <returns></returns>
-        public Task<RoomPlayerData> QueryAllPlayerData()
+        public override RoomPlayerData[] GetPlayerData()
         {
-            // todo: 请求拉取，或者从缓存中返回一个值
+            // todo: API 接口设计有点问题
             throw new NotImplementedException();
         }
 
-        public Task SetPlayerProp(string name, object val)
+        public override object GetRoomProp(string name)
         {
+            // todo: API 接口设计有点问题
             throw new NotImplementedException();
         }
 
-        public Task<object> GetRoomProp(string name)
+        public override Task SetRoomProp(string key, object value)
         {
-            throw new NotImplementedException();
+            return invoke<object>(nameof(IRoomRPCMethodHost.setRoomProp), key, value);
         }
 
-        public Task GameStart()
+        public override Task SetPlayerProp(string name, object val)
         {
-            throw new NotImplementedException();
+            return invoke<object>(nameof(IRoomRPCMethodHost.setPlayerProp), name, val);
         }
 
-        protected override Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
+        public override Task GameStart()
         {
-            return base.OnNetworkReceive(peer, reader, type);
+            return invoke<object>(nameof(IRoomRPCMethodHost.gameStart));
+        }
+        #endregion
+
+        #region RPC接口
+        private void initRpcMethods()
+        {
+            addRPCMethod(this, typeof(IRoomRPCMethodClient));
+        }
+
+        /// <summary>
+        /// 缓存的房间数据
+        /// </summary>
+        RoomData cachedRoomData;
+
+        void IRoomRPCMethodClient.updateRoomData(RoomData data)
+        {
+            cachedRoomData = data;
+            // todo: invoke change
+        }
+
+        void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
+        {
+            // todo: invoke change
+        }
+        #endregion
+        #region 交互逻辑
+        async Task requestJoinRoom()
+        {
+            var op = getOperation(typeof(JoinRoomOperation));
+            if (op == null)
+            {
+                log?.logWarn($"{name} 当前没有加入房间的操作，但是却想要发出加入房间的请求。");
+                return;
+            }
+
+            var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
+            completeOperation(op, roomInfo);
+        }
+        #endregion
+        #region 底层实现
+        public override Task<T> invoke<T>(string method, params object[] args)
+        {
+            return invoke<T>(hostPeer, method, args);
+        }
+
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            request.Reject();
+            log?.logWarn($"另一个客户端({request.RemoteEndPoint})尝试连接到本机({name})，由于当前网络是客户端网络故拒绝。");
         }
 
         protected override void OnPeerConnected(NetPeer peer)
         {
-            // todo
+            if (peer == hostPeer)
+            {
+                _ = requestJoinRoom();
+            }
+        }
+
+        SlidingAverage latencyAvg = new SlidingAverage(10);
+        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
+        {
+            if (peer == hostPeer)
+            {
+                latencyAvg.Push(latency);
+            }
+        }
+
+        public override int GetLatency()
+        {
+            return (int)latencyAvg.GetAvg();
+        }
+        #endregion
+    }
+
+    public abstract class CommonClientNetwokingV3 : Networking, INetworkingV3Client
+    {
+        public CommonClientNetwokingV3(string name, Shared.ILogger logger) : base(name, logger)
+        {
+        }
+
+        #region 待实现的接口
+        public abstract Task AlterRoomInfo(RoomInfo changedInfo);
+        public abstract Task<RoomData> CreateRoom();
+        public abstract Task DestroyRoom();
+        public abstract Task GameStart();
+        public abstract object GetRoomProp(string name);
+        public abstract Task<RoomData[]> GetRooms();
+        public abstract RoomPlayerData GetSelfPlayerData();
+        public abstract Task<RoomData> JoinRoom(string roomID);
+        public abstract RoomPlayerData[] GetPlayerData();
+        public abstract void QuitRoom();
+        public abstract Task SetPlayerProp(string name, object val);
+        public abstract Task SetRoomProp(string name, object val);
+        public abstract int GetLatency();
+        #endregion
+
+        #region 网络底层处理
+        protected class JoinRoomOperation : Operation<RoomData>
+        {
+            public JoinRoomOperation() : base(nameof(CommonClientNetwokingV3.JoinRoom))
+            {
+            }
         }
 
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            // todo
+            log?.log($"网络({name})与端点({peer.EndPoint})断开连接，原因：{disconnectInfo.Reason}，SocketErrorCode：{disconnectInfo.SocketErrorCode}");
+
+            switch (disconnectInfo.Reason)
+            {
+                case DisconnectReason.ConnectionFailed: // 连接失败
+                case DisconnectReason.HostUnreachable: // 无法到达主机
+                case DisconnectReason.NetworkUnreachable: // 无法到达网络
+                case DisconnectReason.UnknownHost: // 未知主机
+                case DisconnectReason.InvalidProtocol: // 错误协议
+                case DisconnectReason.ConnectionRejected: // 拒绝连接
+                    // 基本上只有正在加入的时候才会触发这些Error。将这些错误转换为Exception交给上层处理，用于显示无法加入的信息。
+                    var exception = new NtrNetworkException(disconnectInfo.Reason);
+                    var op = getOperation(typeof(JoinRoomOperation));
+                    if (op != null)
+                        op.setException(exception);
+                    break;
+                case DisconnectReason.RemoteConnectionClose: // 远程关闭
+                    break;
+                case DisconnectReason.Reconnect:
+                    break;
+                case DisconnectReason.Timeout:
+                    break;
+                case DisconnectReason.DisconnectPeerCalled:
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void pollEvents()
         {
-            throw new NotImplementedException();
-        }
-
-        public override Task<T> invoke<T>(string mehtod, params object[] args)
-        {
-            throw new NotImplementedException();
+            net.PollEvents();
         }
 
         protected override Type getType(string typeName)
@@ -208,20 +325,11 @@ namespace TouhouCardEngine
             return TypeHelper.getType(typeName);
         }
 
-        protected override void OnConnectionRequest(ConnectionRequest request)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
         {
-            throw new NotImplementedException();
+            log?.logError($"{name} 在与 {endPoint} 通信时发生异常，{socketError}");
         }
+        #endregion
     }
 
     interface INetworkingV3Client
@@ -284,7 +392,7 @@ namespace TouhouCardEngine
         /// //? 为啥会有这个API？
         /// </summary>
         /// <returns></returns>
-        Task<RoomPlayerData> QueryAllPlayerData();
+        RoomPlayerData[] GetPlayerData();
 
         /// <summary>
         /// 修改玩家的属性
@@ -297,7 +405,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        Task<object> GetRoomProp(string name);
+        object GetRoomProp(string name);
 
         /// <summary>
         /// 修改房间的属性
@@ -312,10 +420,75 @@ namespace TouhouCardEngine
         /// </summary>
         /// <returns></returns>
         Task GameStart();
+
+        /// <summary>
+        /// 获取当前网络的延迟
+        /// </summary>
+        /// <returns></returns>
+        int GetLatency();
         #endregion
 
         #region Game
         // todo
         #endregion
+    }
+
+    /// <summary>
+    /// 滑动窗口平均
+    /// </summary>
+    class SlidingAverage
+    {
+        public int Size { get; }
+        int[] buffer;
+
+        int index = 0, count = 0;
+        long sum = 0;
+
+        /// <summary>
+        /// 窗口大小
+        /// </summary>
+        /// <param name="size"></param>
+        public SlidingAverage(int size)
+        {
+            Size = size;
+            buffer = new int[Size];
+        }
+
+        /// <summary>
+        /// 插入一个值
+        /// </summary>
+        /// <param name="num"></param>
+        public void Push(int num)
+        {
+            if (count == Size)
+            {
+                sum -= buffer[index];
+                sum += num;
+            }
+
+            buffer[index++] = num;
+            index = index % Size;
+
+            if (count < Size) count++;
+        }
+
+        /// <summary>
+        /// 获取平均值
+        /// </summary>
+        /// <returns></returns>
+        public float GetAvg()
+        {
+            return (float)sum / count; 
+        }
+    }
+
+    [Serializable]
+    public class NtrNetworkException : Exception
+    {
+        public NtrNetworkException() { }
+        public NtrNetworkException(DisconnectReason reason) : base(reason.ToString()) { }
+        protected NtrNetworkException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }
