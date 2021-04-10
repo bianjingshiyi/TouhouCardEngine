@@ -13,7 +13,8 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract void onGameStart(CardEngine game, RoomPlayerInfo[] playersInfo);
+        public abstract void onGameInit(CardEngine game, IGameOption options);
+        public abstract void onGameRun(CardEngine game);
     }
     [Serializable]
     public partial class CardEngine : IGame
@@ -128,10 +129,43 @@ namespace TouhouCardEngine
         //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         #region 游戏流程
-        public void start(Rule rule, RoomPlayerInfo[] playersInfo)
+        public bool isRunning { get; private set; } = false;
+        public bool isInited { get; set; } = false;
+        public IGameOption option { get; set; }
+        public void init(Rule rule, IGameOption options)
         {
-            rule.onGameStart(this, playersInfo);
+            if (isInited)
+            {
+                logger.logError("游戏已经初始化");
+                return;
+            }
+            rule.onGameInit(this,options);
+            isInited = true;
         }
+        public void run(Rule rule)
+        {
+            if (isInited)
+            {
+                logger.logError("游戏未初始化");
+                return;
+            }
+            if (isRunning)
+            {
+                logger.logError("游戏已开始");
+                return;
+            }
+            isRunning = true;
+            rule.onGameRun(this);
+        }
+
+        public void initAndRun(Rule rule, IGameOption options)
+        {
+            rule.onGameInit(this,options);
+            isInited = true;
+            isRunning = true;
+            rule.onGameRun(this);
+        }
+        
         #endregion
         public virtual void onAnswer(IResponse response)
         {
