@@ -6,6 +6,10 @@ using NitoriNetwork.Common;
 using TouhouCardEngine.Shared;
 namespace TouhouCardEngine
 {
+    public abstract class GameOption
+    {
+        public int randomSeed = 0;
+    }
     public abstract class Rule
     {
         public CardDefine[] defines { get; }
@@ -13,13 +17,14 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract void onGameInit(CardEngine game, IGameOption options);
+        public abstract void onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
         public abstract void onGameRun(CardEngine game);
     }
     [Serializable]
     public partial class CardEngine : IGame
     {
         #region 公共成员
+
         public CardEngine(int randomSeed = 0, params CardDefine[] defines)
         {
             trigger = new SyncTriggerSystem(this);
@@ -29,6 +34,13 @@ namespace TouhouCardEngine
                 addDefine(define);
             }
         }
+
+        public CardEngine()
+        {
+            trigger = new SyncTriggerSystem(this);
+            random = new Random(0);
+        }
+
         public ITimeManager time { get; set; } = null;
         public ITriggerManager triggers { get; set; } = null;
         public SyncTriggerSystem trigger { get; }
@@ -131,15 +143,20 @@ namespace TouhouCardEngine
         #region 游戏流程
         public bool isRunning { get; private set; } = false;
         public bool isInited { get; set; } = false;
-        public IGameOption option { get; set; }
-        public void init(Rule rule, IGameOption options)
+        public GameOption option { get; set; }
+        public void init(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
             if (isInited)
             {
                 logger.logError("游戏已经初始化");
                 return;
             }
-            rule.onGameInit(this,options);
+            random = new Random(options.randomSeed);
+            foreach (CardDefine define in rule.defines)
+            {
+                addDefine(define);
+            }
+            rule.onGameInit(this,options, players);
             isInited = true;
         }
         public void run(Rule rule)
@@ -158,9 +175,9 @@ namespace TouhouCardEngine
             rule.onGameRun(this);
         }
 
-        public void initAndRun(Rule rule, IGameOption options)
+        public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
-            rule.onGameInit(this,options);
+            rule.onGameInit(this,options, players);
             isInited = true;
             isRunning = true;
             rule.onGameRun(this);
@@ -294,14 +311,16 @@ namespace TouhouCardEngine
             }
             return -1;
         }
+
         /// <summary>
         /// 获取所有玩家，玩家在数组中的顺序与玩家被添加的顺序相同。
         /// </summary>
         /// <remarks>为什么不用属性是因为每次都会生成一个数组。</remarks>
-        public Player[] getPlayers()
+        public Player[] players
         {
-            return playerList.ToArray();
+            get { return playerList.ToArray(); }
         }
+
         public int playerCount
         {
             get { return playerList.Count; }
