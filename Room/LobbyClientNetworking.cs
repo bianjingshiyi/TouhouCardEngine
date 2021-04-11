@@ -5,12 +5,10 @@ using System.Collections.Generic;
 using MongoDB.Bson.Serialization;
 using LiteNetLib;
 using LiteNetLib.Utils;
-using System.Net;
-using System.Net.Sockets;
 
 namespace TouhouCardEngine
 {
-    public class LobbyClientNetworking : CommonClientNetwokingV3, IRoomRPCMethodClient
+    public class LobbyClientNetworking : CommonClientNetwokingV3
     {
         /// <summary>
         /// 服务器通信客户端
@@ -30,7 +28,6 @@ namespace TouhouCardEngine
         public LobbyClientNetworking(ServerClient servClient, Shared.ILogger logger) : base("lobbyClient", logger)
         {
             serverClient = servClient;
-            initRpcMethods();
         }
 
         #region 外部方法实现
@@ -55,62 +52,58 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public async override Task<RoomData> CreateRoom()
         {
-            // todo: 这里需要与其他地方配合，得到真正的房间信息。
-            // 在没有连接到房间之前，房间内玩家是0，所以不设置房间。
+            // step 1: 在服务器上创建房间
             var roomInfo = await serverClient.CreateRoomAsync();
-            var roomData = new RoomData(roomInfo.id);
-            roomData.ownerId = localPlayer.id;
-            return roomData;
+            // step 2: 加入这个房间
+            return await joinRoom(new LobbyRoomData(roomInfo));
         }
+
+        public override event Action<LobbyRoomDataList> OnRoomListUpdate;
 
         /// <summary>
         /// 缓存的服务器上房间列表
         /// </summary>
-        Dictionary<string, BriefRoomInfo> cachedRoomsInfo = new Dictionary<string, BriefRoomInfo>();
+        LobbyRoomDataList lobby = new LobbyRoomDataList();
 
         /// <summary>
         /// 获取当前服务器的房间信息
         /// </summary>
         /// <returns></returns>
-        public async override Task<RoomData[]> GetRooms()
+        public async override Task RefreshRoomList()
         {
             var roomInfos = await serverClient.GetRoomInfosAsync();
-            List<RoomData> rooms = new List<RoomData>();
 
-            cachedRoomsInfo.Clear();
+            lobby.Clear();
             foreach (var item in roomInfos)
             {
-                cachedRoomsInfo.Add(item.id, item);
-
-                var room = new RoomData(item.id);
-                room.ownerId = item.ownerID;
-                foreach (var p in item.players)
-                {
-                    var userInfo = await serverClient.GetUserInfoAsync(p, false);
-                    room.playerDataList.Add(new RoomPlayerData(p, userInfo.Name, RoomPlayerType.human));
-                }
-                foreach (var propKV in item.properties)
-                {
-                    // todo: object convert
-                    room.propDict[propKV.Key] = propKV.Value;
-                }
+                lobby[item.id] = new LobbyRoomData(item);
             }
-
-            return rooms.ToArray();
+            OnRoomListUpdate?.Invoke(lobby);
         }
 
         public override Task<RoomData> JoinRoom(string roomId)
         {
-            if (!cachedRoomsInfo.ContainsKey(roomId))
+            if (!lobby.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException("roomID", "指定ID的房间不存在");
 
-            var roomInfo = cachedRoomsInfo[roomId];
+            var roomInfo = lobby[roomId];
+            return joinRoom(roomInfo);
+        }
+
+        /// <summary>
+        /// 加入房间
+        /// </summary>
+        /// <param name="roomInfo"></param>
+        /// <returns></returns>
+        private Task<RoomData> joinRoom(LobbyRoomData roomInfo)
+        {
             var writer = new NetDataWriter();
             // todo: 规定加入的数据格式。
-            writer.Put(roomId);
+            writer.Put(roomInfo.ID);
+            writer.Put(serverClient.UserSession);
             writer.Put(localPlayer.id);
 
-            hostPeer = net.Connect(roomInfo.ip, roomInfo.port, writer);
+            hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
             JoinRoomOperation op = new JoinRoomOperation();
             startOperation(op, () =>
             {
@@ -131,11 +124,11 @@ namespace TouhouCardEngine
 
         /// <summary>
         /// 修改房间信息
-        /// 暂时不知道能修改什么房间信息，先不实现
+        /// 暂时没有能够修改的房间信息，也没有对应的服务器接口，先不实现
         /// </summary>
         /// <param name="changedInfo"></param>
         /// <returns></returns>
-        public override Task AlterRoomInfo(RoomInfo changedInfo)
+        public override Task AlterRoomInfo(LobbyRoomData changedInfo)
         {
             throw new NotImplementedException();
         }
@@ -150,20 +143,9 @@ namespace TouhouCardEngine
             net.DisconnectPeer(hostPeer);
         }
 
-        /// <summary>
-        /// 获取所有用户信息
-        /// </summary>
-        /// <returns></returns>
-        public override RoomPlayerData[] GetPlayerData()
+        public override T GetRoomProp<T>(string name)
         {
-            // todo: API 接口设计有点问题
-            throw new NotImplementedException();
-        }
-
-        public override object GetRoomProp(string name)
-        {
-            // todo: API 接口设计有点问题
-            throw new NotImplementedException();
+            return cachedRoomData.getProp<T>(name);
         }
 
         public override Task SetRoomProp(string key, object value)
@@ -180,30 +162,13 @@ namespace TouhouCardEngine
         {
             return invoke<object>(nameof(IRoomRPCMethodHost.gameStart));
         }
-        #endregion
 
-        #region RPC接口
-        private void initRpcMethods()
+        public override Task Send(object obj)
         {
-            addRPCMethod(this, typeof(IRoomRPCMethodClient));
-        }
-
-        /// <summary>
-        /// 缓存的房间数据
-        /// </summary>
-        RoomData cachedRoomData;
-
-        void IRoomRPCMethodClient.updateRoomData(RoomData data)
-        {
-            cachedRoomData = data;
-            // todo: invoke change
-        }
-
-        void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
-        {
-            // todo: invoke change
+            return sendTo(hostPeer, obj);
         }
         #endregion
+
         #region 交互逻辑
         async Task requestJoinRoom()
         {
@@ -254,241 +219,98 @@ namespace TouhouCardEngine
         #endregion
     }
 
-    public abstract class CommonClientNetwokingV3 : Networking, INetworkingV3Client
+    public class LANNetworkingV3 : CommonClientNetwokingV3
     {
-        public CommonClientNetwokingV3(string name, Shared.ILogger logger) : base(name, logger)
+        public LANNetworkingV3(Shared.ILogger logger) : base("LAN", logger)
         {
+
         }
 
-        #region 待实现的接口
-        public abstract Task AlterRoomInfo(RoomInfo changedInfo);
-        public abstract Task<RoomData> CreateRoom();
-        public abstract Task DestroyRoom();
-        public abstract Task GameStart();
-        public abstract object GetRoomProp(string name);
-        public abstract Task<RoomData[]> GetRooms();
-        public abstract RoomPlayerData GetSelfPlayerData();
-        public abstract Task<RoomData> JoinRoom(string roomID);
-        public abstract RoomPlayerData[] GetPlayerData();
-        public abstract void QuitRoom();
-        public abstract Task SetPlayerProp(string name, object val);
-        public abstract Task SetRoomProp(string name, object val);
-        public abstract int GetLatency();
-        #endregion
+        public override event Action<LobbyRoomDataList> OnRoomListUpdate;
 
-        #region 网络底层处理
-        protected class JoinRoomOperation : Operation<RoomData>
+        public override Task AlterRoomInfo(LobbyRoomData newInfo)
         {
-            public JoinRoomOperation() : base(nameof(CommonClientNetwokingV3.JoinRoom))
-            {
-            }
+            throw new NotImplementedException();
         }
 
-        protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
+        public override Task<RoomData> CreateRoom()
         {
-            log?.log($"网络({name})与端点({peer.EndPoint})断开连接，原因：{disconnectInfo.Reason}，SocketErrorCode：{disconnectInfo.SocketErrorCode}");
-
-            switch (disconnectInfo.Reason)
-            {
-                case DisconnectReason.ConnectionFailed: // 连接失败
-                case DisconnectReason.HostUnreachable: // 无法到达主机
-                case DisconnectReason.NetworkUnreachable: // 无法到达网络
-                case DisconnectReason.UnknownHost: // 未知主机
-                case DisconnectReason.InvalidProtocol: // 错误协议
-                case DisconnectReason.ConnectionRejected: // 拒绝连接
-                    // 基本上只有正在加入的时候才会触发这些Error。将这些错误转换为Exception交给上层处理，用于显示无法加入的信息。
-                    var exception = new NtrNetworkException(disconnectInfo.Reason);
-                    var op = getOperation(typeof(JoinRoomOperation));
-                    if (op != null)
-                        op.setException(exception);
-                    break;
-                case DisconnectReason.RemoteConnectionClose: // 远程关闭
-                    break;
-                case DisconnectReason.Reconnect:
-                    break;
-                case DisconnectReason.Timeout:
-                    break;
-                case DisconnectReason.DisconnectPeerCalled:
-                    break;
-                default:
-                    break;
-            }
+            throw new NotImplementedException();
         }
 
-        public void pollEvents()
+        public override Task DestroyRoom()
         {
-            net.PollEvents();
+            throw new NotImplementedException();
         }
 
-        protected override Type getType(string typeName)
+        public override Task GameStart()
         {
-            return TypeHelper.getType(typeName);
+            throw new NotImplementedException();
         }
 
-        protected override void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+        public override int GetLatency()
         {
-            log?.logError($"{name} 在与 {endPoint} 通信时发生异常，{socketError}");
-        }
-        #endregion
-    }
-
-    interface INetworkingV3Client
-    {
-        #region Player
-        /// <summary>
-        /// 获取当前玩家（自己）的玩家信息
-        /// </summary>
-        /// <returns></returns>
-        RoomPlayerData GetSelfPlayerData();
-        #endregion
-
-        #region Lobby
-        /// <summary>
-        /// 以当前玩家为房主创建一个房间
-        /// </summary>
-        /// <returns></returns>
-        Task<RoomData> CreateRoom();
-
-        /// <summary>
-        /// 关闭当前已经创建的房间（部分情况下用不上）
-        /// </summary>
-        /// <returns></returns>
-        Task DestroyRoom();
-
-        /// <summary>
-        /// 获取当前课加入的房间信息
-        /// </summary>
-        /// <remarks>
-        /// 对开发者的提示：
-        /// 请在实现时缓存详细的IP和端口等信息，方便后面JoinRoom时连接。
-        /// </remarks>
-        /// <returns></returns>
-        Task<RoomData[]> GetRooms();
-
-        /// <summary>
-        /// 修改当前房间的信息
-        /// </summary>
-        /// <param name="changedInfo"></param>
-        /// <returns></returns>
-        Task AlterRoomInfo(RoomInfo changedInfo);
-        #endregion
-
-        #region Room
-        /// <summary>
-        /// 使用当前用户加入一个房间
-        /// </summary>
-        /// <param name="room"></param>
-        /// <returns></returns>
-        Task<RoomData> JoinRoom(string roomID);
-
-        /// <summary>
-        /// 退出当前加入的房间
-        /// </summary>
-        /// <returns></returns>
-        void QuitRoom();
-
-        /// <summary>
-        /// 获取房间内所有玩家的数据
-        /// //? 为啥会有这个API？
-        /// </summary>
-        /// <returns></returns>
-        RoomPlayerData[] GetPlayerData();
-
-        /// <summary>
-        /// 修改玩家的属性
-        /// </summary>
-        /// <returns></returns>
-        Task SetPlayerProp(string name, object val);
-
-        /// <summary>
-        /// 获取房间属性
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        object GetRoomProp(string name);
-
-        /// <summary>
-        /// 修改房间的属性
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="val"></param>
-        /// <returns></returns>
-        Task SetRoomProp(string name, object val);
-
-        /// <summary>
-        /// 开始游戏！
-        /// </summary>
-        /// <returns></returns>
-        Task GameStart();
-
-        /// <summary>
-        /// 获取当前网络的延迟
-        /// </summary>
-        /// <returns></returns>
-        int GetLatency();
-        #endregion
-
-        #region Game
-        // todo
-        #endregion
-    }
-
-    /// <summary>
-    /// 滑动窗口平均
-    /// </summary>
-    class SlidingAverage
-    {
-        public int Size { get; }
-        int[] buffer;
-
-        int index = 0, count = 0;
-        long sum = 0;
-
-        /// <summary>
-        /// 窗口大小
-        /// </summary>
-        /// <param name="size"></param>
-        public SlidingAverage(int size)
-        {
-            Size = size;
-            buffer = new int[Size];
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// 插入一个值
-        /// </summary>
-        /// <param name="num"></param>
-        public void Push(int num)
+        public override T GetRoomProp<T>(string name)
         {
-            if (count == Size)
-            {
-                sum -= buffer[index];
-                sum += num;
-            }
-
-            buffer[index++] = num;
-            index = index % Size;
-
-            if (count < Size) count++;
+            throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// 获取平均值
-        /// </summary>
-        /// <returns></returns>
-        public float GetAvg()
+        public override RoomPlayerData GetSelfPlayerData()
         {
-            return (float)sum / count; 
+            throw new NotImplementedException();
         }
-    }
 
-    [Serializable]
-    public class NtrNetworkException : Exception
-    {
-        public NtrNetworkException() { }
-        public NtrNetworkException(DisconnectReason reason) : base(reason.ToString()) { }
-        protected NtrNetworkException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public override Task<T> invoke<T>(string mehtod, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task<RoomData> JoinRoom(string roomID)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void QuitRoom()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task RefreshRoomList()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task Send(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task SetPlayerProp(string name, object val)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Task SetRoomProp(string name, object val)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnPeerConnected(NetPeer peer)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

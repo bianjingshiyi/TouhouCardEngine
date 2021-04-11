@@ -1,0 +1,433 @@
+﻿using NitoriNetwork.Common;
+using System;
+using System.Threading.Tasks;
+using LiteNetLib;
+using System.Net;
+using System.Net.Sockets;
+using MongoDB.Bson;
+using LiteNetLib.Utils;
+
+namespace TouhouCardEngine
+{
+    public abstract class CommonClientNetwokingV3 : Networking, INetworkingV3Client, IRoomRPCMethodClient
+    {
+        public CommonClientNetwokingV3(string name, Shared.ILogger logger) : base(name, logger)
+        {
+            addRPCMethod(this, typeof(IRoomRPCMethodClient));
+        }
+
+        public event ResponseHandler onReceive;
+
+        #region 已经实现的事件
+        public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+        public event Action<RoomData> OnRoomDataChange;
+        #endregion
+
+        #region 待实现的接口
+        public abstract event Action<LobbyRoomDataList> OnRoomListUpdate;
+
+        public abstract Task<RoomData> CreateRoom();
+        public abstract Task DestroyRoom();
+        public abstract Task GameStart();
+        public abstract T GetRoomProp<T>(string name);
+        public abstract RoomPlayerData GetSelfPlayerData();
+        public abstract Task<RoomData> JoinRoom(string roomID);
+        public abstract void QuitRoom();
+        public abstract Task SetPlayerProp(string name, object val);
+        public abstract Task SetRoomProp(string name, object val);
+        public abstract int GetLatency();
+        public abstract Task RefreshRoomList();
+        public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
+        #endregion
+
+        #region RPC接口
+        /// <summary>
+        /// 缓存的房间数据
+        /// </summary>
+        protected RoomData cachedRoomData;
+
+        void IRoomRPCMethodClient.updateRoomData(RoomData data)
+        {
+            cachedRoomData = data;
+            OnRoomDataChange?.Invoke(cachedRoomData);
+            OnRoomDataChange(cachedRoomData);
+        }
+
+        void IRoomRPCMethodClient.onRoomPropChange(string name, object val)
+        {
+            cachedRoomData.setProp(name, val);
+            OnRoomDataChange?.Invoke(cachedRoomData);
+        }
+
+        void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
+        {
+            for (int i = 0; i < cachedRoomData.playerDataList.Count; i++)
+            {
+                if (cachedRoomData.playerDataList[i].id == data.id)
+                {
+                    cachedRoomData.playerDataList[i] = data;
+                }
+            }
+            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+        }
+
+        void IRoomRPCMethodClient.onPlayerAdd(RoomPlayerData data)
+        {
+            if (cachedRoomData.containsPlayer(data.id))
+            {
+                log?.logWarn($"{name} 的房间信息中已经存在ID为{data.id}的玩家，但却收到了 onPlayerAdd 事件，这是有问题的。");
+                for (int i = 0; i < cachedRoomData.playerDataList.Count; i++)
+                {
+                    if (cachedRoomData.playerDataList[i].id == data.id)
+                    {
+                        cachedRoomData.playerDataList[i] = data;
+                    }
+                }
+            }
+            else
+            {
+                cachedRoomData.playerDataList.Add(data);
+            }
+            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+        }
+
+        void IRoomRPCMethodClient.onPlayerRemove(int playerID)
+        {
+            if (!cachedRoomData.containsPlayer(playerID))
+            {
+                log?.logWarn($"{name} 的房间信息中不存在存在ID为{playerID}的玩家，但却收到了 onPlayerRemove 事件，这是有问题的。");
+                return;
+            }
+            cachedRoomData.playerDataList.RemoveAll(p => p.id == playerID);
+            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+        }
+
+        void IRoomRPCMethodClient.onPlayerPropChange(int playerID, string name, object val)
+        {
+            cachedRoomData.setPlayerProp(playerID, name, val);
+            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+        }
+
+        #endregion
+
+        #region 网络底层处理
+        protected class JoinRoomOperation : Operation<RoomData>
+        {
+            public JoinRoomOperation() : base(nameof(INetworkingV3Client.JoinRoom))
+            {
+            }
+        }
+
+        protected class SendOperation : Operation<object>
+        {
+            public SendOperation(): base(nameof(INetworkingV3Client.Send))
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// 客户端ID
+        /// todo: 这个是host分配的ID，并不是用户ID
+        /// </summary>
+        protected int clientID { get; set; }
+
+        protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
+        {
+            switch (type)
+            {
+                case PacketType.sendResponse:
+                    try
+                    {
+                        var result = OperationResultExt.ParseRequest(reader);
+                        log?.log($"客户端 {name} 收到主机转发的来自客户端{result.clientID}的数据：（{result.obj}）");
+
+                        if (onReceive != null)
+                            await onReceive.Invoke(result.clientID, result.obj);
+
+                        if (result.clientID == clientID)
+                        {
+                            var op = getOperation(result.requestID);
+                            if (op != null)
+                            {
+                                completeOperation(op, result.obj);
+                                log?.logTrace($"客户端 {name}:{clientID} 收到客户端{peer.Id}的消息反馈{result.requestID}为{result.obj.ToJson()}");
+                            }
+                            else
+                            {
+                                log?.log($"客户端 {name}:{clientID} 收到客户端{peer.Id}未发送或超时的消息反馈{result.requestID}");
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        log?.logError("接收消息回应发生异常：" + e);
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            await base.OnNetworkReceive(peer, reader, type);
+        }
+
+        protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
+        {
+            log?.log($"网络({name})与端点({peer.EndPoint})断开连接，原因：{disconnectInfo.Reason}，SocketErrorCode：{disconnectInfo.SocketErrorCode}");
+
+            switch (disconnectInfo.Reason)
+            {
+                case DisconnectReason.ConnectionFailed: // 连接失败
+                case DisconnectReason.HostUnreachable: // 无法到达主机
+                case DisconnectReason.NetworkUnreachable: // 无法到达网络
+                case DisconnectReason.UnknownHost: // 未知主机
+                case DisconnectReason.InvalidProtocol: // 错误协议
+                case DisconnectReason.ConnectionRejected: // 拒绝连接
+                    // 基本上只有正在加入的时候才会触发这些Error。将这些错误转换为Exception交给上层处理，用于显示无法加入的信息。
+                    var exception = new NtrNetworkException(disconnectInfo.Reason);
+                    var op = getOperation(typeof(JoinRoomOperation));
+                    if (op != null)
+                        op.setException(exception);
+                    break;
+                case DisconnectReason.RemoteConnectionClose: // 远程关闭
+                    break;
+                case DisconnectReason.Reconnect:
+                    break;
+                case DisconnectReason.Timeout:
+                    break;
+                case DisconnectReason.DisconnectPeerCalled:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        protected override Type getType(string typeName)
+        {
+            return TypeHelper.getType(typeName);
+        }
+
+        protected override void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+        {
+            log?.logError($"{name} 在与 {endPoint} 通信时发生异常，{socketError}");
+        }
+
+        /// <summary>
+        /// 向指定Peer发送Object
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        protected Task sendTo(NetPeer peer, object obj)
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+            if (peer == null)
+                throw new ArgumentNullException(nameof(peer));
+
+            SendOperation op = new SendOperation();
+
+            NetDataWriter writer = new NetDataWriter();
+            writer.Put((int)PacketType.sendRequest);
+            writer.Put(op.id);
+            writer.Put(clientID);
+            writer.Put(obj.GetType().FullName);
+            writer.Put(obj.ToJson());
+            peer.Send(writer, DeliveryMethod.ReliableOrdered);
+
+            startOperation(op, () => {
+                log?.logWarn($"客户端{name}发送请求超时。");
+            });
+
+            return op.task;
+        }
+
+        public abstract Task Send(object obj);
+        #endregion
+    }
+
+    public interface INetworkingV3Client
+    {
+        #region Player
+        /// <summary>
+        /// 获取当前玩家（自己）的玩家信息
+        /// </summary>
+        /// <returns></returns>
+        RoomPlayerData GetSelfPlayerData();
+        #endregion
+
+        #region Lobby
+        /// <summary>
+        /// 以当前玩家为房主创建一个房间
+        /// </summary>
+        /// <returns></returns>
+        Task<RoomData> CreateRoom();
+
+        /// <summary>
+        /// 关闭当前已经创建的房间（部分情况下用不上）
+        /// </summary>
+        /// <returns></returns>
+        Task DestroyRoom();
+
+        /// <summary>
+        /// 获取当前可加入的房间信息。
+        /// 调用此方法后会立即返回，在获取到房间信息后多次触发OnRoomListUpdate事件
+        /// </summary>
+        /// <returns></returns>
+        Task RefreshRoomList();
+
+        /// <summary>
+        /// 可加入的房间列表更新事件
+        /// </summary>
+        event Action<LobbyRoomDataList> OnRoomListUpdate;
+
+        /// <summary>
+        /// 修改当前房间的信息
+        /// </summary>
+        /// <param name="changedInfo"></param>
+        /// <returns></returns>
+        Task AlterRoomInfo(LobbyRoomData newInfo);
+        #endregion
+
+        #region Room
+        /// <summary>
+        /// 使用当前用户加入一个房间
+        /// </summary>
+        /// <param name="room"></param>
+        /// <returns></returns>
+        Task<RoomData> JoinRoom(string roomID);
+
+        /// <summary>
+        /// 退出当前加入的房间
+        /// </summary>
+        /// <returns></returns>
+        void QuitRoom();
+
+        /// <summary>
+        /// 房间玩家信息改变事件
+        /// </summary>
+        /// <returns></returns>
+        event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+
+        /// <summary>
+        /// 修改玩家的属性
+        /// </summary>
+        /// <returns></returns>
+        Task SetPlayerProp(string name, object val);
+
+        /// <summary>
+        /// 获取房间属性
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        T GetRoomProp<T>(string name);
+
+        /// <summary>
+        /// 修改房间的属性
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        Task SetRoomProp(string name, object val);
+
+        /// <summary>
+        /// 房间数据被修改后调用此方法
+        /// 注意用户数据并不算房间数据，所以有用户加入实际上不会触发这个方法
+        /// </summary>
+        event Action<RoomData> OnRoomDataChange;
+
+        /// <summary>
+        /// 开始游戏！
+        /// </summary>
+        /// <returns></returns>
+        Task GameStart();
+
+        /// <summary>
+        /// 获取当前网络的延迟
+        /// </summary>
+        /// <returns></returns>
+        int GetLatency();
+        #endregion
+
+        #region Game
+        /// <summary>
+        /// 发送GameRequest
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        Task Send(object obj);
+
+        /// <summary>
+        /// 收到GameResponse
+        /// </summary>
+        event ResponseHandler onReceive;
+        #endregion
+    }
+
+    /// <summary>
+    /// GameResponse处理器
+    /// </summary>
+    /// <param name="clientID">发送者ID</param>
+    /// <param name="obj">发送的数据</param>
+    /// <returns></returns>
+    public delegate Task ResponseHandler(int clientID, object obj);
+
+    /// <summary>
+    /// 滑动窗口平均
+    /// </summary>
+    class SlidingAverage
+    {
+        public int Size { get; }
+        int[] buffer;
+
+        int index = 0, count = 0;
+        long sum = 0;
+
+        /// <summary>
+        /// 窗口大小
+        /// </summary>
+        /// <param name="size"></param>
+        public SlidingAverage(int size)
+        {
+            Size = size;
+            buffer = new int[Size];
+        }
+
+        /// <summary>
+        /// 插入一个值
+        /// </summary>
+        /// <param name="num"></param>
+        public void Push(int num)
+        {
+            if (count == Size)
+            {
+                sum -= buffer[index];
+                sum += num;
+            }
+
+            buffer[index++] = num;
+            index = index % Size;
+
+            if (count < Size) count++;
+        }
+
+        /// <summary>
+        /// 获取平均值
+        /// </summary>
+        /// <returns></returns>
+        public float GetAvg()
+        {
+            return (float)sum / count;
+        }
+    }
+
+    [Serializable]
+    public class NtrNetworkException : Exception
+    {
+        public NtrNetworkException() { }
+        public NtrNetworkException(DisconnectReason reason) : base(reason.ToString()) { }
+        protected NtrNetworkException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
+}
