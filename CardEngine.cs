@@ -141,7 +141,7 @@ namespace TouhouCardEngine
         //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         #region 游戏流程
-        public bool isRunning { get; private set; } = false;
+        public bool isRunning { get; protected set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
         public void init(Rule rule, GameOption options, RoomPlayerInfo[] players)
