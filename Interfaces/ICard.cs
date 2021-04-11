@@ -9,10 +9,6 @@ namespace TouhouCardEngine.Interfaces
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
     }
-    public interface IGameOption
-    {
-            
-    }
     public interface IPlayer
     {
         int id { get; }
