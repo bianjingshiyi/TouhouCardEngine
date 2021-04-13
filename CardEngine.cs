@@ -25,16 +25,6 @@ namespace TouhouCardEngine
     {
         #region 公共成员
 
-        public CardEngine(int randomSeed = 0, params CardDefine[] defines)
-        {
-            trigger = new SyncTriggerSystem(this);
-            random = new Random(randomSeed);
-            foreach (CardDefine define in defines)
-            {
-                addDefine(define);
-            }
-        }
-
         public CardEngine()
         {
             trigger = new SyncTriggerSystem(this);
@@ -60,7 +50,7 @@ namespace TouhouCardEngine
         public ILogger logger { get; set; }
         #endregion
         #region 状态
-        public Rule rule { get; }
+        public Rule rule { get; set; }
         public Pile this[string pileName]
         {
             get { return getPile(pileName); }
@@ -146,6 +136,7 @@ namespace TouhouCardEngine
         public GameOption option { get; set; }
         public void init(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
+            this.rule = rule;
             if (isInited)
             {
                 logger.logError("游戏已经初始化");
@@ -159,7 +150,7 @@ namespace TouhouCardEngine
             rule.onGameInit(this,options, players);
             isInited = true;
         }
-        public void run(Rule rule)
+        public void run()
         {
             if (isInited)
             {
@@ -177,6 +168,7 @@ namespace TouhouCardEngine
 
         public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
+            this.rule = rule;
             rule.onGameInit(this,options, players);
             isInited = true;
             isRunning = true;
