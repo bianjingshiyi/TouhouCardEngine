@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace TouhouCardEngine.Interfaces
 {
-    public interface ITriggerManager
+    public interface ITriggerManager : IDisposable
     {
         string getName<T>() where T : IEventArg;
         void register(string eventName, ITrigger trigger);

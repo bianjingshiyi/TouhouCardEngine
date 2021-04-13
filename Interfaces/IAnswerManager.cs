@@ -20,8 +20,10 @@ namespace TouhouCardEngine.Interfaces
         bool isUnasked { get; set; }
         float remainedTime { get; set; }
     }
-    public interface IAnswerManager
+    public interface IAnswerManager : IDisposable
     {
+        IClientManager client { get; set; }
+        IGame game { get; set; }
         Task<IResponse> ask(int playerId, IRequest request, float timeout);
         /// <summary>
         /// 对给出的所有玩家进行询问，直到所有人都进行回应或超时后返回询问结果。
@@ -47,6 +49,7 @@ namespace TouhouCardEngine.Interfaces
         void unaskedAnswer(int playerId, IResponse response);
         IRequest getLastRequest(int playerId);
         IRequest[] getRequests(int playerId);
+        T getRequest<T>(int playerId) where T : IRequest;
         IRequest[] getAllRequests();
         /// <summary>
         /// 对于一项正在进行的询问，返回玩家的回应。

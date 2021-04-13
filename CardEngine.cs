@@ -384,6 +384,22 @@ namespace TouhouCardEngine
         }
         List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
+        
+        public void close()
+        {
+            isRunning = false;
+            answers.cancelAll();
+        }
+        
+        public virtual void Dispose()
+        {
+            if (answers != null)
+                answers.Dispose();
+            if (triggers != null)
+                triggers.Dispose();
+            if (time != null)
+                time.Dispose();
+        }
     }
     public enum EventPhase
     {
