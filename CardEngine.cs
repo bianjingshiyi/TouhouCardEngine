@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 using NitoriNetwork.Common;
 using TouhouCardEngine.Shared;
@@ -17,8 +18,8 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract void onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
-        public abstract void onGameRun(CardEngine game);
+        public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
+        public abstract Task onGameRun(CardEngine game);
     }
     [Serializable]
     public partial class CardEngine : IGame
@@ -131,39 +132,39 @@ namespace TouhouCardEngine
         //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         #region 游戏流程
-        public bool isRunning { get; protected set; } = false;
+        public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
-        public void init(Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public Task init(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
             this.rule = rule;
             if (isInited)
             {
                 logger.logError("游戏已经初始化");
-                return;
+                return Task.CompletedTask;
             }
             random = new Random(options.randomSeed);
             foreach (CardDefine define in rule.defines)
             {
                 addDefine(define);
             }
-            rule.onGameInit(this,options, players);
             isInited = true;
+            return rule.onGameInit(this,options, players);
         }
-        public void run()
+        public Task run()
         {
-            if (isInited)
+            if (!isInited)
             {
                 logger.logError("游戏未初始化");
-                return;
+                return Task.CompletedTask;
             }
             if (isRunning)
             {
                 logger.logError("游戏已开始");
-                return;
+                return Task.CompletedTask;
             }
             isRunning = true;
-            rule.onGameRun(this);
+            return rule.onGameRun(this);
         }
 
         public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
