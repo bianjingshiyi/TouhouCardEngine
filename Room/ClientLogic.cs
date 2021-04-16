@@ -20,7 +20,7 @@ namespace TouhouCardEngine
         }
         public void update()
         {
-            curNetwork.pollEvents();
+            curNetwork.update();
             //curNetwork.net.PollEvents();
         }
         public void Dispose()
@@ -79,7 +79,7 @@ namespace TouhouCardEngine
 
         public RoomPlayerData getLocalPlayerData()
         {
-            return curNetwork.getLocalPlayerData();
+            return curNetwork.GetSelfPlayerData();
         }
         /// <summary>
         /// 
@@ -90,8 +90,8 @@ namespace TouhouCardEngine
         public async Task createOnlineRoom()
         {
             logger?.log("客户端创建在线房间");
-            RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
-            RoomData room = await curNetwork.createRoom(localPlayerData);
+            RoomPlayerData localPlayerData = curNetwork.GetSelfPlayerData();
+            RoomData room = await curNetwork.CreateRoom();
             localPlayer = localPlayerData;
             this.room = room;
             lobby.addRoom(room);
@@ -105,13 +105,13 @@ namespace TouhouCardEngine
         public Task<RoomData[]> getRooms()
         {
             logger?.log("客户端请求房间列表");
-            return curNetwork.getRooms();
+            curNetwork.RefreshRoomList();
+            return null; // todo: 这个房间是异步的……
         }
         public async Task<bool> joinRoom(string roomId)
         {
             logger?.log("客户端请求加入房间" + roomId);
-            RoomPlayerData joinPlayerData = curNetwork.getLocalPlayerData();
-            return await curNetwork.joinRoom(roomId, joinPlayerData) != null;
+            return await curNetwork.JoinRoom(roomId) != null;
         }
         public Task addAIPlayer()
         {
@@ -127,7 +127,7 @@ namespace TouhouCardEngine
             logger?.log("主机更改房间属性" + propName + "为" + value);
             room.setProp(propName, value);
             if (curNetwork != null)
-                return curNetwork.setRoomProp(propName, value);
+                return curNetwork.SetRoomProp(propName, value);
             return Task.CompletedTask;
         }
         public async Task setPlayerProp(string propName, object value)
@@ -135,14 +135,14 @@ namespace TouhouCardEngine
             logger?.log("玩家更改房间属性" + propName + "为" + value);
             room.setPlayerProp(localPlayer.id, propName, value);
             if (curNetwork != null)
-                await curNetwork.setRoomPlayerProp(localPlayer.id, propName, value);
+                await curNetwork.SetPlayerProp(propName, value);
         }
         public Task quitRoom()
         {
             logger?.log("玩家退出房间" + room.ID);
             room = null;
             if (curNetwork != null)
-                curNetwork.quitRoom(localPlayer.id);
+                curNetwork.QuitRoom();
             return Task.CompletedTask;
         }
         public event Action<RoomData> onNewRoom;
@@ -155,7 +155,7 @@ namespace TouhouCardEngine
         /// </summary>
         public int port => curNetwork != null ? curNetwork.port : -1;
         public LANNetworking LANNetwork { get; }
-        public IClientNetworking curNetwork { get; set; } = null;
+        public CommonClientNetwokingV3 curNetwork { get; set; } = null;
         #endregion
         #region 私有成员
         private RoomData onGetRoomReq()
@@ -213,7 +213,7 @@ namespace TouhouCardEngine
         {
             if (room != null)
                 throw new InvalidOperationException("已经在房间" + room.ID + "中");
-            localPlayer = joinedRoom.getPlayer(curNetwork.getLocalPlayerData().id);
+            localPlayer = joinedRoom.getPlayer(curNetwork.GetSelfPlayerData().id);
             room = joinedRoom;
             lobby.updateOrAddRoom(joinedRoom, out _);
         }
