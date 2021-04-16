@@ -382,6 +382,7 @@ namespace TouhouCardEngine
         {
             isRunning = false;
             answers.cancelAll();
+            Dispose();
         }
         
         public virtual void Dispose()
