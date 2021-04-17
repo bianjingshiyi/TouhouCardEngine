@@ -21,6 +21,7 @@ namespace TouhouCardEngine
         public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
         public abstract Task onGameRun(CardEngine game);
         public abstract Task onPlayerCommand(CardEngine game, Player player, ICommand command);
+        public abstract Task onGameClose(CardEngine game);
     }
     [Serializable]
     public partial class CardEngine : IGame
@@ -389,13 +390,12 @@ namespace TouhouCardEngine
 
         public void close()
         {
-            isRunning = false;
-            answers.cancelAll();
-            Dispose();
+            rule.onGameClose(this);
         }
 
         public virtual void Dispose()
         {
+            close();
             if (answers != null)
                 answers.Dispose();
             if (triggers != null)
