@@ -17,7 +17,7 @@ namespace TouhouCardEngine
     /// <summary>
     /// 网络的局域网实现
     /// </summary>
-    public class LANNetworking : CommonClientNetwokingV3
+    public class LANNetworking : CommonClientNetwokingV3, IRoomRPCMethodHost, ILANRPCMethodHost, ILANRPCMethodClient, INetworkingV3LANHost
     {
         #region 公共成员
         /// <summary>
@@ -27,17 +27,10 @@ namespace TouhouCardEngine
         public LANNetworking(string name, ILogger logger) : base("LAN", logger)
         {
             _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), name, RoomPlayerType.human);
-            addRPCMethod(this, nameof(reqGetRoom));
-            addRPCMethod(this, nameof(ackGetRoom));
-            addRPCMethod(this, nameof(ntfNewRoom));
-            addRPCMethod(this, nameof(ntfUpdateRoom));
-            addRPCMethod(this, nameof(ntfRemoveRoom));
-            addRPCMethod(this, nameof(rpcConfirmJoin));
-            addRPCMethod(this, nameof(ntfRoomAddPlayer));
-            addRPCMethod(this, nameof(ntfRoomRemovePlayer));
-            addRPCMethod(this, nameof(ntfRoomSetProp));
-            addRPCMethod(this, nameof(rpcRoomPlayerSetProp));
-            addRPCMethod(this, nameof(ntfRoomPlayerSetProp));
+
+            addRPCMethod(this, typeof(IRoomRPCMethodHost));
+            addRPCMethod(this, typeof(ILANRPCMethodHost));
+            addRPCMethod(this, typeof(ILANRPCMethodClient));
         }
         public LANNetworking(string name) : this(name, new UnityLogger(name))
         {
@@ -60,7 +53,8 @@ namespace TouhouCardEngine
             _roomData = new RoomData(Guid.NewGuid().ToString());
             _roomData.playerDataList.Add(_playerData);
             _roomData.ownerId = _playerData.id;
-            invokeBroadcast(nameof(ntfNewRoom), _roomData);
+            _roomInfo = new LobbyRoomData("127.0.0.1", Port, _roomData.ID, _playerData.id);
+            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
             return Task.FromResult(_roomData);
         }
         /// <summary>
@@ -70,7 +64,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public override Task RefreshRoomList()
         {
-            invokeBroadcast(nameof(reqGetRoom));
+            invokeBroadcast(nameof(ILANRPCMethodHost.requestDiscoverRoom));
             return Task.CompletedTask;
         }
         /// <summary>
@@ -89,14 +83,18 @@ namespace TouhouCardEngine
             if (opList.Any(o => o is JoinRoomOperation))
                 throw new InvalidOperationException("客户端已经在执行连接操作");
             //获取缓存的IP地址
-            var address = _roomInfoDict[roomId].ip;
-            string msg = name + "连接" + address;
+            if (!_lanRooms.ContainsKey(roomId))
+                throw new ArgumentOutOfRangeException($"无法找到ID为{roomId}的房间");
+
+            var roomInfo = _lanRooms[roomId];
+            string msg = name + "连接" + roomInfo.IP + ":" + roomInfo.Port;
             log?.log(msg);
             //发送链接请求
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.joinRequest);
             writer.Put(_playerData.ToJson());
-            var peer = net.Connect(address, writer);
+            var peer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
+
             //peer为null表示已经有一个操作在进行了
             if (peer == null)
                 throw new InvalidOperationException("客户端已经在执行连接操作");
@@ -116,39 +114,37 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="roomData"></param>
         /// <returns></returns>
-        public Task addPlayer(RoomPlayerData playerData)
+        public Task AddPlayer(RoomPlayerData playerData)
         {
-            //广播房间中玩家数量变化
-            invokeBroadcast(nameof(ntfRoomAddPlayer), _roomData.ID, playerData);
-            //向房间中的其他玩家发送通知房间添加玩家
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomAddPlayer), _roomData.ID, playerData)));
-            //invokeAll<object>(_playerInfoDict.Values.Select(i => i.peer), nameof(ntfRoomAddPlayer), _roomData.ID, playerData);
+            // 不再广播房间中玩家数量变化
+            // 房间公共属性应该交由SetRoomInfo做
+            // invokeBroadcast(nameof(ntfRoomAddPlayer), _roomData.ID, playerData);
+
+            // 向房间中的其他玩家发送通知房间添加玩家
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerAdd), playerData)));
         }
         public override Task SetRoomProp(string key, object value)
         {
-            //广播房间中的属性变化
-            invokeBroadcast(nameof(ntfRoomSetProp), _roomData.ID, key, value);
-            //想房间中的其他玩家发送属性变化通知
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomSetProp), _roomData.ID, key, value)));
+            // 向房间中的其他玩家发送属性变化通知
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, value)));
         }
 
         /// <summary>
         /// 当前是否是Host？亦或者是Client
-        /// // todo: 设置对应的逻辑
         /// </summary>
-        bool isHost => hostPeer == null;
+        bool isHost => _roomData != null;
 
         public override async Task SetPlayerProp(string key, object value)
         {
             if (isHost)
             {
                 //房主，直接广播
-                await Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomPlayerSetProp), _playerData.id, key, value)));
+                await Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), key, value)));
             }
             else
             {
                 //其他玩家，向房主请求
-                await invoke<object>(nameof(rpcRoomPlayerSetProp), _playerData.id, key, value);
+                await invoke<object>(nameof(IRoomRPCMethodHost.setPlayerProp), _playerData.id, key, value);
             }
         }
         public override void QuitRoom()
@@ -158,21 +154,22 @@ namespace TouhouCardEngine
 
             if (isHost)
             {
-                //主机退出了，和所有其他玩家断开连接，然后广播房间没了
+                // 主机退出了，和所有其他玩家断开连接，然后广播房间没了
                 foreach (var peer in _playerInfoDict.Values.Select(i => i.peer))
                 {
                     peer.Disconnect();
                 }
                 _playerInfoDict.Clear();
-                invokeBroadcast(nameof(ntfRemoveRoom), _roomData.ID);
+                invokeBroadcast(nameof(ILANRPCMethodClient.removeDiscoverRoom), _roomData.ID);
+                _roomData = null;
             }
             else
             {
-                //是其他玩家，直接断开连接
+                // 是其他玩家，直接断开连接
                 hostPeer.Disconnect();
                 hostPeer = null;
+                cachedRoomData = null;
             }
-            _roomData = null;
         }
 
         public override Task DestroyRoom()
@@ -187,13 +184,15 @@ namespace TouhouCardEngine
         }
 
         /// <summary>
-        /// 暂时不知道怎么实现，也不知道有什么info
+        /// 更新房间信息
         /// </summary>
         /// <param name="newInfo"></param>
         /// <returns></returns>
         public override Task AlterRoomInfo(LobbyRoomData newInfo)
         {
-            throw new NotImplementedException();
+            // todo: 更新房间信息
+            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+            return Task.CompletedTask;
         }
 
         public override T GetRoomProp<T>(string name)
@@ -211,7 +210,11 @@ namespace TouhouCardEngine
         public override Task GameStart()
         {
             // todo: 噢草，我也不知道要怎么GameStart
-            throw new NotImplementedException();
+            if (isHost)
+            {
+                throw new NotImplementedException();
+            }
+            return Task.CompletedTask;
         }
 
         public override async Task Send(object obj)
@@ -236,19 +239,6 @@ namespace TouhouCardEngine
             // 这个方法实际上仅限Client调用Host的方法，所以直接在这里throw掉就好。
             throw new NotImplementedException();
         }
-
-        /// <summary>
-        /// 当局域网中发现新的房间
-        /// </summary>
-        [Obsolete("Use OnRoomListUpdate Instead")]
-        public event Action<RoomData> onNewRoomNtf;
-
-        /// <summary>
-        /// 当局域网的房间被移除
-        /// </summary>
-        [Obsolete("Use OnRoomListUpdate Instead")]
-        public event Action<string> onRemoveRoomNtf;
-
         /// <summary>
         /// 房间列表更新事件
         /// </summary>
@@ -257,43 +247,23 @@ namespace TouhouCardEngine
         /// <summary>
         /// 一次更新一整个房间的开销真的可以，这个事件应该被拆成若干个更新房间的事件。
         /// </summary>
-        [Obsolete("使用各种更新房间局部状态的事件作为替代")]
+        [Obsolete("使用各种更新房间局部状态的事件作为替代", true)]
         public event Action<RoomData> onUpdateRoom;
         /// <summary>
-        /// 当局域网收到发现房间的请求的时候被调用，需要返回当前ClientLogic的房间信息。
-        /// </summary>
-        public event Func<RoomData> onGetRoom;
-        /// <summary>
         /// 当玩家请求加入房间的时候，是否回应？
+        /// 检查玩家信息和房间信息，判断是否可以加入
         /// </summary>
         public event Func<RoomPlayerData, RoomData> onJoinRoomReq;
         /// <summary>
         /// 当玩家确认加入房间的时候，请求房间状况。
+        /// 就是给玩家返回一个房间信息用的
         /// </summary>
         public event Func<RoomPlayerData, RoomData> onConfirmJoinReq;
         /// <summary>
         /// 当玩家确认加入房间的时候，收到房间状况的回应。
         /// </summary>
         public event Action<RoomData> onConfirmJoinAck;
-        /// <summary>
-        /// 当房间添加玩家时收到通知。
-        /// </summary>
-        public event Action<string, RoomPlayerData> onRoomAddPlayerNtf;
-        /// <summary>
-        /// 当房间移除玩家时收到通知。
-        /// </summary>
-        public event Action<string, int> onRoomRemovePlayerNtf;
-        /// <summary>
-        /// 当房间属性更改时收到通知。
-        /// </summary>
-        public event Action<string, string, object> onRoomSetPropNtf;
-        /// <summary>
-        /// 当房间中的玩家更改属性时收到通知。
-        /// </summary>
-        public event Action<int, string, object> onRoomPlayerSetPropNtf;
-        public event Action<RoomData> onRoomDiscovered;
-        public event Action<string, string, object> onRoomDataChanged;
-        public event Action<string, RoomPlayerData> onJoinRoomNtf;
+
         public event Action<string, int> onConfirmJoinNtf;
         #endregion
         #region 方法重写
@@ -321,6 +291,7 @@ namespace TouhouCardEngine
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
+            // todo: 这个事件处理模型和Base的有不一样的地方。
             log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
             switch (disconnectInfo.Reason)
             {
@@ -331,15 +302,7 @@ namespace TouhouCardEngine
                     ackJoinRoomFailed();
                     break;
                 case DisconnectReason.DisconnectPeerCalled:
-                    //与Peer断开连接的本地消息
-                    break;
-                case DisconnectReason.HostUnreachable:
-                    break;
-                case DisconnectReason.InvalidProtocol:
-                    break;
-                case DisconnectReason.NetworkUnreachable:
-                    break;
-                case DisconnectReason.Reconnect:
+                    // 与Peer断开连接的本地消息
                     break;
                 case DisconnectReason.RemoteConnectionClose:
                     if (disconnectInfo.AdditionalData.TryGetInt(out int packetInt))
@@ -347,13 +310,9 @@ namespace TouhouCardEngine
                         PacketType packetType = (PacketType)packetInt;
                     }
                     if (peer == hostPeer)
-                        ntfRemoveRoom(_roomData.ID);
+                        (this as ILANRPCMethodClient).removeDiscoverRoom(_roomData.ID);
                     else
-                        ntfRoomRemovePlayer(_roomData.ID, _playerInfoDict.First(p => p.Value.peer == peer).Key);
-                    break;
-                case DisconnectReason.Timeout:
-                    break;
-                case DisconnectReason.UnknownHost:
+                        removeRoomPlayer(_playerInfoDict.First(p => p.Value.peer == peer).Key);
                     break;
                 default:
                     break;
@@ -366,8 +325,8 @@ namespace TouhouCardEngine
             switch (type)
             {
                 case PacketType.sendRequest:
-                    // todo: 设置Peer
-                    this.SendRequestForwarder(new NetPeer[0],reader);
+                    var peers = _playerInfoDict.Select(p => p.Value.peer).ToArray();
+                    this.SendRequestForwarder(peers, reader);
                     return Task.CompletedTask;
                 default:
                     break;
@@ -385,78 +344,66 @@ namespace TouhouCardEngine
             }
         }
 
+        /// <summary>
+        /// 当前RPC请求的Peer
+        /// </summary>
+        NetPeer currentPeer { get; set; }
+        protected override object invokeRPCMethod(NetPeer peer, string methodName, object[] args)
+        {
+            currentPeer = peer;
+            try
+            {
+                return base.invokeRPCMethod(peer, methodName, args);
+            }
+            finally
+            {
+                currentPeer = null;
+            }
+        }
+
         #endregion
         #region 私有成员
         /// <summary>
         /// LAN广播搜索局域网上现有房间请求
         /// 以广播形式发送此请求。
         /// </summary>
-        void reqGetRoom()
+        void ILANRPCMethodHost.requestDiscoverRoom()
         {
             log?.log(name + "收到请求房间消息");
-            RoomData roomData = onGetRoom?.Invoke();
-            invoke(unconnectedInvokeIP, nameof(ackGetRoom), roomData);
+            invoke(unconnectedInvokeIP, nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
         }
+
         /// <summary>
-        /// LAN搜索房间响应
-        /// 收到发现房间请求后，向来源发送此请求，指示此房间存在于网络上
+        /// 缓存的局域网房间列表
         /// </summary>
-        /// <param name="room"></param>
-        void ackGetRoom(RoomData room)
+        LobbyRoomDataList _lanRooms = new LobbyRoomDataList();
+
+        void ILANRPCMethodClient.addDiscoverRoom(LobbyRoomData room)
         {
-            log?.log(name + "收到获取房间消息");
-            _roomInfoDict[room.ID] = new LANRoomInfo()
+            log?.logTrace(name + "收到创建/发送房间消息");
+            room.SetIP(unconnectedInvokeIP.Address.ToString());
+            _lanRooms.Add(room.ID, room);
+
+            OnRoomListUpdate?.Invoke(_lanRooms);
+        }
+
+        void ILANRPCMethodClient.removeDiscoverRoom(string roomID)
+        {
+            log?.logTrace(name + "收到删除房间消息");
+            if (_lanRooms.ContainsKey(roomID))
+                _lanRooms.Remove(roomID);
+        }
+
+        void ILANRPCMethodClient.updateDiscoverRoom(LobbyRoomData roomData)
+        {
+            log?.logTrace(name + "收到更新房间消息");
+            if (_lanRooms.ContainsKey(roomData.ID))
             {
-                ip = unconnectedInvokeIP
-            };
-            onUpdateRoom?.Invoke(room);
-        }
-        /// <summary>
-        /// 创建房间后广播
-        /// 远程调用方法，当收到房间创建后广播到局域网中。其他客户端收到此调用，更新房间信息。
-        /// </summary>
-        /// <param name="room"></param>
-        void ntfNewRoom(RoomData room)
-        {
-            log?.log(name + "收到创建房间消息");
-            updateRoomInfo(room);
-            onNewRoomNtf?.Invoke(room);
-        }
-        /// <summary>
-        /// 房间更新后广播
-        /// 远程调用方法。当房间信息更新后广播到局域网中。其他客户端收到此调用后，更新房间信息。
-        /// </summary>
-        /// <param name="room"></param>
-        void ntfUpdateRoom(RoomData room)
-        {
-            log?.log(name + "收到房间信息更新消息");
-            updateRoomInfo(room);
-            onUpdateRoom?.Invoke(room);
-        }
-        /// <summary>
-        /// 房间移除后广播
-        /// 远程调用方法。当房间被移除后广播到局域网中。其他客户端收到此调用后，更新房间信息。
-        /// </summary>
-        /// <param name="roomId"></param>
-        void ntfRemoveRoom(string roomId)
-        {
-            log?.log(name + "收到房间" + roomId + "移除消息");
-            if (_roomInfoDict.ContainsKey(roomId))
-                _roomInfoDict.Remove(roomId);
-            if (_roomData != null && _roomData.ID == roomId)
-                _roomData = null;
-            onRemoveRoomNtf?.Invoke(roomId);
-        }
-        void updateRoomInfo(RoomData room)
-        {
-            if (!_roomInfoDict.ContainsKey(room.ID))
-            {
-                _roomInfoDict[room.ID] = new LANRoomInfo()
-                {
-                    ip = unconnectedInvokeIP
-                };
+                roomData.SetIP(unconnectedInvokeIP.Address.ToString());
+                _lanRooms[roomData.ID] = roomData;
             }
         }
+
         /// <summary>
         /// 收到玩家加入房间的请求，玩家能否加入房间取决于客户端逻辑（比如房间是否已满）
         /// </summary>
@@ -482,25 +429,32 @@ namespace TouhouCardEngine
                 ip = request.RemoteEndPoint,
                 peer = peer
             };
-            invokeBroadcast(nameof(ntfRoomAddPlayer), roomData.ID, player);
-            //invokeBroadcast(nameof(ntfUpdateRoom), roomData);
+            // invokeBroadcast(nameof(ntfRoomAddPlayer), roomData.ID, player);
+            // invokeBroadcast(nameof(ntfUpdateRoom), roomData);
         }
+
+        /// <summary>
+        /// 成功连接上主机后的后续操作
+        /// </summary>
+        /// <param name="joinRoomOperation"></param>
+        /// <returns></returns>
         async Task confirmJoin(JoinRoomOperation joinRoomOperation)
         {
-            _roomData = await invoke<RoomData>(nameof(rpcConfirmJoin), GetSelfPlayerData());
+            _roomData = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
             onConfirmJoinAck.Invoke(_roomData);
             completeOperation(joinRoomOperation, _roomData);
         }
-        RoomData rpcConfirmJoin(RoomPlayerData player)
+
+        RoomData IRoomRPCMethodHost.requestJoinRoom(RoomPlayerData player)
         {
             RoomData data = onConfirmJoinReq.Invoke(player);
-            invokeBroadcast(nameof(ntfUpdateRoom), data);
+            // 更新房间信息
+            _ = AddPlayer(player);
+            // 房间公共信息更新
+            updateRoomInfo();
             return data;
         }
-        void ntfConfirmJoin(string roomId, int playerId)
-        {
-            onConfirmJoinNtf?.Invoke(roomId, playerId);
-        }
+
         void ackJoinRoomReject()
         {
         }
@@ -508,52 +462,60 @@ namespace TouhouCardEngine
         {
 
         }
-        void ntfRoomAddPlayer(string roomId, RoomPlayerData playerData)
+
+        void IRoomRPCMethodHost.setPlayerProp(string name, object value)
         {
-            log?.log(name + "收到通知房间" + roomId + "加入玩家" + playerData.name);
-            onRoomAddPlayerNtf?.Invoke(roomId, playerData);
+            var playerID = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+            log?.log(name + "收到远程调用玩家" + playerID + "想要将属性" + name + "变成为" + value);
+            // 首先假设玩家的属性他自己爱怎么改就怎么改。
+            _roomData.setPlayerProp(playerID, name, value);
+            // 然后房主要通知其他玩家属性改变了。
+            _playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), playerID, name, value));
         }
-        void ntfRoomSetProp(string roomId, string propName, object value)
+
+        private void removeRoomPlayer(int playerId)
         {
-            log?.log(name + "收到通知房间" + roomId + "的属性" + propName + "变更为" + value);
-            onRoomSetPropNtf?.Invoke(roomId, propName, value);
-        }
-        Task rpcRoomPlayerSetProp(int playerId, string propName, object value)
-        {
-            log?.log(name + "收到远程调用玩家" + playerId + "想要将属性" + propName + "变成为" + value);
-            //首先假设玩家的属性他自己爱怎么改就怎么改。
-            onRoomPlayerSetPropNtf?.Invoke(playerId, propName, value);
-            //然后房主要通知其他玩家属性改变了。
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(ntfRoomPlayerSetProp), playerId, propName, value)));
-        }
-        void ntfRoomPlayerSetProp(int playerId, string propName, object value)
-        {
-            log?.log(name + "收到通知玩家" + playerId + "将属性" + propName + "更改为" + value);
-            onRoomPlayerSetPropNtf?.Invoke(playerId, propName, value);
-        }
-        void ntfRoomRemovePlayer(string roomId, int playerId)
-        {
-            log?.log(name + "收到通知玩家" + playerId + "退出了房间" + roomId);
-            onRoomRemovePlayerNtf?.Invoke(roomId, playerId);
             if (_roomData != null && _roomData.ownerId == _playerData.id && _playerInfoDict.ContainsKey(playerId))
             {
-                //是主机，退出的是房间里的人，把这个消息再广播一遍，以及直接通知其他玩家。
+                // 是主机，退出的是房间里的人，把这个消息再广播一遍，以及直接通知其他玩家。
                 _playerInfoDict.Remove(playerId);
-                invokeBroadcast(nameof(ntfRoomRemovePlayer), roomId, playerId);
+                // 更新房间公共信息
+                updateRoomInfo();
                 foreach (var peer in _playerInfoDict.Values.Select(i => i.peer))
                 {
-                    notify(peer, nameof(ntfRoomRemovePlayer), roomId, playerId);
+                    notify(peer, nameof(IRoomRPCMethodClient.onPlayerRemove), playerId);
                 }
             }
         }
-        readonly RoomPlayerData _playerData;
-        RoomData _roomData;
-        Dictionary<string, LANRoomInfo> _roomInfoDict = new Dictionary<string, LANRoomInfo>();
-        Dictionary<int, LANPlayerInfo> _playerInfoDict = new Dictionary<int, LANPlayerInfo>();
-        class LANRoomInfo
+
+        /// <summary>
+        /// 更新房间信息
+        /// </summary>
+        private void updateRoomInfo()
         {
-            public IPEndPoint ip;
+            _roomInfo.PlayerCount = _roomData.playerDataList.Count;
+            AlterRoomInfo(_roomInfo);
         }
+
+        /// <summary>
+        /// 当前玩家信息
+        /// </summary>
+        RoomPlayerData _playerData { get; }
+        /// <summary>
+        /// 主机房间数据
+        /// </summary>
+        RoomData _roomData { get; set; }
+
+        /// <summary>
+        /// 公共房间信息
+        /// </summary>
+        LobbyRoomData _roomInfo { get; set; }
+
+        /// <summary>
+        /// 玩家信息字典
+        /// </summary>
+        Dictionary<int, LANPlayerInfo> _playerInfoDict = new Dictionary<int, LANPlayerInfo>();
+
         class LANPlayerInfo
         {
             public IPEndPoint ip;

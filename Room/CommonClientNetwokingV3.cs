@@ -16,6 +16,11 @@ namespace TouhouCardEngine
             addRPCMethod(this, typeof(IRoomRPCMethodClient));
         }
 
+        /// <summary>
+        /// 当前网络初始化后的端口号
+        /// </summary>
+        public int Port => net.LocalPort;
+
         public event ResponseHandler onReceive;
 
         #region 已经实现的事件
@@ -42,12 +47,14 @@ namespace TouhouCardEngine
 
         #region RPC接口
         /// <summary>
-        /// 缓存的房间数据
+        /// 客户端缓存的房间数据
         /// </summary>
         protected RoomData cachedRoomData;
 
         void IRoomRPCMethodClient.updateRoomData(RoomData data)
         {
+            log?.logTrace($"{name} 收到房间数据改变事件。房间数据：{data}");
+
             cachedRoomData = data;
             OnRoomDataChange?.Invoke(cachedRoomData);
             OnRoomDataChange(cachedRoomData);
@@ -55,12 +62,15 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onRoomPropChange(string name, object val)
         {
+            log?.logTrace($"{this.name} 收到房间属性改变事件。Key: {name}, Value: {val}");
             cachedRoomData.setProp(name, val);
             OnRoomDataChange?.Invoke(cachedRoomData);
         }
 
         void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
         {
+            log?.logTrace($"{name} 收到玩家信息改变事件。玩家信息: {data}");
+
             for (int i = 0; i < cachedRoomData.playerDataList.Count; i++)
             {
                 if (cachedRoomData.playerDataList[i].id == data.id)
@@ -73,6 +83,7 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onPlayerAdd(RoomPlayerData data)
         {
+            log?.logTrace($"{name} 收到新增玩家事件。玩家信息：{data}");
             if (cachedRoomData.containsPlayer(data.id))
             {
                 log?.logWarn($"{name} 的房间信息中已经存在ID为{data.id}的玩家，但却收到了 onPlayerAdd 事件，这是有问题的。");
@@ -93,6 +104,8 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onPlayerRemove(int playerID)
         {
+            log?.logTrace($"{name} 收到移除玩家事件。玩家ID：{playerID}");
+
             if (!cachedRoomData.containsPlayer(playerID))
             {
                 log?.logWarn($"{name} 的房间信息中不存在存在ID为{playerID}的玩家，但却收到了 onPlayerRemove 事件，这是有问题的。");
@@ -104,6 +117,8 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onPlayerPropChange(int playerID, string name, object val)
         {
+            log?.logTrace($"{this.name} 收到玩家属性改变事件。玩家ID：{playerID}, Key: {name}, Value: {val}");
+
             cachedRoomData.setPlayerProp(playerID, name, val);
             OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
         }
@@ -128,9 +143,12 @@ namespace TouhouCardEngine
 
         /// <summary>
         /// 客户端ID
-        /// todo: 这个是host分配的ID，并不是用户ID
         /// </summary>
-        protected int clientID { get; set; }
+        /// <remarks>
+        /// 这个ID等同于玩家ID。
+        /// 玩家ID是不会重复的，所以可以这么干。
+        /// </remarks>
+        protected int clientID => GetSelfPlayerData().id;
 
         protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
         {
@@ -140,7 +158,7 @@ namespace TouhouCardEngine
                     try
                     {
                         var result = OperationResultExt.ParseRequest(reader);
-                        log?.log($"客户端 {name} 收到主机转发的来自客户端{result.clientID}的数据：（{result.obj}）");
+                        log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{result.clientID}的数据：（{result.obj}）");
 
                         if (onReceive != null)
                             await onReceive.Invoke(result.clientID, result.obj);
@@ -362,6 +380,20 @@ namespace TouhouCardEngine
         /// </summary>
         event ResponseHandler onReceive;
         #endregion
+    }
+    
+    /// <summary>
+    /// 本地Host扩展的一些方法
+    /// </summary>
+    public interface INetworkingV3LANHost
+    {
+        Task AddPlayer(RoomPlayerData player);
+
+        /// <summary>
+        /// 当玩家请求加入房间的时候，是否回应？
+        /// 检查玩家信息和房间信息，判断是否可以加入
+        /// </summary>
+        event Func<RoomPlayerData, RoomData> onJoinRoomReq;
     }
 
     /// <summary>
