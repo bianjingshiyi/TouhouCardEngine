@@ -20,6 +20,7 @@ namespace TouhouCardEngine
         }
         public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
         public abstract Task onGameRun(CardEngine game);
+        public abstract Task onPlayerCommand(CardEngine game, Player player, ICommand command);
     }
     [Serializable]
     public partial class CardEngine : IGame
@@ -149,7 +150,7 @@ namespace TouhouCardEngine
                 addDefine(define);
             }
             isInited = true;
-            return rule.onGameInit(this,options, players);
+            return rule.onGameInit(this, options, players);
         }
         public Task run()
         {
@@ -170,12 +171,12 @@ namespace TouhouCardEngine
         public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
             this.rule = rule;
-            rule.onGameInit(this,options, players);
+            rule.onGameInit(this, options, players);
             isInited = true;
             isRunning = true;
             rule.onGameRun(this);
         }
-        
+
         #endregion
         public virtual void onAnswer(IResponse response)
         {
@@ -291,6 +292,10 @@ namespace TouhouCardEngine
             return cards.Select(c => { return registerCard(c); }).ToArray();
         }
         Dictionary<int, Card> dicCard { get; } = new Dictionary<int, Card>();
+        public Player getPlayer(int playerId)
+        {
+            return playerList.FirstOrDefault(p => p.id == playerId);
+        }
         public Player getPlayerAt(int playerIndex)
         {
             return (0 <= playerIndex && playerIndex < playerList.Count) ? playerList[playerIndex] : null;
@@ -328,6 +333,10 @@ namespace TouhouCardEngine
             if (playerList.Any(p => p.id == id))
                 id++;
             return id;
+        }
+        public Task command(ICommand command)
+        {
+            return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
         }
         private List<Player> playerList { get; } = new List<Player>();
         public delegate void EventAction(Event @event);
@@ -377,14 +386,14 @@ namespace TouhouCardEngine
         }
         List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
-        
+
         public void close()
         {
             isRunning = false;
             answers.cancelAll();
             Dispose();
         }
-        
+
         public virtual void Dispose()
         {
             if (answers != null)
@@ -400,5 +409,10 @@ namespace TouhouCardEngine
         logic = 0,
         before,
         after
+    }
+    public interface ICommand
+    {
+        int playerId { get; }
+
     }
 }
