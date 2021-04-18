@@ -80,7 +80,7 @@ namespace Tests
                 var room = clients[0].room;
                 if (room == null)
                     return false;
-                return clients.All(c => c.roomList.Any(r => r.Value.ID == room.ID));
+                return clients.All(c => c == clients[0] || c.roomList.Any(r => r.Value.RoomID == room.ID));
             }, 5);
         }
         //IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
@@ -212,11 +212,11 @@ namespace Tests
             var roomInfo = clients[1].roomList.First().Value;
             Assert.NotNull(roomInfo);
 
-            Task<bool> boolTask = clients[1].joinRoom(roomInfo.ID);
+            Task<bool> boolTask = clients[1].joinRoom(roomInfo.RoomID);
             yield return boolTask.wait();
             //预期收到自己加入了房间，里面有两个人
             Assert.True(boolTask.Result);
-            Assert.AreEqual(roomInfo.ID, clients[1].room.ID);
+            Assert.AreEqual(roomInfo.RoomID, clients[1].room.ID);
             Assert.NotNull(clients[1].localPlayer);
             var roomData = clients[1].room;
             Assert.AreEqual(2, roomData.playerDataList.Count);
@@ -226,7 +226,7 @@ namespace Tests
             yield return TestHelper.waitUntil(() => clients.All(c =>
             {
                 var rd = c.roomList.First().Value;
-                return roomData.ID == rd.ID && rd.PlayerCount == 2;
+                return roomData.ID == rd.RoomID && rd.PlayerCount == 2;
             }), 5);
             //第三个人加入房间
             yield return TestHelper.waitUntil(() => clients[2].roomList.Count > 0, 5);
@@ -243,7 +243,7 @@ namespace Tests
             yield return TestHelper.waitUntil(() => clients.All(c =>
             {
                 var rd = c.roomList.First().Value;
-                return roomData.ID == rd.ID && rd.PlayerCount == 3;
+                return roomData.ID == rd.RoomID && rd.PlayerCount == 3;
             }), 5);
         }
         IEnumerator addAIPlayerAssert(ClientLogic[] clients)
@@ -252,7 +252,7 @@ namespace Tests
             yield return clients[0].createOnlineRoom().wait();
             //另一个人加入房间
             yield return TestHelper.waitUntil(() => clients[1].roomList.Count > 0, 5);
-            yield return clients[1].joinRoom(clients[1].roomList.First().Value.ID).wait();
+            yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
             //向房间中添加AI玩家
             yield return TestHelper.waitUntilAllEventTrig(clients,
                 (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
@@ -290,7 +290,7 @@ namespace Tests
             yield return TestHelper.waitUntilEventTrig(clients[1],
                 (c, a) => c.onRoomListChange += r => { if (r.Count > 0) a(); },
                 () => clients[0].createOnlineRoom().wait());
-            yield return clients[1].joinRoom(clients[1].roomList.First().Value.ID).wait();
+            yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
         }
         IEnumerator setPlayerPropAssert(ClientLogic[] clients)
         {
@@ -397,14 +397,14 @@ namespace Tests
         LANNetworking startLANNetworking(string name)
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
-            ClientLogic client = new ClientLogic(name, new UnityLogger(name));
+            ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
             client.switchNetToLAN();
             return client.LANNetwork;
         }
         ClientLogic startLANClient(string name)
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
-            ClientLogic client = new ClientLogic(name, new UnityLogger(name));
+            ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
             client.switchNetToLAN();
             return client;
         }

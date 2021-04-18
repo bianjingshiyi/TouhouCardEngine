@@ -205,7 +205,7 @@ namespace TouhouCardEngine
                     var exception = new NtrNetworkException(disconnectInfo.Reason);
                     var op = getOperation(typeof(JoinRoomOperation));
                     if (op != null)
-                        op.setException(exception);
+                        completeOperation(op, exception);
                     break;
                 case DisconnectReason.RemoteConnectionClose: // 远程关闭
                     break;

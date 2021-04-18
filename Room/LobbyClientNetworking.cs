@@ -99,7 +99,7 @@ namespace TouhouCardEngine
         {
             var writer = new NetDataWriter();
             // todo: 规定加入的数据格式。
-            writer.Put(roomInfo.ID);
+            writer.Put(roomInfo.RoomID);
             writer.Put(serverClient.UserSession);
             writer.Put(localPlayer.id);
 
@@ -180,6 +180,7 @@ namespace TouhouCardEngine
             }
 
             var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodHostLobby.requestJoinRoom), GetSelfPlayerData());
+            cachedRoomData = roomInfo;
             completeOperation(op, roomInfo);
         }
         #endregion
