@@ -82,7 +82,7 @@ namespace TouhouCardEngine
                     {
                         try
                         {
-                            game?.logger?.log("Answer", "玩家" + string.Join("，", item.request.playersId) + "的询问" + item.request + "超时自动回应");
+                            game?.logger?.logTrace("Answer", "玩家" + string.Join("，", item.request.playersId) + "的询问" + item.request + "超时自动回应");
                             if (item.request.playersId.Length == 1)
                                 item.tcs.SetResult(new Dictionary<int, IResponse>()
                                 {
@@ -93,14 +93,14 @@ namespace TouhouCardEngine
                         }
                         catch (Exception e)
                         {
-                            game?.logger?.log("Error", item.request + "超时引发异常：" + e);
+                            game?.logger?.logTrace("Error", item.request + "超时引发异常：" + e);
                         }
                     }
                     else
                     {
                         try
                         {
-                            game?.logger?.log("Answer", item.request + "超时自动回应");
+                            game?.logger?.logTrace("Answer", item.request + "超时自动回应");
                             item.tcs.SetResult(item.request.playersId.Select(p =>
                             {
                                 if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
@@ -119,7 +119,7 @@ namespace TouhouCardEngine
                         }
                     }
                     _requestList.Remove(item);
-                    game?.logger?.log("当前询问：\n" + string.Join("\n", _requestList));
+                    game?.logger?.logTrace("当前询问：\n" + string.Join("\n", _requestList));
                 }
             }
         }
@@ -132,7 +132,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public async Task<IResponse> ask(int playerId, IRequest request, float timeout = float.MaxValue)
         {
-            game?.logger?.log("Answer", "询问玩家" + playerId + "：" + request + "，超时时间：" + timeout);
+            game?.logger?.logTrace("Answer", "询问玩家" + playerId + "：" + request + "，超时时间：" + timeout);
             request.playersId = new int[] { playerId };
             request.isAny = true;
             if (timeout < 0)
@@ -152,7 +152,7 @@ namespace TouhouCardEngine
         }
         public Task<Dictionary<int, IResponse>> askAll(int[] playersId, IRequest request, float timeout)
         {
-            game?.logger?.log("Answer", "询问所有玩家（" + string.Join("，", playersId) + "）：" + request);
+            game?.logger?.logTrace("Answer", "询问所有玩家（" + string.Join("，", playersId) + "）：" + request);
             request.playersId = playersId;
             request.isAny = false;
             if (timeout < 0)
@@ -176,7 +176,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public async Task<IResponse> askAny(int[] playersId, IRequest request, float timeout, Func<IResponse, bool> responseFilter = null)
         {
-            game?.logger?.log("Answer", "询问任意玩家（" + string.Join("，", playersId) + "）：" + request);
+            game?.logger?.logTrace("Answer", "询问任意玩家（" + string.Join("，", playersId) + "）：" + request);
             request.playersId = playersId;
             request.isAny = true;
             if (timeout < 0)
@@ -223,7 +223,7 @@ namespace TouhouCardEngine
                 if (!request.isValidResponse(response))//是合法的回应
                     continue;
 
-                game?.logger?.log("Answer", "玩家" + playerId + "回应请求" + request);
+                game?.logger?.logTrace("Answer", "玩家" + playerId + "回应请求" + request);
                 response.remainedTime = item.remainedTime;
                 if (request.isAny)
                 {
@@ -340,7 +340,7 @@ namespace TouhouCardEngine
         }
         public void cancel(IRequest request)
         {
-            game?.logger?.log("Answer", "取消询问" + request);
+            game?.logger?.logTrace("Answer", "取消询问" + request);
             RequestItem item = _requestList.FirstOrDefault(i => i.request == request);
             if (item != null)
             {
@@ -349,7 +349,7 @@ namespace TouhouCardEngine
                 {
                     try
                     {
-                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        game?.logger?.logTrace("Answer", item.request + "取消自动回应");
                         if (item.request.playersId.Length == 1)
                         {
                             IResponse response = item.request.getDefaultResponse(game, item.request.playersId[0]);
@@ -364,14 +364,14 @@ namespace TouhouCardEngine
                     }
                     catch (Exception e)
                     {
-                        game?.logger?.log("Error", item.request + "取消引发异常：" + e);
+                        game?.logger?.logWarn(item.request + "取消引发异常：" + e);
                     }
                 }
                 else
                 {
                     try
                     {
-                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        game?.logger?.logTrace("Answer", item.request + "取消自动回应");
                         Dictionary<int, IResponse> responses = item.request.playersId.Select(p =>
                         {
                             if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
@@ -405,7 +405,7 @@ namespace TouhouCardEngine
         }
         public void cancelAll()
         {
-            game?.logger?.log("Answer", "取消所有询问");
+            game?.logger?.logTrace("Answer", "取消所有询问");
             while (_requestList.Count > 0)
             {
                 var item = _requestList[0];
@@ -413,7 +413,7 @@ namespace TouhouCardEngine
                 {
                     try
                     {
-                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        game?.logger?.logTrace("Answer", item.request + "取消自动回应");
                         if (item.request.playersId.Length == 1)
                         {
                             IResponse response = item.request.getDefaultResponse(game, item.request.playersId[0]);
@@ -428,14 +428,14 @@ namespace TouhouCardEngine
                     }
                     catch (Exception e)
                     {
-                        game?.logger?.log("Error", item.request + "取消引发异常：" + e);
+                        game?.logger?.logWarn("Error", item.request + "取消引发异常：" + e);
                     }
                 }
                 else
                 {
                     try
                     {
-                        game?.logger?.log("Answer", item.request + "取消自动回应");
+                        game?.logger?.logTrace("Answer", item.request + "取消自动回应");
                         Dictionary<int, IResponse> responses = item.request.playersId.Select(p =>
                         {
                             if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
