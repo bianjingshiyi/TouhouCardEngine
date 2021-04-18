@@ -150,17 +150,17 @@ namespace TouhouCardEngine
 
         public override Task SetRoomProp(string key, object value)
         {
-            return invoke<object>(nameof(IRoomRPCMethodHostLobby.setRoomProp), key, value);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomProp), key, value);
         }
 
         public override Task SetPlayerProp(string name, object val)
         {
-            return invoke<object>(nameof(IRoomRPCMethodHostLobby.setPlayerProp), name, val);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setPlayerProp), name, val);
         }
 
         public override Task GameStart()
         {
-            return invoke<object>(nameof(IRoomRPCMethodHostLobby.gameStart));
+            return invoke<object>(nameof(IRoomRPCMethodLobby.gameStart));
         }
 
         public override Task Send(object obj)
@@ -179,7 +179,7 @@ namespace TouhouCardEngine
                 return;
             }
 
-            var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodHostLobby.requestJoinRoom), GetSelfPlayerData());
+            var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodLobby.requestJoinRoom), GetSelfPlayerData());
             cachedRoomData = roomInfo;
             completeOperation(op, roomInfo);
         }

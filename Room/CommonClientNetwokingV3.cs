@@ -25,7 +25,27 @@ namespace TouhouCardEngine
 
         #region 已经实现的事件
         public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+
+        /// <summary>
+        /// 触发 OnRoomPlayerDataChanged 事件
+        /// </summary>
+        /// <param name="data"></param>
+        protected void invokeOnRoomPlayerDataChanged(RoomPlayerData[] data)
+        {
+            OnRoomPlayerDataChanged?.Invoke(data);
+        }
+
         public event Action<RoomData> OnRoomDataChange;
+
+        public event Action OnGameStart;
+
+        /// <summary>
+        /// 触发onGameStart事件
+        /// </summary>
+        protected void invokeOnGameStart()
+        {
+            OnGameStart?.Invoke();
+        }
         #endregion
 
         #region 待实现的接口
@@ -123,9 +143,10 @@ namespace TouhouCardEngine
             OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
         }
 
-        protected void invokeOnRoomPlayerDataChanged(RoomPlayerData[] data)
+        void IRoomRPCMethodClient.onGameStart()
         {
-            OnRoomPlayerDataChanged?.Invoke(data);
+            log?.logTrace("收到了游戏开始事件");
+            invokeOnGameStart();
         }
 
         #endregion
@@ -360,7 +381,8 @@ namespace TouhouCardEngine
         event Action<RoomData> OnRoomDataChange;
 
         /// <summary>
-        /// 开始游戏！
+        /// 请求开始游戏！
+        /// 注意只有房主能调用。
         /// </summary>
         /// <returns></returns>
         Task GameStart();
@@ -384,6 +406,11 @@ namespace TouhouCardEngine
         /// 收到GameResponse
         /// </summary>
         event ResponseHandler onReceive;
+
+        /// <summary>
+        /// 游戏开始事件
+        /// </summary>
+        event Action OnGameStart;
         #endregion
     }
     

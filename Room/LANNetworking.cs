@@ -231,10 +231,10 @@ namespace TouhouCardEngine
 
         public override Task GameStart()
         {
-            // todo: 噢草，我也不知道要怎么GameStart
             if (isHost)
             {
-                throw new NotImplementedException();
+                invokeOnGameStart();
+                return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onGameStart))));
             }
             return Task.CompletedTask;
         }
@@ -315,16 +315,9 @@ namespace TouhouCardEngine
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            // todo: 这个事件处理模型和Base的有不一样的地方。
             log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
             switch (disconnectInfo.Reason)
             {
-                case DisconnectReason.ConnectionRejected:
-                    ackJoinRoomReject();
-                    break;
-                case DisconnectReason.ConnectionFailed:
-                    ackJoinRoomFailed();
-                    break;
                 case DisconnectReason.DisconnectPeerCalled:
                     // 与Peer断开连接的本地消息
                     break;
@@ -341,6 +334,7 @@ namespace TouhouCardEngine
                 default:
                     break;
             }
+            // 底层处理了一点点加入时候Disconnect的异常，最好看一眼。
             base.OnPeerDisconnected(peer, disconnectInfo);
         }
 
