@@ -71,12 +71,21 @@ namespace TouhouCardEngine
 
         public void logTrace(string msg)
         {
-            // 不记录
+            logTrace(null, msg);
         }
 
         public void logTrace(string channel, string msg)
         {
-            // 不记录
+            if (!enable)
+                return;
+            if (!enable)
+                return;
+            if (blackList.Contains(channel))
+                return;
+            if (string.IsNullOrEmpty(channel))
+                Debug.Log("[TRACE] " + (string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+            else
+                Debug.Log("[TRACE] " + (string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
         }
     }
 }
