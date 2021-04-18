@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 using NitoriNetwork.Common;
 using TouhouCardEngine.Shared;
@@ -17,23 +18,15 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract void onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
-        public abstract void onGameRun(CardEngine game);
+        public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
+        public abstract Task onGameRun(CardEngine game);
+        public abstract Task onPlayerCommand(CardEngine game, Player player, ICommand command);
+        public abstract Task onGameClose(CardEngine game);
     }
     [Serializable]
     public partial class CardEngine : IGame
     {
         #region 公共成员
-
-        public CardEngine(int randomSeed = 0, params CardDefine[] defines)
-        {
-            trigger = new SyncTriggerSystem(this);
-            random = new Random(randomSeed);
-            foreach (CardDefine define in defines)
-            {
-                addDefine(define);
-            }
-        }
 
         public CardEngine()
         {
@@ -60,7 +53,7 @@ namespace TouhouCardEngine
         public ILogger logger { get; set; }
         #endregion
         #region 状态
-        public Rule rule { get; }
+        public Rule rule { get; set; }
         public Pile this[string pileName]
         {
             get { return getPile(pileName); }
@@ -141,48 +134,50 @@ namespace TouhouCardEngine
         //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         #region 游戏流程
-        public bool isRunning { get; private set; } = false;
+        public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
-        public void init(Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public Task init(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
+            this.rule = rule;
             if (isInited)
             {
                 logger.logError("游戏已经初始化");
-                return;
+                return Task.CompletedTask;
             }
             random = new Random(options.randomSeed);
             foreach (CardDefine define in rule.defines)
             {
                 addDefine(define);
             }
-            rule.onGameInit(this,options, players);
             isInited = true;
+            return rule.onGameInit(this, options, players);
         }
-        public void run(Rule rule)
+        public Task run()
         {
-            if (isInited)
+            if (!isInited)
             {
                 logger.logError("游戏未初始化");
-                return;
+                return Task.CompletedTask;
             }
             if (isRunning)
             {
                 logger.logError("游戏已开始");
-                return;
+                return Task.CompletedTask;
             }
             isRunning = true;
-            rule.onGameRun(this);
+            return rule.onGameRun(this);
         }
 
         public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
-            rule.onGameInit(this,options, players);
+            this.rule = rule;
+            rule.onGameInit(this, options, players);
             isInited = true;
             isRunning = true;
             rule.onGameRun(this);
         }
-        
+
         #endregion
         public virtual void onAnswer(IResponse response)
         {
@@ -298,6 +293,10 @@ namespace TouhouCardEngine
             return cards.Select(c => { return registerCard(c); }).ToArray();
         }
         Dictionary<int, Card> dicCard { get; } = new Dictionary<int, Card>();
+        public Player getPlayer(int playerId)
+        {
+            return playerList.FirstOrDefault(p => p.id == playerId);
+        }
         public Player getPlayerAt(int playerIndex)
         {
             return (0 <= playerIndex && playerIndex < playerList.Count) ? playerList[playerIndex] : null;
@@ -335,6 +334,10 @@ namespace TouhouCardEngine
             if (playerList.Any(p => p.id == id))
                 id++;
             return id;
+        }
+        public Task command(ICommand command)
+        {
+            return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
         }
         private List<Player> playerList { get; } = new List<Player>();
         public delegate void EventAction(Event @event);
@@ -384,11 +387,32 @@ namespace TouhouCardEngine
         }
         List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
+
+        public void close()
+        {
+            rule.onGameClose(this);
+        }
+
+        public virtual void Dispose()
+        {
+            close();
+            if (answers != null)
+                answers.Dispose();
+            if (triggers != null)
+                triggers.Dispose();
+            if (time != null)
+                time.Dispose();
+        }
     }
     public enum EventPhase
     {
         logic = 0,
         before,
         after
+    }
+    public interface ICommand
+    {
+        int playerId { get; }
+
     }
 }

@@ -1,7 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 namespace TouhouCardEngine.Interfaces
 {
-    public interface IGame
+    public interface IGame : IDisposable
     {
         ITriggerManager triggers { get; }
         IAnswerManager answers { get; }

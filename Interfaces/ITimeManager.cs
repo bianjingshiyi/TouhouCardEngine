@@ -1,7 +1,7 @@
 ﻿using System;
 namespace TouhouCardEngine.Interfaces
 {
-    public interface ITimeManager
+    public interface ITimeManager : IDisposable
     {
         ITimer startTimer(float time);
         bool cancel(ITimer timer);
