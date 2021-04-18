@@ -127,6 +127,9 @@ namespace TouhouCardEngine
             // 房间公共信息更新
             updateRoomInfo();
 
+            // 提示上层玩家修改了
+            invokeOnRoomPlayerDataChanged(_hostRoomData.playerDataList.ToArray());
+
             // 向房间中的其他玩家发送通知房间添加玩家
             return Task.WhenAll(_playerInfoDict.
                 Where(i => i.Key != playerData.id).
@@ -148,8 +151,8 @@ namespace TouhouCardEngine
         {
             if (isHost)
             {
-                //房主，直接广播
-                await Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), key, value)));
+                // 本地玩家，直接修改
+                setPlayerProp(key, value, GetSelfPlayerData().id);
             }
             else
             {
@@ -490,8 +493,15 @@ namespace TouhouCardEngine
         {
             var playerID = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
             log?.logTrace(name + "收到远程调用玩家" + playerID + "想要将属性" + name + "变成为" + value);
+            setPlayerProp(name, value, playerID);
+        }
+
+        private void setPlayerProp(string name, object value, int playerID)
+        {
             // 首先假设玩家的属性他自己爱怎么改就怎么改。
             _hostRoomData.setPlayerProp(playerID, name, value);
+            // 通知上层变更
+            invokeOnRoomPlayerDataChanged(_hostRoomData.playerDataList.ToArray());
             // 然后房主要通知其他玩家属性改变了。
             _playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), playerID, name, value));
         }
@@ -504,6 +514,8 @@ namespace TouhouCardEngine
                 _playerInfoDict.Remove(playerId);
                 // 移除实际的房间玩家
                 _hostRoomData.playerDataList.RemoveAll(p => p.id == playerId);
+                // 提示上层玩家修改了
+                invokeOnRoomPlayerDataChanged(_hostRoomData.playerDataList.ToArray());
                 // 更新房间公共信息
                 updateRoomInfo();
                 // 广播

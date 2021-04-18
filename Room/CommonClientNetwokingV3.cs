@@ -123,6 +123,11 @@ namespace TouhouCardEngine
             OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
         }
 
+        protected void invokeOnRoomPlayerDataChanged(RoomPlayerData[] data)
+        {
+            OnRoomPlayerDataChanged?.Invoke(data);
+        }
+
         #endregion
 
         #region 网络底层处理

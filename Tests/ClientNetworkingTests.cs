@@ -123,7 +123,7 @@ namespace Tests
             yield return TestHelper.waitUntil(() =>
             {
                 // 每个玩家是看不到自己创建的房间的，这里应该是1才对
-                return clients.All(c => c.roomList.Count == 1);
+                return clients.All(c => c.roomList.Count == 2);
             }, 5);
             //foreach (var client in clients)
             //{
@@ -254,16 +254,17 @@ namespace Tests
             yield return TestHelper.waitUntil(() => clients[1].roomList.Count > 0, 5);
             yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
             //向房间中添加AI玩家
-            yield return TestHelper.waitUntilAllEventTrig(clients,
+            yield return TestHelper.waitUntilEventTrig(clients[0],
                 (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
                 () => clients[0].addAIPlayer().wait());
-            //所有人都会收到
+            // 房间内的玩家会收到
             Assert.AreEqual(3, clients[1].room.playerDataList.Count);
+            Assert.AreEqual(RoomPlayerType.ai, clients[1].room.playerDataList[2].type);
+            // 其他人只能看到人数变了
             foreach (var client in clients)
             {
                 var room = client.roomList.First().Value;
                 Assert.AreEqual(3, room.PlayerCount);
-                Assert.AreEqual(RoomPlayerType.ai, client.room.playerDataList[2].type);
             }
         }
         IEnumerator setRoomPropAssert(ClientLogic[] clients)
@@ -271,14 +272,11 @@ namespace Tests
             yield return createAndJoinRoom(clients);
             //更改房间属性
             int randomSeed = DateTime.Now.GetHashCode();
-            yield return TestHelper.waitUntilAllEventTrig(clients,
+            yield return TestHelper.waitUntilEventTrig(clients[1],
                 (c, a) => c.LANNetwork.OnRoomDataChange += (rd) => a(),
                 () => clients[0].setRoomProp("randomSeed", randomSeed).wait());
             //所有人都会收到房间属性更改
-            foreach (var client in clients)
-            {
-                Assert.AreEqual(randomSeed, client.room.getProp<int>("randomSeed"));
-            }
+            Assert.AreEqual(randomSeed, clients[1].room.getProp<int>("randomSeed"));
         }
         /// <summary>
         /// 一个人创建房间，另一个人加入房间
@@ -296,39 +294,43 @@ namespace Tests
         {
             yield return createAndJoinRoom(clients);
             //玩家2设置自己的属性，预期房间里的所有人都能收到属性改变
-            yield return TestHelper.waitUntilAllEventTrig(clients.Take(2),
-                (c, a) => c.LANNetwork.OnRoomDataChange += (ps) => a(),
-                () => clients[1].setPlayerProp("deckCount", 30).wait(), 10);
-            for (int i = 0; i < clients.Length; i++)
+            yield return TestHelper.waitUntilEventTrig(clients[0],
+                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
+                () => clients[1].setPlayerProp("deckCount", 30).wait());
+
+            for (int i = 0; i < 2; i++)
             {
-                if (i < 2)
-                    Assert.AreEqual(30, clients[i].room.playerDataList[1].propDict["deckCount"]);
-                else
-                {
-                    var roomData = clients[i].room;
-                    Assert.False(roomData.playerDataList[1].propDict.ContainsKey("deckCount"));
-                }
+                Assert.AreEqual(30, clients[i].room.playerDataList[1].propDict["deckCount"]);
             }
         }
         IEnumerator quitRoomAssert(ClientLogic[] clients)
         {
             yield return createAndJoinRoom(clients);
-            foreach (var client in clients)
+            for (int i = 0; i < 2; i++)
             {
-                Assert.AreEqual(2, client.room.playerDataList.Count);
+                Assert.AreEqual(2, clients[i].room.playerDataList.Count);
             }
-            //玩家2退出房间，所有人都可以看到房间中人数的减少
-            yield return TestHelper.waitUntilAllEventTrig(clients,
-                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
-                () => clients[1].quitRoom().wait());
-            Assert.Null(clients[1].room);
             foreach (var client in clients)
             {
-                Assert.AreEqual(1, client.room.playerDataList.Count);
+                Assert.AreEqual(1, client.roomList.Count);
+                Assert.AreEqual(2, client.roomList.First().Value.PlayerCount);
+            }
+
+            //玩家2退出房间，所有人都可以看到房间中人数的减少
+            yield return TestHelper.waitUntilEventTrig(clients[0],
+                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += s => a(),
+                () => clients[1].quitRoom().wait());
+            Debug.Log("Stage2");
+            Assert.Null(clients[1].room);
+            Assert.AreEqual(1, clients[0].room.playerDataList.Count);
+            foreach (var client in clients)
+            {
+                Assert.AreEqual(1, client.roomList.Count);
+                Assert.AreEqual(1, client.roomList.First().Value.PlayerCount);
             }
             //玩家1退出房间，所有人都可以看到房间中人无了
-            yield return TestHelper.waitUntilAllEventTrig(clients.Skip(1),
-                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += s => a(),
+            yield return TestHelper.waitUntilAllEventTrig(clients, 
+                (c, a) => c.onRoomListChange += s => a(), 
                 () => clients[0].quitRoom().wait());
             Assert.Null(clients[0].room);
             foreach (var client in clients)
