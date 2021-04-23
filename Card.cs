@@ -345,6 +345,8 @@ namespace TouhouCardEngine
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
+            else if (define.hasProp(propName) && define[propName] is T dt)
+                value = dt;
             foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
                 mt.propName == propName &&
                 (game == null || mt.checkCondition(game, this))))
@@ -358,6 +360,8 @@ namespace TouhouCardEngine
             object value = default;
             if (propDic.ContainsKey(propName))
                 value = propDic[propName];
+            else if (define.hasProp(propName))
+                value = define[propName];
             foreach (var modifier in modifierList.Where(m =>
                 m.propName == propName &&
                 (game == null || m.checkCondition(game, this))))
