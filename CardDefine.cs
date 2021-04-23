@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
@@ -10,24 +11,34 @@ namespace TouhouCardEngine
         /// <summary>
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
-        public abstract int id { get; set; }
-        public abstract string type { get; set; }
+        public virtual int id { get; set; }
+        public virtual string type { get; set; }
         public virtual IEffect[] effects { get; set; } = new IEffect[0];
         public object this[string propName]
         {
             get { return getProp<object>(propName); }
         }
+        Dictionary<string, object> dicProp { get; } = new Dictionary<string, object>();
+        public virtual void setProp<T>(string propName, T value)
+        {
+            if (propName == nameof(CardDefine.id))
+                id = (int)(object)value;
+            dicProp[propName] = value;
+        }
         public virtual T getProp<T>(string propName)
         {
-            if (propName == nameof(id))
-                return (T)(object)id;
+            if (dicProp.ContainsKey(propName) && dicProp[propName] is T)
+                return (T)dicProp[propName];
             else
                 return default;
         }
-        public virtual void setProp<T>(string propName, T value)
+        public virtual string[] getPropNames()
         {
-            if (propName == nameof(id))
-                id = (int)(object)value;
+            return dicProp.Keys.ToArray();
+        }
+        public virtual bool hasProp(string propName)
+        {
+            return dicProp.ContainsKey(propName);
         }
         /// <summary>
         /// 将读取到的更新的卡牌数据合并到这个卡牌上来。
