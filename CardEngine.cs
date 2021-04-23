@@ -20,7 +20,7 @@ namespace TouhouCardEngine
         }
         public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
         public abstract Task onGameRun(CardEngine game);
-        public abstract Task onPlayerCommand(CardEngine game, Player player, ICommand command);
+        public abstract Task onPlayerCommand(CardEngine game, Player player, CardEngine.CommandEventArg command);
         public abstract Task onGameClose(CardEngine game);
     }
     [Serializable]
@@ -335,9 +335,15 @@ namespace TouhouCardEngine
                 id++;
             return id;
         }
-        public Task command(ICommand command)
+        public Task command(CommandEventArg command)
         {
             return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
+        }
+        public class CommandEventArg : EventArg
+        {
+            public int playerId;
+            public string commandName;
+            public object[] commandArgs;
         }
         private List<Player> playerList { get; } = new List<Player>();
         public delegate void EventAction(Event @event);
@@ -409,10 +415,5 @@ namespace TouhouCardEngine
         logic = 0,
         before,
         after
-    }
-    public interface ICommand
-    {
-        int playerId { get; }
-
     }
 }

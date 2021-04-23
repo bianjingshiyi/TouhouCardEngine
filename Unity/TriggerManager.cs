@@ -596,24 +596,32 @@ namespace TouhouCardEngine
     }
     public class GeneratedEventArg : IEventArg
     {
+        public GeneratedEventArg(string[] eventNames, object[] args)
+        {
+            afterNames = eventNames;
+            this.args = args;
+        }
+        public IEventArg[] getChildEvents()
+        {
+            return childEventList.ToArray();
+        }
+        public object getVar(string varName)
+        {
+            if (varDict.TryGetValue(varName, out object value))
+                return value;
+            else
+                return null;
+        }
+        public void setVar(string varName, object value)
+        {
+            varDict[varName] = value;
+        }
         public string[] beforeNames { get; set; } = new string[0];
         public string[] afterNames { get; set; } = new string[0];
         public object[] args { get; set; }
         public bool isCanceled { get; set; } = false;
         public int repeatTime { get; set; } = 0;
         public Func<IEventArg, Task> action { get; set; }
-
-        public GeneratedEventArg(string[] eventNames, object[] args)
-        {
-            afterNames = eventNames;
-            this.args = args;
-        }
-        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public IEventArg[] getChildEvents()
-        {
-            return childEventList.ToArray();
-        }
-        IEventArg _parnet;
         public IEventArg parent
         {
             get => _parnet;
@@ -624,10 +632,13 @@ namespace TouhouCardEngine
                     gea.childEventList.Add(this);
             }
         }
+        IEventArg _parnet;
         public IEventArg[] children
         {
             get { return childEventList.ToArray(); }
         }
+        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
+        Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
     }
     public static class EventArgExtension
     {

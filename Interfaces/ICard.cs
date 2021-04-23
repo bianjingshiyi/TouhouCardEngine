@@ -9,6 +9,7 @@ namespace TouhouCardEngine.Interfaces
         ITimeManager time { get; }
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
+        Task doAction(ICard card, IBuff buff, IEventArg eventArg, ActionNode action);
     }
     public interface IPlayer
     {

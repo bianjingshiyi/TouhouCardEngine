@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -72,10 +73,10 @@ namespace TouhouCardEngine
         /// <param name="player"></param>
         /// <param name="card"></param>
         /// <returns></returns>
-        public abstract bool checkCondition(CardEngine engine, Player player, Card card, object[] vars);
-        bool ITriggerEffect.checkCondition(IGame game, ICard card, object[] vars)
+        public abstract bool checkCondition(CardEngine engine, Player player, Card card, Buff buff, object[] vars);
+        bool ITriggerEffect.checkCondition(IGame game, ICard card, IBuff buff, object[] vars)
         {
-            return checkCondition(game as CardEngine, null, card as Card, vars);
+            return checkCondition(game as CardEngine, null, card as Card, buff as Buff, vars);
         }
         /// <summary>
         /// 检查效果的目标是否合法
@@ -85,15 +86,15 @@ namespace TouhouCardEngine
         /// <param name="card"></param>
         /// <param name="targets"></param>
         /// <returns></returns>
-        public abstract bool checkTargets(CardEngine engine, Player player, Card card, object[] targets);
-        bool ITriggerEffect.checkTargets(IGame game, ICard card, object[] vars, object[] targets)
+        public abstract bool checkTargets(CardEngine engine, Player player, Card card, Buff buff, object[] targets);
+        bool ITriggerEffect.checkTargets(IGame game, ICard card, IBuff buff, object[] vars, object[] targets)
         {
-            return checkTargets(game as CardEngine, null, card as Card, targets);
+            return checkTargets(game as CardEngine, null, card as Card, buff as Buff, targets);
         }
-        public abstract Task execute(CardEngine engine, Player player, Card card, object[] vars, object[] targets);
-        Task ITriggerEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
+        public abstract Task execute(CardEngine engine, Player player, Card card, Buff buff, object[] vars, object[] targets);
+        Task ITriggerEffect.execute(IGame game, ICard card, IBuff buff, object[] vars, object[] targets)
         {
-            return execute(game as CardEngine, null, card as Card, vars, targets);
+            return execute(game as CardEngine, null, card as Card, buff as Buff, vars, targets);
         }
         /// <summary>
         /// 发动效果
@@ -103,9 +104,9 @@ namespace TouhouCardEngine
         /// <param name="card"></param>
         /// <param name="targets"></param>
         [Obsolete]
-        public virtual void execute(CardEngine engine, Player player, Card card, object[] targets)
+        public virtual void execute(CardEngine engine, Player player, Card card, Buff buff, object[] targets)
         {
-            execute(engine, player, card, new object[0], targets);
+            execute(engine, player, card, buff, new object[0], targets);
         }
         /// <summary>
         /// 检查效果目标是否合法
@@ -115,18 +116,18 @@ namespace TouhouCardEngine
         /// <param name="targetCards"></param>
         /// <returns></returns>
         [Obsolete]
-        public virtual bool checkTarget(CardEngine engine, Player player, Card card, Card[] targetCards)
+        public virtual bool checkTarget(CardEngine engine, Player player, Card card, Buff buff, Card[] targetCards)
         {
-            return checkTargets(engine, player, card, targetCards);
+            return checkTargets(engine, player, card, buff, targetCards);
         }
         /// <summary>
         /// 执行效果
         /// </summary>
         /// <param name="engine"></param>
         [Obsolete]
-        public virtual void execute(CardEngine engine, Player player, Card card, Card[] targetCards)
+        public virtual void execute(CardEngine engine, Player player, Card card, Buff buff, Card[] targetCards)
         {
-            execute(engine, player, card, targetCards.Cast<object>().ToArray());
+            execute(engine, player, card, buff, targetCards.Cast<object>().ToArray());
         }
         public async Task onEnable(IGame game, ICard card, IBuff buff)
         {
@@ -134,12 +135,12 @@ namespace TouhouCardEngine
             {
                 Trigger trigger = new Trigger(args =>
                 {
-                    if ((this as ITriggerEffect).checkCondition(game, card, args))
-                        return (this as ITriggerEffect).execute(game, card, args, new object[0]);
+                    if ((this as ITriggerEffect).checkCondition(game, card, buff, args))
+                        return (this as ITriggerEffect).execute(game, card, buff, args, new object[0]);
                     else
                         return Task.CompletedTask;
                 });
-                await card.setProp(game, "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers), trigger);
+                await card.setProp(game, getTriggerName(game, card, buff, time), trigger);
                 game.triggers.register(time.getEventName(game.triggers), trigger);
             }
         }
@@ -147,10 +148,167 @@ namespace TouhouCardEngine
         {
             foreach (TriggerTime time in triggerTimes)
             {
-                Trigger trigger = card.getProp<Trigger>(game, "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers));
+                Trigger trigger = card.getProp<Trigger>(game, getTriggerName(game, card, buff, time));
                 game.triggers.remove(trigger);
             }
             return Task.CompletedTask;
         }
+        private string getTriggerName(IGame game, ICard card, IBuff buff, TriggerTime time)
+        {
+            return (buff != null ? buff.instanceID.ToString() : string.Empty) + "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers);
+        }
+    }
+    [Serializable]
+    public class GeneratedEffect : IActiveEffect
+    {
+        #region 方法
+        public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        {
+            return game.doAction(card, buff, eventArg, action);
+        }
+        bool IActiveEffect.checkCondition(IGame game, ICard card, object[] vars)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IActiveEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
+        {
+            return execute(game, card, null, vars != null && vars.Length > 0 ? (IEventArg)vars[0] : null);
+        }
+        #endregion
+        #region 属性字段
+        ActionNode action { get; }
+        #endregion
+    }
+    [Serializable]
+    public class ActionNode
+    {
+        public string defineName { get; set; }
+        public ActionNode next { get; set; }
+        public ActionVarRef[] inputs { get; set; }
+        public ActionVarRef[] outputs { get; set; }
+        public object[] consts { get; set; }
+    }
+    public class ActionVarRef
+    {
+        public string varName { get; set; }
+        public int index { get; set; }
+    }
+    public abstract class ActionDefine
+    {
+        #region 方法
+        public abstract Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues);
+        #endregion
+        #region 属性字段
+        public abstract ValueDefine[] inputs { get; }
+        public abstract ValueDefine[] consts { get; }
+        public abstract ValueDefine[] outputs { get; }
+        #endregion
+    }
+    public struct ValueDefine
+    {
+        public Type type { get; set; }
+        public string name { get; set; }
+        public bool isParams { get; set; }
+    }
+    public class BuiltinActionDefine : ActionDefine
+    {
+        #region 方法
+        public BuiltinActionDefine(Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action) : base()
+        {
+            this.action = action;
+            consts = new ValueDefine[0];
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            return action(game, card, buff, eventArg, args, constValues);
+        }
+        #endregion
+        Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action { get; }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public class IntegerBinaryOperationActionDefine : ActionDefine
+    {
+        public IntegerBinaryOperationActionDefine()
+        {
+            inputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(int),
+                    isParams = true
+                }
+            };
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "operator",
+                    type = typeof(BinaryOperator)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "result",
+                    type = typeof(int)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            BinaryOperator op = (BinaryOperator)constValues[0];
+            switch (op)
+            {
+                case BinaryOperator.add:
+                    return Task.FromResult(new object[] { ((int[])args[0]).Sum(a => a) });
+                default:
+                    throw new InvalidOperationException("未知的操作符" + op);
+            }
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public class IntegerConstActionDefine : ActionDefine
+    {
+        public IntegerConstActionDefine()
+        {
+            inputs = new ValueDefine[0];
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(int)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(int)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            return Task.FromResult(constValues);
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public enum BinaryOperator
+    {
+        add,
+        sub,
+        mul,
+        div
     }
 }

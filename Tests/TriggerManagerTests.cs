@@ -448,14 +448,6 @@ namespace Tests
         }
         class TestEventArg : IEventArg
         {
-            public int intValue { get; set; } = 0;
-            public bool isCanceled { get; set; } = false;
-            public int repeatTime { get; set; } = 0;
-            public Func<IEventArg, Task> action { get; set; }
-            public string[] afterNames { get; set; }
-            public object[] args { get; set; }
-            public string[] beforeNames { get; set; }
-            List<IEventArg> childEventList { get; } = new List<IEventArg>();
             public void addChildEvent(IEventArg eventArg)
             {
                 childEventList.Add(eventArg);
@@ -464,11 +456,25 @@ namespace Tests
             {
                 return childEventList.ToArray();
             }
-            public IEventArg[] children
+            public object getVar(string varName)
             {
-                get { return childEventList.ToArray(); }
+                if (varDict.TryGetValue(varName, out object value))
+                    return value;
+                else
+                    return null;
             }
-            IEventArg _parent;
+            public void setVar(string varName, object value)
+            {
+                varDict[varName] = value;
+            }
+            public int intValue { get; set; } = 0;
+            public bool isCanceled { get; set; } = false;
+            public int repeatTime { get; set; } = 0;
+            public Func<IEventArg, Task> action { get; set; }
+            public string[] afterNames { get; set; }
+            public object[] args { get; set; }
+            public string[] beforeNames { get; set; }
+            List<IEventArg> childEventList { get; } = new List<IEventArg>();
             public IEventArg parent
             {
                 get => _parent;
@@ -479,6 +485,12 @@ namespace Tests
                         tea.childEventList.Add(this);
                 }
             }
+            IEventArg _parent;
+            public IEventArg[] children
+            {
+                get { return childEventList.ToArray(); }
+            }
+            Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
         }
     }
 }

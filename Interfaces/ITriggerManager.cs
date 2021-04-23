@@ -51,6 +51,18 @@ namespace TouhouCardEngine.Interfaces
         Func<IEventArg, Task> action { get; set; }
         IEventArg parent { get; set; }
         IEventArg[] getChildEvents();
+        /// <summary>
+        /// 获取环境变量
+        /// </summary>
+        /// <param name="varName">变量名</param>
+        /// <returns>环境变量值</returns>
+        object getVar(string varName);
+        /// <summary>
+        /// 设置环境变量
+        /// </summary>
+        /// <param name="varName">环境变量名</param>
+        /// <param name="value">环境变量值</param>
+        void setVar(string varName, object value);
     }
     public interface IDescribableEventArg : IEventArg
     {

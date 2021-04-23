@@ -7,6 +7,21 @@ namespace TouhouCardEngine
 {
     public class EventArg : IEventArg
     {
+        public IEventArg[] getChildEvents()
+        {
+            return childEventList.ToArray();
+        }
+        public object getVar(string varName)
+        {
+            if (varDict.TryGetValue(varName, out object value))
+                return value;
+            else
+                return null;
+        }
+        public void setVar(string varName, object value)
+        {
+            varDict[varName] = value;
+        }
         public IGame game;
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
@@ -15,11 +30,6 @@ namespace TouhouCardEngine
         public int repeatTime { get; set; }
         public Func<IEventArg, Task> action { get; set; }
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public IEventArg[] getChildEvents()
-        {
-            return childEventList.ToArray();
-        }
-        IEventArg _parent;
         public IEventArg parent
         {
             get => _parent;
@@ -30,5 +40,7 @@ namespace TouhouCardEngine
                     ea.childEventList.Add(this);
             }
         }
+        IEventArg _parent;
+        Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
     }
 }
