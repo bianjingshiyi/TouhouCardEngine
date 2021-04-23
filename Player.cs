@@ -25,6 +25,10 @@ namespace TouhouCardEngine
                 return (T)dicProp[propName];
             return default;
         }
+        public bool hasProp(string propName)
+        {
+            return dicProp.ContainsKey(propName);
+        }
         public void setProp<T>(string propName, T value)
         {
             dicProp[propName] = value;
