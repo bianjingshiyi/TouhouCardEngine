@@ -228,7 +228,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="define"></param>
         /// <returns></returns>
-        public Card issueCard(CardDefine define)
+        public Card createCard(CardDefine define)
         {
             int id = cardDic.Count + 1;
             while (cardDic.ContainsKey(id))
