@@ -311,10 +311,10 @@ namespace TouhouCardEngine
             return buffList.Exists(b => b.id == buffId);
         }
         #region 属性
-        public Task<IPropChangeEventArg> setProp<T>(IGame game, string propName, T value)
+        public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
+                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
                 {
                     Card card = arg.card as Card;
                     propName = arg.propName;

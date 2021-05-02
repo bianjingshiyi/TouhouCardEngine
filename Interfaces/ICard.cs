@@ -22,7 +22,8 @@ namespace TouhouCardEngine.Interfaces
         Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier);
         Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier);
         T getProp<T>(IGame game, string propName);
-        Task<IPropChangeEventArg> setProp<T>(IGame game, string propName, T value);
+        object getProp(IGame game, string propName);
+        Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
     }
     public interface IPropChangeEventArg : IEventArg
     {
