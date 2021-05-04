@@ -310,6 +310,11 @@ namespace TouhouCardEngine
         {
             return buffList.Exists(b => b.id == buffId);
         }
+
+        public bool containBuff(Buff buff)
+        {
+            return buffList.Contains(buff);
+        }
         #region 属性
         public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
