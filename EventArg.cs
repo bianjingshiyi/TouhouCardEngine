@@ -22,6 +22,14 @@ namespace TouhouCardEngine
         {
             varDict[varName] = value;
         }
+        #region 动作定义
+        [ActionNodeMethod("GetVariable")]
+        [return: ActionNodeParam("Value")]
+        public static object getVariable(EventArg eventArg, [ActionNodeParam("VariableName", true)] string varName)
+        {
+            return eventArg.getVar(varName);
+        }
+        #endregion
         public IGame game;
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }

@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 using NitoriNetwork.Common;
 using TouhouCardEngine.Shared;
+using System.Reflection;
+
 namespace TouhouCardEngine
 {
     public abstract class GameOption
@@ -137,7 +139,7 @@ namespace TouhouCardEngine
         public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
-        public Task init(Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public Task init(Assembly[] assemblies, Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
             this.rule = rule;
             if (isInited)
@@ -145,12 +147,29 @@ namespace TouhouCardEngine
                 logger.logError("游戏已经初始化");
                 return Task.CompletedTask;
             }
+            isInited = true;
+            //初始化随机
             random = new Random(options.randomSeed);
+            //初始化卡片定义
             foreach (CardDefine define in rule.defines)
             {
                 addDefine(define);
             }
-            isInited = true;
+            //初始化动作定义
+            var actionDefines = ActionDefine.loadDefinesFromAssemblies(assemblies);
+            foreach (var actionDefine in actionDefines)
+            {
+                string name;
+                if (actionDefine is MethodActionDefine methodActionDefine)
+                    name = methodActionDefine.methodName;
+                else
+                {
+                    name = actionDefine.GetType().Name;
+                    if (name.EndsWith("ActionDefine"))
+                        name = name.Substring(0, name.Length - 12);
+                }
+                addActionDefine(name, actionDefine);
+            }
             return rule.onGameInit(this, options, players);
         }
         public Task run()

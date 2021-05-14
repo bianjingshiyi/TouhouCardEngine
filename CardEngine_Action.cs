@@ -26,7 +26,19 @@ namespace TouhouCardEngine
         /// <param name="eventArg"></param>
         /// <param name="action"></param>
         /// <returns></returns>
-        public async Task doAction(ICard card, IBuff buff, IEventArg eventArg, ActionNode action)
+        public Task doAction(ICard card, IBuff buff, IEventArg eventArg, ActionNode action)
+        {
+            return doAction<object>(card, buff, eventArg, action, null);
+        }
+        /// <summary>
+        /// 执行一串动作并返回指定变量值
+        /// </summary>
+        /// <param name="card"></param>
+        /// <param name="buff"></param>
+        /// <param name="eventArg"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public async Task<T> doAction<T>(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, string returnVarName)
         {
             ActionNode curAction = action;
             while (curAction != null)
@@ -60,13 +72,20 @@ namespace TouhouCardEngine
                 }
                 object[] outputValues = await define.execute(this, card, buff, eventArg, args, curAction.consts);
                 //将输出值赋值给环境变量
-                foreach (var output in curAction.outputs)
+                if (curAction.outputs != null && curAction.outputs.Length > 0)
                 {
-                    eventArg.setVar(output.varName, outputValues[output.index]);
+                    foreach (var output in curAction.outputs)
+                    {
+                        eventArg.setVar(output.varName, outputValues[output.index]);
+                    }
                 }
                 //下一个动作
                 curAction = curAction.next;
             }
+            if (string.IsNullOrEmpty(returnVarName))
+                return default;
+            else
+                return (T)eventArg.getVar(returnVarName);
         }
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
     }

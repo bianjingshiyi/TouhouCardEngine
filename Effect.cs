@@ -159,27 +159,52 @@ namespace TouhouCardEngine
         }
     }
     [Serializable]
-    public class GeneratedEffect : IActiveEffect
+    public class GeneratedEffect : IEffect
     {
         #region 方法
+        public GeneratedEffect(ActionNode condition, string conditionOutputName, ActionNode action, string[] tags)
+        {
+            this.condition = condition;
+            this.conditionOutputName = conditionOutputName;
+            this.action = action;
+            this.tags = tags;
+        }
+        public GeneratedEffect(ActionNode action, string[] tags) : this(null, null, action, tags)
+        {
+        }
+        public GeneratedEffect(ActionNode action) : this(null, null, action, new string[0])
+        {
+        }
+        public Task<bool> checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        {
+            if (condition == null || string.IsNullOrEmpty(conditionOutputName))
+                return Task.FromResult(true);
+            return game.doAction<bool>(card, buff, eventArg, condition, conditionOutputName);
+        }
+        public Task<bool> checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        {
+            if (targetCondition == null || string.IsNullOrEmpty(targetConditionOutputName))
+                return Task.FromResult(true);
+            return game.doAction<bool>(card, buff, eventArg, targetCondition, targetConditionOutputName);
+        }
         public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
             return game.doAction(card, buff, eventArg, action);
         }
-        bool IActiveEffect.checkCondition(IGame game, ICard card, object[] vars)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task IActiveEffect.execute(IGame game, ICard card, object[] vars, object[] targets)
-        {
-            return execute(game, card, null, vars != null && vars.Length > 0 ? (IEventArg)vars[0] : null);
-        }
         #endregion
         #region 属性字段
+        public string[] tags { get; }
+        ActionNode condition { get; }
+        string conditionOutputName { get; }
+        ActionNode targetCondition { get; }
+        string targetConditionOutputName { get; }
         ActionNode action { get; }
         #endregion
     }
+    /// <summary>
+    /// 单个动作的数据结构。
+    /// 由于要方便编辑器进行操作更改，
+    /// </summary>
     [Serializable]
     public class ActionNode
     {
@@ -197,6 +222,34 @@ namespace TouhouCardEngine
     public abstract class ActionDefine
     {
         #region 方法
+        public static Task<ActionDefine[]> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
+        {
+            return Task.Run(() => loadDefinesFromAssemblies(assemblies));
+        }
+        /// <summary>
+        /// 通过反射的方式加载所有目标程序集中的动作定义，包括派生的动作定义和反射方法生成的动作定义。
+        /// </summary>
+        /// <param name="assemblies"></param>
+        /// <returns></returns>
+        public static ActionDefine[] loadDefinesFromAssemblies(Assembly[] assemblies)
+        {
+            List<ActionDefine> defineList = new List<ActionDefine>();
+            foreach (var assembly in assemblies)
+            {
+                foreach (var type in assembly.GetTypes())
+                {
+                    //是ActionDefine的子类，不是抽象类，具有零参数构造函数
+                    if (type.IsSubclassOf(typeof(ActionDefine)) &&
+                        !type.IsAbstract &&
+                        type.GetConstructor(new Type[0]) is ConstructorInfo constructor)
+                    {
+                        defineList.Add((ActionDefine)constructor.Invoke(new object[0]));
+                    }
+                }
+            }
+            defineList.AddRange(MethodActionDefine.loadMethodsFromAssemblies(assemblies));
+            return defineList.ToArray();
+        }
         public abstract Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues);
         #endregion
         #region 属性字段
@@ -310,5 +363,236 @@ namespace TouhouCardEngine
         sub,
         mul,
         div
+    }
+    /// <summary>
+    /// 通过反射生成的方法动作定义，目标方法必须是静态方法，并且使用特性标记参数与返回信息。
+    /// </summary>
+    public class MethodActionDefine : ActionDefine
+    {
+        public static Task<MethodActionDefine[]> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
+        {
+            return Task.Run(() => Task.FromResult(loadMethodsFromAssemblies(assemblies)));
+        }
+        public static MethodActionDefine[] loadMethodsFromAssemblies(Assembly[] assemblies)
+        {
+            List<MethodActionDefine> defineList = new List<MethodActionDefine>();
+            foreach (var assembly in assemblies)
+            {
+                foreach (var type in assembly.GetTypes())
+                {
+                    foreach (var method in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
+                        {
+                            defineList.Add(new MethodActionDefine(attribute.methodName, method));
+                        }
+                    }
+                }
+            }
+            return defineList.ToArray();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="methodInfo">必须是静态方法</param>
+        public MethodActionDefine(string methodName, MethodInfo methodInfo)
+        {
+            if (!methodInfo.IsStatic)
+                throw new ArgumentException("Target method must be static", nameof(methodInfo));
+            this.methodName = methodName;
+            _methodInfo = methodInfo;
+            List<ValueDefine> outputList = new List<ValueDefine>();
+            //首先如果方法返回类型为void或者Task，视为无返回值，否则有返回值
+            ActionNodeParamAttribute attribute;
+            if (methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(Task))
+            {
+                attribute = methodInfo.ReturnParameter.GetCustomAttribute<ActionNodeParamAttribute>();
+                string returnValueName = attribute?.paramName;
+                if (methodInfo.ReturnType.IsGenericType && methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+                {
+                    //如果返回类型为Task<T>，则返回值类型视为T
+                    outputList.Add(new ValueDefine()
+                    {
+                        name = string.IsNullOrEmpty(returnValueName) ? "Value" : returnValueName,
+                        type = methodInfo.ReturnType.GetGenericArguments()[0]
+                    });
+                }
+                else
+                {
+                    outputList.Add(new ValueDefine()
+                    {
+                        name = string.IsNullOrEmpty(returnValueName) ? "Value" : returnValueName,
+                        type = methodInfo.ReturnType
+                    });
+                }
+            }
+            //分析参数设置输入和输出
+            _paramsInfo = methodInfo.GetParameters();
+            List<ValueDefine> inputList = new List<ValueDefine>();
+            List<ValueDefine> constList = new List<ValueDefine>();
+            for (int i = 0; i < _paramsInfo.Length; i++)
+            {
+                var paramInfo = _paramsInfo[i];
+                attribute = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                //如果参数是out参数，那么它是一个输出
+                if (paramInfo.IsOut)
+                {
+                    outputList.Add(new ValueDefine()
+                    {
+                        name = attribute != null && !string.IsNullOrEmpty(attribute.paramName) ? attribute.paramName : "Value",
+                        type = paramInfo.ParameterType
+                    });
+                }
+                else
+                {
+                    if (attribute != null)
+                    {
+                        //用特性指定了一定是输入
+                        if (attribute.isConst)
+                        {
+                            //用特性指定是常量
+                            constList.Add(new ValueDefine()
+                            {
+                                name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                type = paramInfo.ParameterType
+                            });
+                        }
+                        else
+                        {
+                            //用特性指定是输入
+                            inputList.Add(new ValueDefine()
+                            {
+                                name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                type = paramInfo.ParameterType
+                            });
+                        }
+                    }
+                    else if (!typeof(IGame).IsAssignableFrom(paramInfo.ParameterType) &&
+                        !typeof(ICard).IsAssignableFrom(paramInfo.ParameterType) &&
+                        !typeof(IBuff).IsAssignableFrom(paramInfo.ParameterType) &&
+                        !typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //不是Game,Card,Buff,EventArg这种可以缺省的参数也一定是输入
+                        inputList.Add(new ValueDefine()
+                        {
+                            name = "Value",
+                            type = paramInfo.ParameterType
+                        });
+                    }
+                }
+            }
+            //设置输入输出
+            inputs = inputList.ToArray();
+            consts = constList.ToArray();
+            outputs = outputList.ToArray();
+        }
+        public override async Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            object[] paramters = new object[_paramsInfo.Length];
+            int argIndex = 0;
+            int constIndex = 0;
+            for (int i = 0; i < _paramsInfo.Length; i++)
+            {
+                var paramInfo = _paramsInfo[i];
+                if (paramInfo.IsOut)
+                {
+                    //out参数输出留空
+                    paramters[i] = null;
+                }
+                else if (paramInfo.GetCustomAttribute<ActionNodeParamAttribute>() is ActionNodeParamAttribute attribute)
+                {
+                    //指定了不能省略的参数
+                    if (attribute.isConst)
+                    {
+                        paramters[i] = constValues[constIndex];
+                        constIndex++;
+                    }
+                    else
+                    {
+                        paramters[i] = args[argIndex];
+                        argIndex++;
+                    }
+                }
+                else
+                {
+                    if (typeof(IGame).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        paramters[i] = game;
+                    }
+                    else if (typeof(ICard).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Card
+                        paramters[i] = card;
+                    }
+                    else if (typeof(IBuff).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Buff
+                        paramters[i] = buff;
+                    }
+                    else if (typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的EventArg
+                        paramters[i] = eventArg;
+                    }
+                    else
+                    {
+                        //不是可以省略的类型
+                        paramters[i] = args[argIndex];
+                        argIndex++;
+                    }
+                }
+            }
+            object returnValue = _methodInfo.Invoke(null, paramters);
+            if (returnValue is Task task)
+            {
+                await task;
+                //返回Task则视为返回null，返回Task<T>则返回对应值
+                if (task.GetType() == typeof(Task))
+                    return null;
+                else
+                    return new object[] { (object)((dynamic)task).Result };
+            }
+            else
+            {
+                //不是Task，返回由返回值和out参数组成的数组
+                List<object> outputList = new List<object>
+                {
+                    returnValue
+                };
+                for (int i = 0; i < _paramsInfo.Length; i++)
+                {
+                    var paramInfo = _paramsInfo[i];
+                    if (paramInfo.IsOut)
+                        outputList.Add(paramters[i]);
+                }
+                return outputList.ToArray();
+            }
+        }
+        public string methodName { get; }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+        MethodInfo _methodInfo;
+        ParameterInfo[] _paramsInfo;
+    }
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    public class ActionNodeMethodAttribute : Attribute
+    {
+        public ActionNodeMethodAttribute(string methodName)
+        {
+            this.methodName = methodName;
+        }
+        public string methodName { get; }
+    }
+    [AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
+    public class ActionNodeParamAttribute : Attribute
+    {
+        public ActionNodeParamAttribute(string paramName, bool isConst = false)
+        {
+            this.paramName = paramName;
+            this.isConst = isConst;
+        }
+        public string paramName { get; }
+        public bool isConst { get; }
     }
 }

@@ -25,38 +25,38 @@ namespace Tests
                         index = 0,
                         varName = "@IntegerConst_1_0"
                     }
-                }
-            };
-            action.next = new ActionNode()
-            {
-                defineName = "IntegerConst",
-                consts = new object[] { 2 },
-                outputs = new ActionVarRef[1]
-                {
-                    new ActionVarRef()
-                    {
-                        index = 0,
-                        varName = "@IntegerConst_2_0"
-                    }
-                }
-            };
-            action.next.next = new ActionNode()
-            {
-                defineName = "IntegerBinaryOperation",
-                inputs = new ActionVarRef[2]
-                {
-                    new ActionVarRef() { index = 0, varName = "@IntegerConst_1_0" },
-                    new ActionVarRef() { index = 1, varName = "@IntegerConst_2_0" }
                 },
-                consts = new object[] { BinaryOperator.add },
-                outputs = new ActionVarRef[1]
+                next = new ActionNode()
                 {
-                    new ActionVarRef()
+                    defineName = "IntegerConst",
+                    consts = new object[] { 2 },
+                    outputs = new ActionVarRef[1]
                     {
-                        index = 0,
-                        varName = "@IntegerBinaryOperator_3_0"
+                        new ActionVarRef()
+                        {
+                            index = 0,
+                            varName = "@IntegerConst_2_0"
+                        }
+                    },
+                    next = new ActionNode()
+                    {
+                        defineName = "IntegerBinaryOperation",
+                        inputs = new ActionVarRef[2]
+                        {
+                            new ActionVarRef() { index = 0, varName = "@IntegerConst_1_0" },
+                            new ActionVarRef() { index = 1, varName = "@IntegerConst_2_0" }
+                        },
+                        consts = new object[] { BinaryOperator.add },
+                        outputs = new ActionVarRef[1]
+                        {
+                            new ActionVarRef()
+                            {
+                                index = 0,
+                                varName = "@IntegerBinaryOperator_3_0"
+                            }
+                        }
                     }
-                }
+                },
             };
             EventArg eventArg = new EventArg();
             _ = engine.doAction(null, null, eventArg, action);
