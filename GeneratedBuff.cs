@@ -1,8 +1,10 @@
-﻿using TouhouCardEngine.Interfaces;
+﻿using System;
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public class GeneratedBuff : Buff
     {
+        [Obsolete("使用效果中的buff替代")]
         public override int id { get; } = 0;
         public override int instanceID { get; set; } = -1;
         public override PropModifier[] modifiers { get; } = new PropModifier[0];

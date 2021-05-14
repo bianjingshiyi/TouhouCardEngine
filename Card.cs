@@ -310,19 +310,21 @@ namespace TouhouCardEngine
         {
             return buffList.Exists(b => b.id == buffId);
         }
-        #region 动作定义
+		public bool containBuff(Buff buff)
+        {
+            return buffList.Contains(buff);
+        }		#region 动作定义
         [ActionNodeMethod("GetOwner")]
         [return: ActionNodeParam("Owner")]
         public static Player getOwner([ActionNodeParam("Card")] Card card)
         {
             return card.owner;
         }
-        #endregion
-        #region 属性
-        public Task<IPropChangeEventArg> setProp<T>(IGame game, string propName, T value)
+        #endregion        #region 属性
+        public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
+                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
                 {
                     Card card = arg.card as Card;
                     propName = arg.propName;

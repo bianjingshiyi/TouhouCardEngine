@@ -534,7 +534,7 @@ namespace TouhouCardEngine
         public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(arg =>
         {
             if (action != null)
-                return action.Invoke(arg.args);
+                return action.Invoke(new []{arg});
             else
                 return Task.CompletedTask;
         }, comparsion, name)
