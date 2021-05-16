@@ -9,8 +9,8 @@ namespace TouhouCardEngine.Interfaces
         ITimeManager time { get; }
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
-        Task doAction(ICard card, IBuff buff, IEventArg eventArg, ActionNode action);
-        Task<T> doAction<T>(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, string returnVarName);
+        Task doActionsAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode action);
+        Task<object[]> doActionAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode action);
     }
     public interface IPlayer
     {

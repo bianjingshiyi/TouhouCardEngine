@@ -162,62 +162,115 @@ namespace TouhouCardEngine
     public class GeneratedEffect : IEffect
     {
         #region 方法
-        public GeneratedEffect(ActionNode condition, string conditionOutputName, ActionNode action, string[] tags)
+        public GeneratedEffect(ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action, string[] tags)
         {
             this.condition = condition;
-            this.conditionOutputName = conditionOutputName;
+            this.targetCheckers = targetCheckers;
             this.action = action;
             this.tags = tags;
         }
-        public GeneratedEffect(ActionNode action, string[] tags) : this(null, null, action, tags)
+        public GeneratedEffect(ActionNode action, string[] tags) : this(null, new TargetChecker[0], action, tags)
         {
         }
-        public GeneratedEffect(ActionNode action) : this(null, null, action, new string[0])
+        public GeneratedEffect(ActionNode action) : this(null, new TargetChecker[0], action, new string[0])
         {
         }
-        public Task<bool> checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        public bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
-            if (condition == null || string.IsNullOrEmpty(conditionOutputName))
-                return Task.FromResult(true);
-            return game.doAction<bool>(card, buff, eventArg, condition, conditionOutputName);
+            if (condition == null)
+                return true;
+            var task = game.doActionAsync(card, buff, eventArg, condition.action);
+            if (task.IsCompleted)
+            {
+                object[] returnValues = task.Result;
+                if (returnValues[condition.index] is bool b)
+                    return b;
+                else
+                    throw new InvalidCastException(returnValues[condition.index] + "不是真值类型");
+            }
+            else
+                throw new InvalidOperationException("不能在条件中调用需要等待的动作");
         }
-        public Task<bool> checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        public bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
-            if (targetCondition == null || string.IsNullOrEmpty(targetConditionOutputName))
-                return Task.FromResult(true);
-            return game.doAction<bool>(card, buff, eventArg, targetCondition, targetConditionOutputName);
+            invalidMsg = null;
+            if (targetCheckers == null || targetCheckers.Length < 1)
+                return true;
+            foreach (var targetChecker in targetCheckers)
+            {
+                var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
+                if (task.IsCompleted)
+                {
+                    object[] returnValues = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action).Result;
+                    if (returnValues[targetChecker.condition.index] is bool b)
+                    {
+                        if (b == false)
+                        {
+                            invalidMsg = targetChecker.invalidMsg;
+                            return false;
+                        }
+                    }
+                    else
+                        throw new InvalidCastException(returnValues[targetChecker.condition.index] + "不是真值类型");
+                }
+                else
+                    throw new InvalidOperationException("不能在条件中调用需要等待的动作");
+            }
+            return true;
         }
         public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
-            return game.doAction(card, buff, eventArg, action);
+            return game.doActionsAsync(card, buff, eventArg, action);
         }
         #endregion
         #region 属性字段
         public string[] tags { get; }
-        ActionNode condition { get; }
-        string conditionOutputName { get; }
-        ActionNode targetCondition { get; }
-        string targetConditionOutputName { get; }
+        ActionValueRef condition { get; }
+        TargetChecker[] targetCheckers { get; set; }
         ActionNode action { get; }
         #endregion
     }
+    public class TargetChecker
+    {
+        public TargetChecker(string targetName, ActionValueRef condition, string invalidMsg)
+        {
+            this.targetName = targetName;
+            this.condition = condition;
+            this.invalidMsg = invalidMsg;
+        }
+        public TargetChecker() : this(string.Empty, null, string.Empty)
+        {
+        }
+        public string targetName { get; set; }
+        public ActionValueRef condition { get; set; }
+        public string invalidMsg { get; set; }
+    }
     /// <summary>
     /// 单个动作的数据结构。
-    /// 由于要方便编辑器进行操作更改，
+    /// 由于要方便编辑器统一进行操作更改和存储，这个数据结构不允许多态。
+    /// 这个数据结构必须同时支持多种类型的语句，比如赋值，分支，循环，返回，方法调用。
+    /// 所以这里有两个很矛盾的地方，
     /// </summary>
     [Serializable]
-    public class ActionNode
+    public sealed class ActionNode
     {
         public string defineName { get; set; }
-        public ActionNode next { get; set; }
-        public ActionVarRef[] inputs { get; set; }
-        public ActionVarRef[] outputs { get; set; }
+        public ActionNode[] branches { get; set; }
+        public ActionValueRef[] inputs { get; set; }
         public object[] consts { get; set; }
     }
-    public class ActionVarRef
+    public class ActionValueRef
     {
-        public string varName { get; set; }
-        public int index { get; set; }
+        public ActionValueRef(ActionNode action, int index)
+        {
+            this.action = action;
+            this.index = index;
+        }
+        public ActionValueRef(ActionNode action) : this(action, 0)
+        {
+        }
+        public ActionNode action { get; }
+        public int index { get; }
     }
     public abstract class ActionDefine
     {
@@ -258,7 +311,7 @@ namespace TouhouCardEngine
         public abstract ValueDefine[] outputs { get; }
         #endregion
     }
-    public struct ValueDefine
+    public class ValueDefine
     {
         public Type type { get; set; }
         public string name { get; set; }
