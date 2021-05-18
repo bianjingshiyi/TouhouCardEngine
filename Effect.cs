@@ -162,74 +162,171 @@ namespace TouhouCardEngine
     public class GeneratedEffect : IEffect
     {
         #region 方法
+        public GeneratedEffect(ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
+        {
+            _onEnableAction = onEnable;
+            _onDisableAction = onDisable;
+            _triggerList.AddRange(triggers);
+            _tagList.AddRange(tags);
+        }
+        /// <summary>
+        /// 构造一个主动效果
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="targetCheckers"></param>
+        /// <param name="action"></param>
+        /// <param name="tags"></param>
         public GeneratedEffect(ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action, string[] tags)
         {
-            this.condition = condition;
-            this.targetCheckers = targetCheckers;
-            this.action = action;
-            this.tags = tags;
+            triggerList.Add(new TriggerGraph("ActiveEvent", condition, targetCheckers, action));
+            tagList.AddRange(tags);
         }
+        /// <summary>
+        /// 构造一个无条件无目标的主动效果
+        /// </summary>
+        /// <param name="action"></param>
+        /// <param name="tags"></param>
         public GeneratedEffect(ActionNode action, string[] tags) : this(null, new TargetChecker[0], action, tags)
         {
         }
+        /// <summary>
+        /// 构造一个无条件无目标的主动效果
+        /// </summary>
+        /// <param name="action"></param>
         public GeneratedEffect(ActionNode action) : this(null, new TargetChecker[0], action, new string[0])
         {
         }
+        public void onEnable(IGame game, ICard card, IBuff buff)
+        {
+            if (onEnableAction != null)
+                game.doActionsAsync(card, buff, null, onEnableAction);
+            foreach (var graph in triggerList)
+            {
+                string triggerName = getEffectName(game, card, buff, getEffectName(game, card, buff, graph.eventName));
+                game.logger.log("Effect", card + "注册触发器" + triggerName);
+                Trigger trigger = new Trigger(args =>
+                {
+                    return game.doActionsAsync(card, buff, args.OfType<IEventArg>().FirstOrDefault(), graph.action);
+                }, name: triggerName);
+                card.setProp(game, triggerName, trigger);
+                game.triggers.register(graph.eventName, trigger);
+            }
+        }
+        public void onDisable(IGame game, ICard card, IBuff buff)
+        {
+            foreach (var graph in triggerList)
+            {
+                string triggerName = getEffectName(game, card, buff, getEffectName(game, card, buff, graph.eventName));
+                game.logger.log("Effect", card + "注销触发器" + triggerName);
+                Trigger trigger = card.getProp<Trigger>(game, triggerName);
+                card.setProp(game, triggerName, null);
+                game.triggers.remove(graph.eventName, trigger);
+            }
+            if (onDisableAction != null)
+                game.doActionsAsync(card, buff, null, onDisableAction);
+        }
         public bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
-            if (condition == null)
-                return true;
-            var task = game.doActionAsync(card, buff, eventArg, condition.action);
-            if (task.IsCompleted)
+            TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
+            if (trigger != null)
             {
-                object[] returnValues = task.Result;
-                if (returnValues[condition.index] is bool b)
-                    return b;
-                else
-                    throw new InvalidCastException(returnValues[condition.index] + "不是真值类型");
-            }
-            else
-                throw new InvalidOperationException("不能在条件中调用需要等待的动作");
-        }
-        public bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
-        {
-            invalidMsg = null;
-            if (targetCheckers == null || targetCheckers.Length < 1)
-                return true;
-            foreach (var targetChecker in targetCheckers)
-            {
-                var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
+                if (trigger.condition == null)
+                    return true;
+                var task = game.doActionAsync(card, buff, eventArg, trigger.condition.action);
                 if (task.IsCompleted)
                 {
-                    object[] returnValues = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action).Result;
-                    if (returnValues[targetChecker.condition.index] is bool b)
-                    {
-                        if (b == false)
-                        {
-                            invalidMsg = targetChecker.invalidMsg;
-                            return false;
-                        }
-                    }
+                    object[] returnValues = task.Result;
+                    if (returnValues[trigger.condition.index] is bool b)
+                        return b;
                     else
-                        throw new InvalidCastException(returnValues[targetChecker.condition.index] + "不是真值类型");
+                        throw new InvalidCastException(returnValues[trigger.condition.index] + "不是真值类型");
                 }
                 else
                     throw new InvalidOperationException("不能在条件中调用需要等待的动作");
             }
-            return true;
+            else
+                return false;
+        }
+        public bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
+        {
+            TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
+            if (trigger != null)
+            {
+                invalidMsg = null;
+                if (trigger.targetCheckers == null || trigger.targetCheckers.Length < 1)
+                    return true;
+                foreach (var targetChecker in trigger.targetCheckers)
+                {
+                    var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
+                    if (task.IsCompleted)
+                    {
+                        object[] returnValues = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action).Result;
+                        if (returnValues[targetChecker.condition.index] is bool b)
+                        {
+                            if (b == false)
+                            {
+                                invalidMsg = targetChecker.invalidMsg;
+                                return false;
+                            }
+                        }
+                        else
+                            throw new InvalidCastException(returnValues[targetChecker.condition.index] + "不是真值类型");
+                    }
+                    else
+                        throw new InvalidOperationException("不能在条件中调用需要等待的动作");
+                }
+                return true;
+            }
+            else
+            {
+                invalidMsg = null;
+                return false;
+            }
         }
         public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
-            return game.doActionsAsync(card, buff, eventArg, action);
+            TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
+            if (trigger != null)
+                return game.doActionsAsync(card, buff, eventArg, trigger.action);
+            else
+                return Task.CompletedTask;
+        }
+        private string getEffectName(IGame game, ICard card, IBuff buff, string eventName)
+        {
+            return (buff != null ? buff.instanceID.ToString() : string.Empty) +
+                "Effect" + Array.IndexOf(card.define.effects, this) + eventName;
         }
         #endregion
         #region 属性字段
-        public string[] tags { get; }
-        ActionValueRef condition { get; }
-        TargetChecker[] targetCheckers { get; set; }
-        ActionNode action { get; }
+        public ActionNode onEnableAction => _onEnableAction;
+        ActionNode _onEnableAction;
+        public ActionNode onDisableAction => _onDisableAction;
+        ActionNode _onDisableAction;
+        public List<TriggerGraph> triggerList => _triggerList;
+        readonly List<TriggerGraph> _triggerList = new List<TriggerGraph>();
+        public List<string> tagList => _tagList;
+        readonly List<string> _tagList = new List<string>();
         #endregion
     }
+    [Serializable]
+    public class TriggerGraph
+    {
+        public TriggerGraph(string eventName, ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action)
+        {
+            this.eventName = eventName;
+            this.condition = condition;
+            this.targetCheckers = targetCheckers;
+            this.action = action;
+        }
+        public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
+        {
+        }
+        public string eventName { get; set; }
+        public ActionValueRef condition { get; set; }
+        public TargetChecker[] targetCheckers { get; set; }
+        public ActionNode action { get; set; }
+    }
+    [Serializable]
     public class TargetChecker
     {
         public TargetChecker(string targetName, ActionValueRef condition, string invalidMsg)
@@ -254,11 +351,35 @@ namespace TouhouCardEngine
     [Serializable]
     public sealed class ActionNode
     {
-        public string defineName { get; set; }
-        public ActionNode[] branches { get; set; }
-        public ActionValueRef[] inputs { get; set; }
-        public object[] consts { get; set; }
+        public ActionNode(string defineName, ActionNode[] branches, ActionValueRef[] inputs, object[] consts)
+        {
+            _defineName = defineName;
+            _branchList.AddRange(branches);
+            _inputList.AddRange(inputs);
+            _constList.AddRange(consts);
+        }
+        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, new ActionNode[0], inputs, consts)
+        {
+        }
+        public ActionNode(string defineName, ActionValueRef[] inputs) : this(defineName, new ActionNode[0], inputs, new object[0])
+        {
+        }
+        public ActionNode(string defineName, object[] consts) : this(defineName, new ActionNode[0], new ActionValueRef[0], consts)
+        {
+        }
+        public ActionNode() : this(string.Empty, new ActionNode[0], new ActionValueRef[0], new object[0])
+        {
+        }
+        public string defineName => _defineName;
+        string _defineName;
+        public List<ActionNode> branchList => _branchList;
+        List<ActionNode> _branchList = new List<ActionNode>();
+        public List<ActionValueRef> inputList => _inputList;
+        List<ActionValueRef> _inputList = new List<ActionValueRef>();
+        public List<object> constList => _constList;
+        List<object> _constList = new List<object>();
     }
+    [Serializable]
     public class ActionValueRef
     {
         public ActionValueRef(ActionNode action, int index)

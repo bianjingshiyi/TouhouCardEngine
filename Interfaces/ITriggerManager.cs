@@ -5,6 +5,7 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface ITriggerManager : IDisposable
     {
+        string getName(IEventArg eventArg);
         string getName<T>() where T : IEventArg;
         void register(string eventName, ITrigger trigger);
         bool remove(string eventName, ITrigger trigger);

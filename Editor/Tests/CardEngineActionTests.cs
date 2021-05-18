@@ -14,25 +14,11 @@ namespace Tests
             CardEngine engine = new CardEngine();
             engine.addActionDefine("IntegerBinaryOperation", new IntegerBinaryOperationActionDefine());
             engine.addActionDefine("IntegerConst", new IntegerConstActionDefine());
-            ActionNode action = new ActionNode()
+            ActionNode action = new ActionNode("IntegerBinaryOperation", new ActionNode[0], new ActionValueRef[]
             {
-                defineName = "IntegerBinaryOperation",
-                inputs = new ActionValueRef[]
-                {
-                    new ActionValueRef(new ActionNode()
-                    {
-                        defineName = "IntegerConst",
-                        consts = new object[] { 2 }
-                    }),
-                    new ActionValueRef(new ActionNode()
-                    {
-                        defineName = "IntegerConst",
-                        consts = new object[] { 2 },
-                    })
-                },
-                consts = new object[] { BinaryOperator.add },
-            };
-            ;
+                new ActionValueRef(new ActionNode("IntegerConst", new ActionNode[0], new ActionValueRef[0], new object[] { 2 })),
+                new ActionValueRef(new ActionNode("IntegerConst", new ActionNode[0], new ActionValueRef[0], new object[] { 2 }))
+            }, new object[] { BinaryOperator.add });
             EventArg eventArg = new EventArg();
             _ = engine.doActionAsync(null, null, eventArg, action);
             Assert.AreEqual(4, eventArg.getVar("@IntegerBinaryOperator_3_0"));

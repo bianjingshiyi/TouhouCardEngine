@@ -112,11 +112,18 @@ namespace TouhouCardEngine
         }
         public string getName<T>() where T : IEventArg
         {
-            return typeof(T).FullName;
+            return getName(typeof(T));
         }
         public string getName(IEventArg eventArg)
         {
-            return eventArg.GetType().FullName;
+            return getName(eventArg.GetType());
+        }
+        public string getName(Type type)
+        {
+            string name = type.Name;
+            if (name.EndsWith("EventArg"))
+                name = string.Intern(name.Substring(0, name.Length - 3));
+            return name;
         }
         public void register<T>(ITrigger<T> trigger) where T : IEventArg
         {
@@ -128,23 +135,31 @@ namespace TouhouCardEngine
         }
         public ITrigger<T>[] getTriggers<T>() where T : IEventArg
         {
-            return getTriggers(getName<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
+            return getTriggers(getName<T>()).OfType<ITrigger<T>>().ToArray();
         }
         public string getNameBefore<T>() where T : IEventArg
         {
-            return "Before" + getName<T>();
+            return getNameBefore(getName<T>());
         }
         public string getNameBefore(IEventArg eventArg)
         {
-            return "Before" + getName(eventArg);
+            return getNameBefore(getName(eventArg));
+        }
+        public string getNameBefore(string eventName)
+        {
+            return string.Intern("Before" + eventName);
         }
         public string getNameAfter<T>() where T : IEventArg
         {
-            return "After" + getName<T>();
+            return getNameAfter(getName<T>());
         }
         public string getNameAfter(IEventArg eventArg)
         {
-            return "After" + getName(eventArg);
+            return getNameAfter(getName(eventArg));
+        }
+        public string getNameAfter(string eventName)
+        {
+            return string.Intern("After" + eventName);
         }
         public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
         {
@@ -534,7 +549,7 @@ namespace TouhouCardEngine
         public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(arg =>
         {
             if (action != null)
-                return action.Invoke(new []{arg});
+                return action.Invoke(new[] { arg });
             else
                 return Task.CompletedTask;
         }, comparsion, name)
