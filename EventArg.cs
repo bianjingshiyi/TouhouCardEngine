@@ -29,6 +29,11 @@ namespace TouhouCardEngine
         {
             return eventArg.getVar(varName);
         }
+        [ActionNodeMethod("SetVariable")]
+        public static void setVariable(EventArg eventArg, [ActionNodeParam("VariableName")] string varName, [ActionNodeParam("Value")] object value)
+        {
+            eventArg.setVar(varName, value);
+        }
         #endregion
         public IGame game;
         public string[] beforeNames { get; set; }

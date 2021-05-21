@@ -9,7 +9,9 @@ namespace TouhouCardEngine
     {
         public void addActionDefine(string name, ActionDefine actionDefine)
         {
-            actionDefineDict[name] = actionDefine;
+            if (actionDefineDict.ContainsKey(name))
+                throw new InvalidOperationException("已存在名为" + name + "的动作定义");
+            actionDefineDict.Add(name, actionDefine);
         }
         public ActionDefine getActionDefine(string name)
         {
@@ -81,6 +83,14 @@ namespace TouhouCardEngine
                     break;
             }
         }
+        #region 动作定义
+        [ActionNodeMethod("ThisCard")]
+        [return: ActionNodeParam("Card")]
+        public static Card thisCard(Card card)
+        {
+            return card;
+        }
+        #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
     }
 }

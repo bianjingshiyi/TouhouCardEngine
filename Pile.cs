@@ -48,7 +48,7 @@ namespace TouhouCardEngine
         public static Task moveTo(IGame game, Card card, Pile from, Pile to, int position)
         {
             if (game != null)
-                return game.triggers.doEvent(new MoveCardEventArg() { from = from, to = to, card = card, position = position }, arg =>
+                return game.triggers.doEvent(new MoveCardEventArg(from, to, card, position), arg =>
                 {
                     from = arg.from;
                     to = arg.to;
@@ -60,10 +60,18 @@ namespace TouhouCardEngine
                         {
                             try
                             {
-                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                foreach (var effect in card.define.effects)
                                 {
-                                    if (effect.piles.Contains(from.name) && (to == null || !effect.piles.Contains(to.name)))
-                                        effect.onDisable(game, card, null);
+                                    if (effect is IPassiveEffect passiveEffect)
+                                    {
+                                        if (passiveEffect.piles.Contains(from.name) && (to == null || !passiveEffect.piles.Contains(to.name)))
+                                            passiveEffect.onDisable(game, card, null);
+                                    }
+                                    else if (effect is GeneratedEffect generatedEffect)
+                                    {
+                                        if (generatedEffect.pileList.Contains(from.name) && (to == null || !generatedEffect.pileList.Contains(to.name)))
+                                            generatedEffect.onDisable(game, card, null);
+                                    }
                                 }
                             }
                             catch (Exception e)
@@ -82,10 +90,18 @@ namespace TouhouCardEngine
                                 card.owner = to.owner;
                                 try
                                 {
-                                    foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                    foreach (var effect in card.define.effects)
                                     {
-                                        if ((from == null || !effect.piles.Contains(from.name)) && effect.piles.Contains(to.name))
-                                            effect.onEnable(game, card, null);
+                                        if (effect is IPassiveEffect passiveEffect)
+                                        {
+                                            if ((from == null || !passiveEffect.piles.Contains(from.name)) && passiveEffect.piles.Contains(to.name))
+                                                passiveEffect.onEnable(game, card, null);
+                                        }
+                                        else if (effect is GeneratedEffect generatedEffect)
+                                        {
+                                            if ((from == null || !generatedEffect.pileList.Contains(from.name)) && generatedEffect.pileList.Contains(to.name))
+                                                generatedEffect.onEnable(game, card, null);
+                                        }
                                     }
                                 }
                                 catch (Exception e)
@@ -114,10 +130,18 @@ namespace TouhouCardEngine
                             card.owner = to.owner;
                             try
                             {
-                                foreach (IPassiveEffect effect in card.define.effects.OfType<IPassiveEffect>())
+                                foreach (var effect in card.define.effects)
                                 {
-                                    if (effect.piles.Contains(to.name))
-                                        effect.onEnable(game, card, null);
+                                    if (effect is IPassiveEffect passiveEffect)
+                                    {
+                                        if (passiveEffect.piles.Contains(to.name))
+                                            passiveEffect.onEnable(game, card, null);
+                                    }
+                                    else if (effect is GeneratedEffect generatedEffect)
+                                    {
+                                        if (generatedEffect.pileList.Contains(to.name))
+                                            generatedEffect.onEnable(game, card, null);
+                                    }
                                 }
                             }
                             catch (Exception e)
@@ -181,14 +205,30 @@ namespace TouhouCardEngine
         }
         public class MoveCardEventArg : EventArg
         {
-            public Pile from;
-            public Pile to;
-            public Card card;
-            public int position;
+            public MoveCardEventArg(Pile from, Pile to, Card card, int position)
+            {
+                this.from = from;
+                this.to = to;
+                this.card = card;
+                this.position = position;
+            }
             public override string ToString()
             {
                 return "将" + card + "从" + from + "移动到" + to + "的" + position;
             }
+            #region 动作定义
+            [ActionNodeMethod("IsPlayerPileChanged")]
+            [return: ActionNodeParam("IsChanged")]
+            public static bool isPlayerPileChanged(MoveCardEventArg moveCardEvent, [ActionNodeParam("Player")] Player player, [ActionNodeParam("PileName")] string pileName)
+            {
+                return (moveCardEvent.from.owner == player && moveCardEvent.from.name == pileName) ||
+                    (moveCardEvent.to.owner == player && moveCardEvent.to.name == pileName);
+            }
+            #endregion
+            public Pile from;
+            public Pile to;
+            public Card card;
+            public int position;
         }
         public Task moveTo(IGame game, Card card, Pile targetPile)
         {
@@ -405,6 +445,14 @@ namespace TouhouCardEngine
             else
                 return new Card[0];
         }
+        #region 动作定义
+        //[ActionNodeMethod("GetCount")]
+        //[return: ActionNodeParam("Count")]
+        //public static int getCount([ActionNodeParam("Pile")] Pile pile)
+        //{
+        //    return pile.count;
+        //}
+        #endregion
     }
     public enum RegionType
     {

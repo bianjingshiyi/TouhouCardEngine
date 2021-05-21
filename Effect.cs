@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -162,12 +163,16 @@ namespace TouhouCardEngine
     public class GeneratedEffect : IEffect
     {
         #region 方法
-        public GeneratedEffect(ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
+        public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
         {
+            _pileList.AddRange(piles);
             _onEnableAction = onEnable;
             _onDisableAction = onDisable;
             _triggerList.AddRange(triggers);
             _tagList.AddRange(tags);
+        }
+        public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers) : this(piles, onEnable, onDisable, triggers, new string[0])
+        {
         }
         /// <summary>
         /// 构造一个主动效果
@@ -176,10 +181,11 @@ namespace TouhouCardEngine
         /// <param name="targetCheckers"></param>
         /// <param name="action"></param>
         /// <param name="tags"></param>
-        public GeneratedEffect(ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action, string[] tags)
+        public GeneratedEffect(ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action, string[] tags) : this(new string[0], null, null, new TriggerGraph[]
         {
-            triggerList.Add(new TriggerGraph("ActiveEvent", condition, targetCheckers, action));
-            tagList.AddRange(tags);
+            new TriggerGraph("ActiveEvent", condition, targetCheckers, action)
+        }, tags)
+        {
         }
         /// <summary>
         /// 构造一个无条件无目标的主动效果
@@ -202,7 +208,7 @@ namespace TouhouCardEngine
                 game.doActionsAsync(card, buff, null, onEnableAction);
             foreach (var graph in triggerList)
             {
-                string triggerName = getEffectName(game, card, buff, getEffectName(game, card, buff, graph.eventName));
+                string triggerName = getEffectName(game, card, buff, graph.eventName);
                 game.logger.log("Effect", card + "注册触发器" + triggerName);
                 Trigger trigger = new Trigger(args =>
                 {
@@ -216,7 +222,7 @@ namespace TouhouCardEngine
         {
             foreach (var graph in triggerList)
             {
-                string triggerName = getEffectName(game, card, buff, getEffectName(game, card, buff, graph.eventName));
+                string triggerName = getEffectName(game, card, buff, graph.eventName);
                 game.logger.log("Effect", card + "注销触发器" + triggerName);
                 Trigger trigger = card.getProp<Trigger>(game, triggerName);
                 card.setProp(game, triggerName, null);
@@ -298,14 +304,16 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
+        public List<string> pileList => _pileList;
+        List<string> _pileList = new List<string>();
         public ActionNode onEnableAction => _onEnableAction;
         ActionNode _onEnableAction;
         public ActionNode onDisableAction => _onDisableAction;
         ActionNode _onDisableAction;
         public List<TriggerGraph> triggerList => _triggerList;
-        readonly List<TriggerGraph> _triggerList = new List<TriggerGraph>();
+        List<TriggerGraph> _triggerList = new List<TriggerGraph>();
         public List<string> tagList => _tagList;
-        readonly List<string> _tagList = new List<string>();
+        List<string> _tagList = new List<string>();
         #endregion
     }
     [Serializable]
@@ -317,6 +325,9 @@ namespace TouhouCardEngine
             this.condition = condition;
             this.targetCheckers = targetCheckers;
             this.action = action;
+        }
+        public TriggerGraph(string eventName, ActionValueRef condition, ActionNode action) : this(eventName, condition, new TargetChecker[0], action)
+        {
         }
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
@@ -351,23 +362,29 @@ namespace TouhouCardEngine
     [Serializable]
     public sealed class ActionNode
     {
-        public ActionNode(string defineName, ActionNode[] branches, ActionValueRef[] inputs, object[] consts)
+        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
         {
             _defineName = defineName;
             _branchList.AddRange(branches);
             _inputList.AddRange(inputs);
             _constList.AddRange(consts);
         }
-        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, new ActionNode[0], inputs, consts)
+        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, inputs, consts, new ActionNode[0])
         {
         }
-        public ActionNode(string defineName, ActionValueRef[] inputs) : this(defineName, new ActionNode[0], inputs, new object[0])
+        public ActionNode(string defineName, ActionValueRef[] inputs, ActionNode next) : this(defineName, inputs, new object[0], new ActionNode[] { next })
         {
         }
-        public ActionNode(string defineName, object[] consts) : this(defineName, new ActionNode[0], new ActionValueRef[0], consts)
+        public ActionNode(string defineName, ActionValueRef[] inputs) : this(defineName, inputs, new object[0], new ActionNode[0])
         {
         }
-        public ActionNode() : this(string.Empty, new ActionNode[0], new ActionValueRef[0], new object[0])
+        public ActionNode(string defineName, object[] consts) : this(defineName, new ActionValueRef[0], consts, new ActionNode[0])
+        {
+        }
+        public ActionNode(string defineName) : this(defineName, new ActionValueRef[0], new object[0], new ActionNode[0])
+        {
+        }
+        public ActionNode() : this(string.Empty, new ActionValueRef[0], new object[0], new ActionNode[0])
         {
         }
         public string defineName => _defineName;
@@ -456,9 +473,9 @@ namespace TouhouCardEngine
         public override ValueDefine[] consts { get; }
         public override ValueDefine[] outputs { get; }
     }
-    public class IntegerBinaryOperationActionDefine : ActionDefine
+    public class IntegerOperationActionDefine : ActionDefine
     {
-        public IntegerBinaryOperationActionDefine()
+        public IntegerOperationActionDefine()
         {
             inputs = new ValueDefine[1]
             {
@@ -474,7 +491,7 @@ namespace TouhouCardEngine
                 new ValueDefine()
                 {
                     name = "operator",
-                    type = typeof(BinaryOperator)
+                    type = typeof(IntegerOperator)
                 }
             };
             outputs = new ValueDefine[1]
@@ -488,11 +505,171 @@ namespace TouhouCardEngine
         }
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
         {
-            BinaryOperator op = (BinaryOperator)constValues[0];
+            IntegerOperator op = (IntegerOperator)constValues[0];
             switch (op)
             {
-                case BinaryOperator.add:
+                case IntegerOperator.add:
                     return Task.FromResult(new object[] { ((int[])args[0]).Sum(a => a) });
+                case IntegerOperator.sub:
+                    int[] numbers = (int[])args[0];
+                    int result = numbers[0];
+                    for (int i = 1; i < numbers.Length; i++)
+                    {
+                        result -= numbers[i];
+                    }
+                    return Task.FromResult(new object[] { result });
+                case IntegerOperator.mul:
+                    numbers = (int[])args[0];
+                    result = 1;
+                    for (int i = 0; i < numbers.Length; i++)
+                    {
+                        result *= numbers[i];
+                    }
+                    return Task.FromResult(new object[] { result });
+                case IntegerOperator.div:
+                    numbers = (int[])args[0];
+                    result = numbers[0];
+                    for (int i = 1; i < numbers.Length; i++)
+                    {
+                        result /= numbers[i];
+                    }
+                    return Task.FromResult(new object[] { result });
+                default:
+                    throw new InvalidOperationException("未知的操作符" + op);
+            }
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public class LogicOperationActionDefine : ActionDefine
+    {
+        public LogicOperationActionDefine()
+        {
+            inputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(bool),
+                    isParams = true
+                }
+            };
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "operator",
+                    type = typeof(IntegerOperator)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "result",
+                    type = typeof(bool)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            LogicOperator op = (LogicOperator)constValues[0];
+            switch (op)
+            {
+                case LogicOperator.not:
+                    return Task.FromResult(new object[] { !(bool)args[0] });
+                case LogicOperator.and:
+                    foreach (var value in args.Cast<bool>())
+                    {
+                        if (value == false)
+                            return Task.FromResult(new object[] { false });
+                    }
+                    return Task.FromResult(new object[] { true });
+                case LogicOperator.or:
+                    foreach (var value in args.Cast<bool>())
+                    {
+                        if (value == true)
+                            return Task.FromResult(new object[] { true });
+                    }
+                    return Task.FromResult(new object[] { false });
+                default:
+                    throw new InvalidOperationException("未知的操作符" + op);
+            }
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public class CollectionHelper
+    {
+        /// <summary>
+        /// 除了...以外
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        [ActionNodeMethod("Except")]
+        [return: ActionNodeParam("Collection")]
+        public static IEnumerable except([ActionNodeParam("Collection")] IEnumerable collection, [ActionNodeParam("Element", isParams: true)] object[] elements)
+        {
+            return collection.Cast<object>().Where(obj => !elements.Contains(obj));
+        }
+        /// <summary>
+        /// 计算集合中元素数量
+        /// </summary>
+        /// <param name="collection"></param>
+        /// <returns></returns>
+        [ActionNodeMethod("GetCount")]
+        [return: ActionNodeParam("Collection")]
+        public static int getCount([ActionNodeParam("Collection")] IEnumerable collection)
+        {
+            return collection.Cast<object>().Count();
+        }
+    }
+    public class CompareActionDefine : ActionDefine
+    {
+        public CompareActionDefine()
+        {
+            inputs = new ValueDefine[2]
+            {
+                new ValueDefine()
+                {
+                    name = "A",
+                    type = typeof(object)
+                },
+                new ValueDefine()
+                {
+                    name = "B",
+                    type = typeof(object)
+                }
+            };
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "operator",
+                    type = typeof(CompareOperator)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "result",
+                    type = typeof(bool)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            CompareOperator op = (CompareOperator)constValues[0];
+            switch (op)
+            {
+                case CompareOperator.equals:
+                    return Task.FromResult(new object[] { args[0] == args[1] });
+                case CompareOperator.unequals:
+                    return Task.FromResult(new object[] { args[0] != args[1] });
                 default:
                     throw new InvalidOperationException("未知的操作符" + op);
             }
@@ -531,12 +708,83 @@ namespace TouhouCardEngine
         public override ValueDefine[] consts { get; }
         public override ValueDefine[] outputs { get; }
     }
-    public enum BinaryOperator
+    public class StringConstActionDefine : ActionDefine
+    {
+        public StringConstActionDefine()
+        {
+            inputs = new ValueDefine[0];
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(string)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(string)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            return Task.FromResult(constValues);
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public class BooleanConstActionDefine : ActionDefine
+    {
+        public BooleanConstActionDefine()
+        {
+            inputs = new ValueDefine[0];
+            consts = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(bool)
+                }
+            };
+            outputs = new ValueDefine[1]
+            {
+                new ValueDefine()
+                {
+                    name = "value",
+                    type = typeof(bool)
+                }
+            };
+        }
+        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+        {
+            return Task.FromResult(constValues);
+        }
+        public override ValueDefine[] inputs { get; }
+        public override ValueDefine[] consts { get; }
+        public override ValueDefine[] outputs { get; }
+    }
+    public enum CompareOperator
+    {
+        equals,
+        unequals
+    }
+    public enum IntegerOperator
     {
         add,
         sub,
         mul,
         div
+    }
+    public enum LogicOperator
+    {
+        not,
+        and,
+        or
     }
     /// <summary>
     /// 通过反射生成的方法动作定义，目标方法必须是静态方法，并且使用特性标记参数与返回信息。
@@ -634,11 +882,24 @@ namespace TouhouCardEngine
                         else
                         {
                             //用特性指定是输入
-                            inputList.Add(new ValueDefine()
+                            if (attribute.isParams)
                             {
-                                name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
-                                type = paramInfo.ParameterType
-                            });
+                                inputList.Add(new ValueDefine()
+                                {
+                                    name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                    type = paramInfo.ParameterType.GetElementType(),
+                                    isParams = true
+                                });
+                            }
+                            else
+                            {
+                                inputList.Add(new ValueDefine()
+                                {
+                                    name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                    type = paramInfo.ParameterType,
+                                    isParams = false
+                                });
+                            }
                         }
                     }
                     else if (!typeof(IGame).IsAssignableFrom(paramInfo.ParameterType) &&
@@ -761,12 +1022,14 @@ namespace TouhouCardEngine
     [AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
     public class ActionNodeParamAttribute : Attribute
     {
-        public ActionNodeParamAttribute(string paramName, bool isConst = false)
+        public ActionNodeParamAttribute(string paramName, bool isConst = false, bool isParams = false)
         {
             this.paramName = paramName;
             this.isConst = isConst;
+            this.isParams = isParams;
         }
         public string paramName { get; }
         public bool isConst { get; }
+        public bool isParams { get; }
     }
 }
