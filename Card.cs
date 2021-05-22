@@ -310,11 +310,70 @@ namespace TouhouCardEngine
         {
             return buffList.Exists(b => b.id == buffId);
         }
+        public bool containBuff(Buff buff)
+        {
+            return buffList.Contains(buff);
+        }
+        #region 动作定义
+        [ActionNodeMethod("GetOwner")]
+        [return: ActionNodeParam("Owner")]
+        public static Player getOwner([ActionNodeParam("Card")] Card card)
+        {
+            return card.owner;
+        }
+        [ActionNodeMethod("AddIntModifier")]
+        [return: ActionNodeParam("Modifier")]
+        public static IntPropModifier addIntModifier(IGame game, [ActionNodeParam("Card")] Card card,
+                                                     [ActionNodeParam("PropertyName")] string propName,
+                                                     [ActionNodeParam("Value")] int value,
+                                                     [ActionNodeParam("isSet")] bool isSet)
+        {
+            IntPropModifier modifier = new IntPropModifier(propName, value, isSet);
+            card.addModifier(game, modifier);
+            return modifier;
+        }
+        [ActionNodeMethod("RemoveModifier")]
+        [return: ActionNodeParam("RemoveModifierEvent")]
+        public static Task<IRemoveModiEventArg> removeModifier(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] PropModifier modifier)
+        {
+            return card.removeModifier(game, modifier);
+        }
+        [ActionNodeMethod("GetProperty")]
+        [return: ActionNodeParam("Value")]
+        public static object getProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName)
+        {
+            return card.getProp(game, propName);
+        }
+        [ActionNodeMethod("SetProperty")]
+        [return: ActionNodeParam("PropChangeEvent")]
+        public static Task<IPropChangeEventArg> setProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName, [ActionNodeParam("Value")] object value)
+        {
+            return card.setProp(game, propName, value);
+        }
+        /// <summary>
+        /// 获取一个独一无二的属性名。当你在一段可以重复生效的效果中为卡牌设置额外属性的时候，应该使用这个方法。
+        /// 注意，这个方法是为了避免属性名之间的冲突，在不会发生冲突的情况下，输入相同的参数仍然会让这个方法返回相同的属性名。
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="card"></param>
+        /// <param name="buff"></param>
+        /// <param name="eventArg"></param>
+        /// <param name="propName"></param>
+        /// <returns></returns>
+        [ActionNodeMethod("GetUniquePropertyName")]
+        [return: ActionNodeParam("PropertyName")]
+        public static string getUniquePropName(IGame game, ICard card, IBuff buff, IEventArg eventArg, [ActionNodeParam("PropertyName")] string propName)
+        {
+            if (buff != null)
+                propName = buff.instanceID + propName;
+            return propName;
+        }
+        #endregion   
         #region 属性
-        public Task<IPropChangeEventArg> setProp<T>(IGame game, string propName, T value)
+        public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
+                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
                 {
                     Card card = arg.card as Card;
                     propName = arg.propName;
@@ -345,6 +404,8 @@ namespace TouhouCardEngine
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
+            else if (define.hasProp(propName) && define[propName] is T dt)
+                value = dt;
             foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
                 mt.propName == propName &&
                 (game == null || mt.checkCondition(game, this))))
@@ -358,6 +419,8 @@ namespace TouhouCardEngine
             object value = default;
             if (propDic.ContainsKey(propName))
                 value = propDic[propName];
+            else if (define.hasProp(propName))
+                value = define[propName];
             foreach (var modifier in modifierList.Where(m =>
                 m.propName == propName &&
                 (game == null || m.checkCondition(game, this))))

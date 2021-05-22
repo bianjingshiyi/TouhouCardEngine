@@ -112,11 +112,18 @@ namespace TouhouCardEngine
         }
         public string getName<T>() where T : IEventArg
         {
-            return typeof(T).FullName;
+            return getName(typeof(T));
         }
         public string getName(IEventArg eventArg)
         {
-            return eventArg.GetType().FullName;
+            return getName(eventArg.GetType());
+        }
+        public string getName(Type type)
+        {
+            string name = type.Name;
+            if (name.EndsWith("EventArg"))
+                name = string.Intern(name.Substring(0, name.Length - 3));
+            return name;
         }
         public void register<T>(ITrigger<T> trigger) where T : IEventArg
         {
@@ -128,23 +135,31 @@ namespace TouhouCardEngine
         }
         public ITrigger<T>[] getTriggers<T>() where T : IEventArg
         {
-            return getTriggers(getName<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
+            return getTriggers(getName<T>()).OfType<ITrigger<T>>().ToArray();
         }
         public string getNameBefore<T>() where T : IEventArg
         {
-            return "Before" + getName<T>();
+            return getNameBefore(getName<T>());
         }
         public string getNameBefore(IEventArg eventArg)
         {
-            return "Before" + getName(eventArg);
+            return getNameBefore(getName(eventArg));
+        }
+        public string getNameBefore(string eventName)
+        {
+            return string.Intern("Before" + eventName);
         }
         public string getNameAfter<T>() where T : IEventArg
         {
-            return "After" + getName<T>();
+            return getNameAfter(getName<T>());
         }
         public string getNameAfter(IEventArg eventArg)
         {
-            return "After" + getName(eventArg);
+            return getNameAfter(getName(eventArg));
+        }
+        public string getNameAfter(string eventName)
+        {
+            return string.Intern("After" + eventName);
         }
         public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
         {
@@ -534,7 +549,7 @@ namespace TouhouCardEngine
         public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(arg =>
         {
             if (action != null)
-                return action.Invoke(arg.args);
+                return action.Invoke(new[] { arg });
             else
                 return Task.CompletedTask;
         }, comparsion, name)
@@ -596,24 +611,32 @@ namespace TouhouCardEngine
     }
     public class GeneratedEventArg : IEventArg
     {
+        public GeneratedEventArg(string[] eventNames, object[] args)
+        {
+            afterNames = eventNames;
+            this.args = args;
+        }
+        public IEventArg[] getChildEvents()
+        {
+            return childEventList.ToArray();
+        }
+        public object getVar(string varName)
+        {
+            if (varDict.TryGetValue(varName, out object value))
+                return value;
+            else
+                return null;
+        }
+        public void setVar(string varName, object value)
+        {
+            varDict[varName] = value;
+        }
         public string[] beforeNames { get; set; } = new string[0];
         public string[] afterNames { get; set; } = new string[0];
         public object[] args { get; set; }
         public bool isCanceled { get; set; } = false;
         public int repeatTime { get; set; } = 0;
         public Func<IEventArg, Task> action { get; set; }
-
-        public GeneratedEventArg(string[] eventNames, object[] args)
-        {
-            afterNames = eventNames;
-            this.args = args;
-        }
-        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public IEventArg[] getChildEvents()
-        {
-            return childEventList.ToArray();
-        }
-        IEventArg _parnet;
         public IEventArg parent
         {
             get => _parnet;
@@ -624,10 +647,13 @@ namespace TouhouCardEngine
                     gea.childEventList.Add(this);
             }
         }
+        IEventArg _parnet;
         public IEventArg[] children
         {
             get { return childEventList.ToArray(); }
         }
+        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
+        Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
     }
     public static class EventArgExtension
     {

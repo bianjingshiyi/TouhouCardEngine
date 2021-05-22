@@ -25,6 +25,10 @@ namespace TouhouCardEngine
                 return (T)dicProp[propName];
             return default;
         }
+        public bool hasProp(string propName)
+        {
+            return dicProp.ContainsKey(propName);
+        }
         public void setProp<T>(string propName, T value)
         {
             dicProp[propName] = value;
@@ -83,5 +87,13 @@ namespace TouhouCardEngine
         {
             return new Player[] { player };
         }
+        #region 动作定义
+        [ActionNodeMethod("GetPile")]
+        [return: ActionNodeParam("Pile")]
+        public static Pile getPile([ActionNodeParam("Player")] Player player, [ActionNodeParam("PileName")] string pileName)
+        {
+            return player.getPile(pileName);
+        }
+        #endregion
     }
 }

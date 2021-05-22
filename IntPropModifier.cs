@@ -42,5 +42,21 @@ namespace TouhouCardEngine
             else
                 return propName + (value < 0 ? value.ToString() : "+" + value);
         }
+        #region 动作定义
+        /// <summary>
+        /// 修改整数属性修正器的修正值
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="card"></param>
+        /// <param name="modifier"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [ActionNodeMethod("SetIntPropModifierValue")]
+        [return: ActionNodeParam("PropertyChangeEvent")]
+        public static Task<IPropChangeEventArg> setIntPropModifierValue(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] IntPropModifier modifier, [ActionNodeParam("Value")] int value)
+        {
+            return modifier.setValue(game, card, value);
+        }
+        #endregion
     }
 }

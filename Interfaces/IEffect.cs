@@ -17,9 +17,9 @@ namespace TouhouCardEngine.Interfaces
         [Obsolete]
         string[] events { get; }
         string[] getEvents(ITriggerManager manager);
-        bool checkCondition(IGame game, ICard card, object[] vars);
-        bool checkTargets(IGame game, ICard card, object[] vars, object[] targets);
-        Task execute(IGame game, ICard card, object[] vars, object[] targets);
+        bool checkCondition(IGame game, ICard card, IBuff buff, object[] vars);
+        bool checkTargets(IGame game, ICard card, IBuff buff, object[] vars, object[] targets);
+        Task execute(IGame game, ICard card, IBuff buff, object[] vars, object[] targets);
     }
     public interface IActiveEffect : IEffect
     {

@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 using NitoriNetwork.Common;
 using TouhouCardEngine.Shared;
+using System.Reflection;
+
 namespace TouhouCardEngine
 {
     public abstract class GameOption
@@ -20,7 +22,7 @@ namespace TouhouCardEngine
         }
         public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
         public abstract Task onGameRun(CardEngine game);
-        public abstract Task onPlayerCommand(CardEngine game, Player player, ICommand command);
+        public abstract Task onPlayerCommand(CardEngine game, Player player, CardEngine.CommandEventArg command);
         public abstract Task onGameClose(CardEngine game);
     }
     [Serializable]
@@ -137,7 +139,7 @@ namespace TouhouCardEngine
         public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
-        public Task init(Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public Task init(Assembly[] assemblies, Rule rule, GameOption options, RoomPlayerInfo[] players)
         {
             this.rule = rule;
             if (isInited)
@@ -145,12 +147,29 @@ namespace TouhouCardEngine
                 logger.logError("游戏已经初始化");
                 return Task.CompletedTask;
             }
+            isInited = true;
+            //初始化随机
             random = new Random(options.randomSeed);
+            //初始化卡片定义
             foreach (CardDefine define in rule.defines)
             {
                 addDefine(define);
             }
-            isInited = true;
+            //初始化动作定义
+            var actionDefines = ActionDefine.loadDefinesFromAssemblies(assemblies);
+            foreach (var actionDefine in actionDefines)
+            {
+                string name;
+                if (actionDefine is MethodActionDefine methodActionDefine)
+                    name = methodActionDefine.methodName;
+                else
+                {
+                    name = actionDefine.GetType().Name;
+                    if (name.EndsWith("ActionDefine"))
+                        name = name.Substring(0, name.Length - 12);
+                }
+                addActionDefine(name, actionDefine);
+            }
             return rule.onGameInit(this, options, players);
         }
         public Task run()
@@ -228,7 +247,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="define"></param>
         /// <returns></returns>
-        public Card issueCard(CardDefine define)
+        public Card createCard(CardDefine define)
         {
             int id = cardDic.Count + 1;
             while (cardDic.ContainsKey(id))
@@ -335,9 +354,15 @@ namespace TouhouCardEngine
                 id++;
             return id;
         }
-        public Task command(ICommand command)
+        public Task command(CommandEventArg command)
         {
             return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
+        }
+        public class CommandEventArg : EventArg
+        {
+            public int playerId;
+            public string commandName;
+            public object[] commandArgs;
         }
         private List<Player> playerList { get; } = new List<Player>();
         public delegate void EventAction(Event @event);
@@ -409,10 +434,5 @@ namespace TouhouCardEngine
         logic = 0,
         before,
         after
-    }
-    public interface ICommand
-    {
-        int playerId { get; }
-
     }
 }
