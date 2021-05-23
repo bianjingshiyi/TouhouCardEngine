@@ -173,7 +173,7 @@ namespace TouhouCardEngine
         public void refreshRoomList()
         {
             logger?.log("客户端请求房间列表");
-            curNetwork.RefreshRoomList();
+            curNetwork?.RefreshRoomList();
         }
 
         public async Task<bool> joinRoom(string roomId)
