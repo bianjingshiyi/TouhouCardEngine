@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MongoDB.Bson.Serialization;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using MongoDB.Bson;
 
 namespace TouhouCardEngine
 {
@@ -39,7 +40,7 @@ namespace TouhouCardEngine
         public override RoomPlayerData GetSelfPlayerData()
         {
             // 仅在更换了用户后更新这个PlayerData
-            var info = serverClient.GetUserInfoCached();
+            var info = serverClient.GetUserInfo(serverClient.UID);
             if (localPlayer?.id != info.UID)
                 localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
 
@@ -55,7 +56,7 @@ namespace TouhouCardEngine
             // step 1: 在服务器上创建房间
             var roomInfo = await serverClient.CreateRoomAsync();
             // step 2: 加入这个房间
-            return await joinRoom(new LobbyRoomData(roomInfo));
+            return await joinRoom(roomInfo);
         }
 
         public override event Action<LobbyRoomDataList> OnRoomListUpdate;
@@ -72,11 +73,10 @@ namespace TouhouCardEngine
         public async override Task RefreshRoomList()
         {
             var roomInfos = await serverClient.GetRoomInfosAsync();
-
             lobby.Clear();
             foreach (var item in roomInfos)
             {
-                lobby[item.id] = new LobbyRoomData(item);
+                lobby[item.RoomID] = item;
             }
             OnRoomListUpdate?.Invoke(lobby);
         }
@@ -101,6 +101,7 @@ namespace TouhouCardEngine
             // todo: 规定加入的数据格式。
             writer.Put(roomInfo.RoomID);
             writer.Put(serverClient.UserSession);
+            writer.Put(localPlayer.ToJson());
             writer.Put(localPlayer.id);
 
             hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
@@ -163,9 +164,9 @@ namespace TouhouCardEngine
             return invoke<object>(nameof(IRoomRPCMethodLobby.gameStart));
         }
 
-        public override Task Send(object obj)
+        public override Task<T> Send<T>(object obj)
         {
-            return sendTo(hostPeer, obj);
+            return sendTo<T>(hostPeer, obj);
         }
         #endregion
 

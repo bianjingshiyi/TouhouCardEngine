@@ -9,8 +9,8 @@ namespace TouhouCardEngine
 {
     public class AnswerManager : MonoBehaviour, IAnswerManager, IDisposable
     {
-        IClientManager _client = null;
-        public IClientManager client
+        IClient _client = null;
+        public IClient client
         {
             get { return _client; }
             set
@@ -26,6 +26,7 @@ namespace TouhouCardEngine
                 }
             }
         }
+
         [Serializable]
         public class RequestItem
         {
@@ -204,7 +205,7 @@ namespace TouhouCardEngine
         {
             return answer(playerId, response, client);
         }
-        private async Task<bool> answer(int playerId, IResponse response, IClientManager client)
+        private async Task<bool> answer(int playerId, IResponse response, IClient client)
         {
             response.playerId = playerId;
             response.isUnasked = false;
@@ -275,7 +276,7 @@ namespace TouhouCardEngine
         {
             unaskedAnswer(playerId, response, client);
         }
-        private void unaskedAnswer(int playerId, IResponse response, IClientManager client)
+        private void unaskedAnswer(int playerId, IResponse response, IClient client)
         {
             response.playerId = playerId;
             response.isUnasked = true;

@@ -20,7 +20,7 @@ namespace TouhouCardEngine
         {
             this.defines = defines;
         }
-        public abstract Task onGameInit(CardEngine game, GameOption options, RoomPlayerInfo[] players);
+        public abstract Task onGameInit(CardEngine game, GameOption options, IRoomPlayer[] players);
         public abstract Task onGameRun(CardEngine game);
         public abstract Task onPlayerCommand(CardEngine game, Player player, CardEngine.CommandEventArg command);
         public abstract Task onGameClose(CardEngine game);
@@ -139,7 +139,7 @@ namespace TouhouCardEngine
         public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
         public GameOption option { get; set; }
-        public Task init(Assembly[] assemblies, Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public Task init(Assembly[] assemblies, Rule rule, GameOption options, IRoomPlayer[] players)
         {
             this.rule = rule;
             if (isInited)
@@ -188,7 +188,7 @@ namespace TouhouCardEngine
             return rule.onGameRun(this);
         }
 
-        public void initAndRun(Rule rule, GameOption options, RoomPlayerInfo[] players)
+        public void initAndRun(Rule rule, GameOption options, IRoomPlayer[] players)
         {
             this.rule = rule;
             rule.onGameInit(this, options, players);

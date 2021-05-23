@@ -22,7 +22,7 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface IAnswerManager : IDisposable
     {
-        IClientManager client { get; set; }
+        IClient client { get; set; }
         IGame game { get; set; }
         Task<IResponse> ask(int playerId, IRequest request, float timeout);
         /// <summary>

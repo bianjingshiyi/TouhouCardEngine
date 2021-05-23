@@ -64,6 +64,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public override Task RefreshRoomList()
         {
+            _lanRooms.Clear();
             invokeBroadcast(nameof(ILANRPCMethodHost.requestDiscoverRoom));
             return Task.CompletedTask;
         }
@@ -80,20 +81,26 @@ namespace TouhouCardEngine
         /// </remarks>
         public override Task<RoomData> JoinRoom(string roomId)
         {
-            if (opList.Any(o => o is JoinRoomOperation))
-                throw new InvalidOperationException("客户端已经在执行连接操作");
             //获取缓存的IP地址
             if (!_lanRooms.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException($"无法找到ID为{roomId}的房间");
 
             var roomInfo = _lanRooms[roomId];
-            string msg = name + "连接" + roomInfo.IP + ":" + roomInfo.Port;
+            return JoinRoom(roomInfo.IP, roomInfo.Port);
+        }
+
+        public Task<RoomData> JoinRoom(string addr, int port)
+        {
+            if (opList.Any(o => o is JoinRoomOperation))
+                throw new InvalidOperationException("客户端已经在执行连接操作");
+
+            string msg = name + "连接" + addr + ":" + port;
             log?.log(msg);
             //发送链接请求
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.joinRequest);
             writer.Put(_playerData.ToJson());
-            var peer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
+            var peer = net.Connect(addr, port, writer);
 
             //peer为null表示已经有一个操作在进行了
             if (peer == null)
@@ -109,6 +116,8 @@ namespace TouhouCardEngine
                 return operation.task;
             }
         }
+
+
         /// <summary>
         /// 向房间内的玩家和局域网中的其他玩家发送房间的更新信息。
         /// </summary>
@@ -234,20 +243,22 @@ namespace TouhouCardEngine
             if (isHost)
             {
                 invokeOnGameStart();
-                return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onGameStart))));
+                return invokeAll<object>(_playerInfoDict.Values.Select(i=>i.peer), nameof(IRoomRPCMethodClient.onGameStart));
             }
             return Task.CompletedTask;
         }
 
-        public override async Task Send(object obj)
+        public override async Task<T> Send<T>(object obj)
         {
             if (isHost)
             {
-                await Task.WhenAll(_playerInfoDict.Values.Select(i => sendTo(i.peer, obj)));
+                this.SendRequest(_playerInfoDict.Values.Select(i => i.peer), _playerData.id, -1, obj);
+                await invokeOnReceive(_playerData.id, obj);
+                return (T)obj;
             }
             else
             {
-                await sendTo(hostPeer, obj);
+                return await sendTo<T>(hostPeer, obj);
             }
         }
 
@@ -338,18 +349,23 @@ namespace TouhouCardEngine
             base.OnPeerDisconnected(peer, disconnectInfo);
         }
 
-        protected override Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
+        protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
         {
             switch (type)
             {
                 case PacketType.sendRequest:
+                    // 交给上层处理
+                    var result = OperationResultExt.ParseRequest(reader);
+                    await invokeOnReceive(result.clientID, result.obj);
+
+                    // 转发给其他客户端
                     var peers = _playerInfoDict.Select(p => p.Value.peer).ToArray();
-                    this.SendRequestForwarder(peers, reader);
-                    return Task.CompletedTask;
+                    this.SendRequest(peers, result.clientID, result.requestID, result.obj);
+                    return;
                 default:
                     break;
             }
-            return base.OnNetworkReceive(peer, reader, type);
+            await base.OnNetworkReceive(peer, reader, type);
         }
 
         SlidingAverage latencyAvg = new SlidingAverage(10);
@@ -388,7 +404,11 @@ namespace TouhouCardEngine
         void ILANRPCMethodHost.requestDiscoverRoom()
         {
             log?.logTrace(name + "收到请求房间消息");
-            invoke(unconnectedInvokeIP, nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+            if (_roomInfo != null && _hostRoomData != null)
+            {
+                syncRoomInfo();
+                invoke(unconnectedInvokeIP, nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+            }
         }
 
         /// <summary>
@@ -398,7 +418,7 @@ namespace TouhouCardEngine
 
         void ILANRPCMethodClient.addDiscoverRoom(LobbyRoomData room)
         {
-            log?.logTrace(name + "收到创建/发送房间消息");
+            log?.logTrace($"收到 {unconnectedInvokeIP} 创建/发送房间消息，房间: {room}");
             room.SetIP(unconnectedInvokeIP.Address.ToString());
             _lanRooms[room.RoomID] = room;
 
@@ -497,7 +517,11 @@ namespace TouhouCardEngine
             // 通知上层变更
             invokeOnRoomPlayerDataChanged(_hostRoomData.playerDataList.ToArray());
             // 然后房主要通知其他玩家属性改变了。
-            _playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), playerID, name, value));
+            foreach (var p in _playerInfoDict.Values)
+            {
+                if (p.peer != hostPeer)
+                    invoke<object>(p.peer, nameof(IRoomRPCMethodClient.onPlayerPropChange), playerID, name, value);
+            }
         }
 
         private void removeRoomPlayer(int playerId)
@@ -525,8 +549,15 @@ namespace TouhouCardEngine
         /// </summary>
         private void updateRoomInfo()
         {
-            _roomInfo.PlayerCount = _hostRoomData.playerDataList.Count;
+            syncRoomInfo();
             AlterRoomInfo(_roomInfo);
+        }
+
+        private void syncRoomInfo()
+        {
+            _roomInfo.PlayerCount = _hostRoomData.playerDataList.Count;
+            _roomInfo.MaxPlayerCount = _hostRoomData.maxPlayerCount;
+            _roomInfo.OwnerId = _hostRoomData.ownerId;
         }
 
         /// <summary>

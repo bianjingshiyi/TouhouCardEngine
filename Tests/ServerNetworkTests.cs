@@ -64,7 +64,7 @@ namespace Tests
 
             Assert.NotNull(room);
             Assert.NotNull(rooms);
-            Assert.AreEqual(1, rooms.Where(x => x.id == room.id).Count());
+            Assert.AreEqual(1, rooms.Where(x => x.RoomID == room.RoomID).Count());
         }
         public event System.Action action;
         [UnityTest]
@@ -85,7 +85,7 @@ namespace Tests
             tryLogin();
             var room = serverClient.CreateRoom();
 
-            Task task = client.JoinServer(room.ip, room.port, serverClient.UserSession, room.id);
+            Task task = client.JoinServer(room.IP, room.Port, serverClient.UserSession, room.RoomID);
             yield return new WaitUntil(() => task.IsCompleted);
 
             Assert.AreEqual(0, client.id);

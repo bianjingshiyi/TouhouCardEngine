@@ -46,6 +46,12 @@ namespace TouhouCardEngine
         {
             OnGameStart?.Invoke();
         }
+        protected async Task invokeOnReceive(int clientID, object data)
+        {
+            log?.logTrace($"接收到来自{clientID}的数据{data}");
+            if (onReceive != null)
+                await onReceive.Invoke(clientID, data);
+        }
         #endregion
 
         #region 待实现的接口
@@ -163,7 +169,12 @@ namespace TouhouCardEngine
         {
             public SendOperation(): base(nameof(INetworkingV3Client.Send))
             {
-
+            }
+        }
+        protected class SendOperation<T> : Operation<T>
+        {
+            public SendOperation() : base(nameof(INetworkingV3Client.Send))
+            {
             }
         }
 
@@ -186,8 +197,7 @@ namespace TouhouCardEngine
                         var result = OperationResultExt.ParseRequest(reader);
                         log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{result.clientID}的数据：（{result.obj}）");
 
-                        if (onReceive != null)
-                            await onReceive.Invoke(result.clientID, result.obj);
+                        await invokeOnReceive(result.clientID, result.obj);
 
                         if (result.clientID == clientID)
                         {
@@ -262,14 +272,17 @@ namespace TouhouCardEngine
         /// <param name="peer"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        protected Task sendTo(NetPeer peer, object obj)
+        protected Task<T> sendTo<T>(NetPeer peer, object obj)
         {
             if (obj == null)
                 throw new ArgumentNullException(nameof(obj));
             if (peer == null)
                 throw new ArgumentNullException(nameof(peer));
 
-            SendOperation op = new SendOperation();
+            SendOperation<T> op = new SendOperation<T>();
+            startOperation(op, () => {
+                log?.logWarn($"客户端{name}发送请求超时。");
+            });
 
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.sendRequest);
@@ -279,14 +292,10 @@ namespace TouhouCardEngine
             writer.Put(obj.ToJson());
             peer.Send(writer, DeliveryMethod.ReliableOrdered);
 
-            startOperation(op, () => {
-                log?.logWarn($"客户端{name}发送请求超时。");
-            });
-
             return op.task;
         }
 
-        public abstract Task Send(object obj);
+        public abstract Task<T> Send<T>(object obj);
         #endregion
     }
 
@@ -400,7 +409,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        Task Send(object obj);
+        Task<T> Send<T>(object obj);
 
         /// <summary>
         /// 收到GameResponse

@@ -10,13 +10,16 @@ using NitoriNetwork.Common;
 
 namespace TouhouCardEngine
 {
+    [Obsolete("Use ClientLogic")]
     public class ClientManager : MonoBehaviour, IClientManager
     {
         #region 公共成员
+        [Obsolete]
         public Task<ClientUpdateInfo> getLatestVersion()
         {
             return _serverClient.GetLatestUpdateAsync();
         }
+        [Obsolete]
         public async Task<string> getNewVersionUrl(string currentVersion)
         {
             var info = await _serverClient.GetUpdateByVersionAsync(currentVersion);
@@ -219,9 +222,9 @@ namespace TouhouCardEngine
             if (account != null)
             {
                 var serverRoom = await _serverClient.CreateRoomAsync();
-                room.id = new Guid(serverRoom.id);
-                room.ip = serverRoom.ip;
-                room.port = serverRoom.port;
+                room.id = new Guid(serverRoom.RoomID);
+                room.ip = serverRoom.IP;
+                room.port = serverRoom.Port;
                 var newRoom = await joinRoom(room, ownerInfo);
                 foreach (var pair in room.runtimeDic)
                 {
@@ -243,14 +246,10 @@ namespace TouhouCardEngine
                 var serverRooms = await _serverClient.GetRoomInfosAsync();
                 return serverRooms.Select(sr =>
                 {
-                    return new RoomInfo(new Guid(sr.id), sr.ownerID, sr.players.Select(sp => new RoomPlayerInfo()
+                    return new RoomInfo(new Guid(sr.RoomID), sr.OwnerId, new RoomPlayerInfo[0])
                     {
-                        name = _serverClient.GetUserInfo(sp).Name,
-                        PlayerID = sp
-                    }).ToArray())
-                    {
-                        ip = sr.ip,
-                        port = sr.port
+                        ip = sr.IP,
+                        port = sr.Port
                     };
                 }).ToArray();
             }
@@ -339,10 +338,12 @@ namespace TouhouCardEngine
         }
         #endregion
         #region Server
+        [Obsolete]
         public Task<byte[]> getCaptchaImage()
         {
             return _serverClient.GetCaptchaImageAsync();
         }
+        [Obsolete]
         public Task<PublicBasicUserInfo> getUserInfo()
         {
             return _serverClient.GetUserInfoAsync();
@@ -353,6 +354,7 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
+        [Obsolete]
         public Task register(AccountInfo account, string captcha)
         {
             return _serverClient.RegisterAsync(account.userName, account.mail, account.password, account.nickName, account.invite, captcha);
@@ -365,6 +367,7 @@ namespace TouhouCardEngine
         /// <param name="account"></param>
         /// <param name="password"></param>
         /// <returns></returns>
+        [Obsolete()]
         public async Task<bool> login(string account, string password, string captcha)
         {
             bool success = await _serverClient.LoginAsync(account, password, captcha);
@@ -383,6 +386,7 @@ namespace TouhouCardEngine
         /// 从服务器登出，在服务器返回消息之后返回。
         /// </summary>
         /// <returns></returns>
+        [Obsolete("NetworkingLogic.logout")]
         public async Task logout()
         {
             if (_serverClient == null)
@@ -408,6 +412,7 @@ namespace TouhouCardEngine
         /// 获取许可协议等内容
         /// </summary>
         /// <returns></returns>
+        [Obsolete("NetworkingLogic.GetEULAAndPrivacyPolicy")]
         public async Task<string> GetEULAAndPrivacyPolicy()
         {
             var eula = await _serverClient.GetEULAAsync();
@@ -419,6 +424,7 @@ namespace TouhouCardEngine
         /// 初始化服务器的客户端
         /// </summary>
         /// <param name="uri"></param>
+        [Obsolete("NetworkingLogic.init, autologin")]
         public void InitServerClient(string uri, string gameVersion = "1.0")
         {
             if (_serverClient == null)
@@ -448,6 +454,8 @@ namespace TouhouCardEngine
                 }
             }
         }
+
+        [Obsolete("NetworkingLogic.UserInfo")]
         public AccountInfo account
         {
             get { return _account; }
@@ -457,6 +465,7 @@ namespace TouhouCardEngine
         /// <summary>
         /// 判断是否登录（非游客）
         /// </summary>
+        [Obsolete("NetworkingLogic.AccountIsValid")]
         public bool AccountIsValid => account != null && !account.guest;
 
         [Header("Server")]

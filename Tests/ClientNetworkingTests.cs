@@ -410,6 +410,7 @@ namespace Tests
             client.switchNetToLAN();
             return client;
         }
+        [Obsolete("This operation is a part of Networking V1. Use Networking V3 method instead.")]
         ClientNetworking startClientNetworking(string name)
         {
             throw new NotImplementedException();

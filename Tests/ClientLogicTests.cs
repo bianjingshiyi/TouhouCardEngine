@@ -140,7 +140,7 @@ namespace Tests
 
             for (int i = 0; i < count; i++)
             {
-                ClientLogic client = new ClientLogic(i == 0 ? "Local" : "Remote" + i, serverClient, new UnityLogger(i == 0 ? "Local" : "Remote" + i));
+                ClientLogic client = new ClientLogic(i == 0 ? "Local" : "Remote" + i, sClient: serverClient, logger: new UnityLogger(i == 0 ? "Local" : "Remote" + i));
                 updaters[i] = new GameObject("Client" + i + "Updater").AddComponent<Updater>();
                 updaters[i].action = () => client.update();
                 client.switchNetToLAN();
