@@ -156,7 +156,7 @@ namespace TouhouCardEngine
         }
         private string getTriggerName(IGame game, ICard card, IBuff buff, TriggerTime time)
         {
-            return (buff != null ? buff.instanceID.ToString() : string.Empty) + "Effect" + Array.IndexOf(card.define.effects, this) + time.getEventName(game.triggers);
+            return (buff != null ? buff.instanceID.ToString() : string.Empty) + "Effect" + Array.IndexOf(card.define.getEffects(), this) + time.getEventName(game.triggers);
         }
     }
     [Serializable]
@@ -300,7 +300,7 @@ namespace TouhouCardEngine
         private string getEffectName(IGame game, ICard card, IBuff buff, string eventName)
         {
             return (buff != null ? buff.instanceID.ToString() : string.Empty) +
-                "Effect" + Array.IndexOf(card.define.effects, this) + eventName;
+                "Effect" + Array.IndexOf(card.define.getEffects(), this) + eventName;
         }
         #endregion
         #region 属性字段

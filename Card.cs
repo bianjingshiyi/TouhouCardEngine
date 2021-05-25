@@ -56,14 +56,14 @@ namespace TouhouCardEngine
                 Card card = arg.card;
                 define = arg.afterDefine;
                 //禁用被动
-                foreach (var effect in card.define.effects.OfType<IPassiveEffect>())
+                foreach (var effect in card.define.getEffects().OfType<IPassiveEffect>())
                 {
                     await effect.onDisable(game, card, null);
                 }
                 //更换define
                 card.define = define;
                 //激活被动
-                foreach (var effect in card.define.effects.OfType<IPassiveEffect>())
+                foreach (var effect in card.define.getEffects().OfType<IPassiveEffect>())
                 {
                     await effect.onEnable(game, card, null);
                 }

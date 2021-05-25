@@ -60,7 +60,7 @@ namespace TouhouCardEngine
                         {
                             try
                             {
-                                foreach (var effect in card.define.effects)
+                                foreach (var effect in card.define.getEffects())
                                 {
                                     if (effect is IPassiveEffect passiveEffect)
                                     {
@@ -90,7 +90,7 @@ namespace TouhouCardEngine
                                 card.owner = to.owner;
                                 try
                                 {
-                                    foreach (var effect in card.define.effects)
+                                    foreach (var effect in card.define.getEffects())
                                     {
                                         if (effect is IPassiveEffect passiveEffect)
                                         {
@@ -130,7 +130,7 @@ namespace TouhouCardEngine
                             card.owner = to.owner;
                             try
                             {
-                                foreach (var effect in card.define.effects)
+                                foreach (var effect in card.define.getEffects())
                                 {
                                     if (effect is IPassiveEffect passiveEffect)
                                     {
