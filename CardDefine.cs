@@ -14,8 +14,13 @@ namespace TouhouCardEngine
         {
             _id = id;
             _type = type;
-            _propDict = props;
-            _effectList.AddRange(effects);
+            if (props != null)
+                _propDict = props;
+            if (effects != null)
+                _effectList.AddRange(effects);
+        }
+        public CardDefine(int id, string type) : this(id, type, null, null)
+        {
         }
         public override bool Equals(object obj)
         {
@@ -86,10 +91,6 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="newVersion"></param>
         public virtual void merge(CardDefine newVersion)
-        {
-            throw new NotImplementedException();
-        }
-        public virtual string isUsable(CardEngine engine, Player player, Card card)
         {
             throw new NotImplementedException();
         }
