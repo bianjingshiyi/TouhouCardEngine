@@ -11,16 +11,27 @@ namespace TouhouCardEngine
     {
         const int MAX_PLAYER_COUNT = 2;
 
+        public int[] LANPorts { get; } = { 32900, 32901 };
+
         #region 公共成员
-        public ClientLogic(string name, ILogger logger)
+        public ClientLogic(string name, int[] ports = null, ServerClient sClient = null, ILogger logger = null)
         {
             this.logger = logger;
-            clientNetwork = new ClientNetworking(logger: logger);
+            if (sClient != null)
+                LobbyNetwork = new LobbyClientNetworking(sClient, logger: logger);
             LANNetwork = new LANNetworking(name, logger);
+
+            if (ports != null)
+                LANPorts = ports;
+            
+            LANNetwork.broadcastPorts = LANPorts;
         }
         public void update()
         {
-            curNetwork.pollEvents();
+            if (curNetwork != null)
+            {
+                curNetwork.update();
+            }
             //curNetwork.net.PollEvents();
         }
         public void Dispose()
@@ -30,59 +41,116 @@ namespace TouhouCardEngine
             if (LANNetwork != null)
                 LANNetwork.Dispose();
         }
-        public void createLocalRoom()
+        bool isLocalRoom = false;
+        public async Task createLocalRoom()
         {
             logger?.log("客户端创建本地房间");
             room = new RoomData(string.Empty);
             localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
             room.playerDataList.Add(localPlayer);
             room.ownerId = localPlayer.id;
+
+            isLocalRoom = true;
         }
         public void switchNetToLAN()
         {
+            SwitchMode(true);
+        }
+
+        public void switchNetToLobby()
+        {
+            SwitchMode(false);
+        }
+
+        public void SwitchMode(bool isLAN)
+        {
             if (curNetwork != null)
             {
-                //切换网络注销事件。
-                curNetwork.onNewRoomNtf -= onNewOrUpdateRoomNtf;
-                //curNetwork.onUpdateRoom -= onNewOrUpdateRoomNtf;
-                curNetwork.onRemoveRoomNtf -= onRemoveRoomNtf;
-                curNetwork.onJoinRoomReq -= onJoinRoomReq;
-                curNetwork.onRoomAddPlayerNtf -= onRoomAddPlayerNtf;
-                curNetwork.onRoomRemovePlayerNtf -= onRoomRemovePlayerNtf;
-                curNetwork.onRoomSetPropNtf -= onRoomSetPropNtf;
-                curNetwork.onRoomPlayerSetPropNtf -= onRoomPlayerSetPropNtf;
+                // 切换网络注销事件。
+                curNetwork.OnRoomListUpdate -= roomListChangeEvtHandler;
+                curNetwork.OnGameStart -= roomGameStartEvtHandler;
+                curNetwork.onReceive -= roomReceiveEvtHandler;
+                curNetwork.OnRoomDataChange -= roomDataChangeEvtHandler;
+                curNetwork.OnRoomPlayerDataChanged -= roomPlayerDataChangeEvtHandler;
+
                 if (curNetwork == LANNetwork)
                 {
-                    LANNetwork.onGetRoom -= onGetRoomReq;
+                    LANNetwork.onJoinRoomReq -= onJoinRoomReq;
                     LANNetwork.onConfirmJoinReq -= onConfirmJoinReq;
                     LANNetwork.onConfirmJoinAck -= onConfirmJoinAck;
                 }
             }
-            if (!LANNetwork.isRunning)
-                LANNetwork.start();
-            curNetwork = LANNetwork;
-            curNetwork.onNewRoomNtf += onNewOrUpdateRoomNtf;
-            //curNetwork.onUpdateRoom += onNewOrUpdateRoomNtf;
-            curNetwork.onRemoveRoomNtf += onRemoveRoomNtf;
-            curNetwork.onJoinRoomReq += onJoinRoomReq;
-            curNetwork.onRoomAddPlayerNtf += onRoomAddPlayerNtf;
-            curNetwork.onRoomRemovePlayerNtf += onRoomRemovePlayerNtf;
-            curNetwork.onRoomSetPropNtf += onRoomSetPropNtf;
-            curNetwork.onRoomPlayerSetPropNtf += onRoomPlayerSetPropNtf;
+
+            if (isLAN)
+            {
+                logger.log("切换到局域网网络");
+                curNetwork = LANNetwork;
+            } 
+            else
+            {
+                logger.log("切换到服务器网络");
+                curNetwork = LobbyNetwork;
+            }
+
+            if (!curNetwork.isRunning)
+            {
+                if (curNetwork == LANNetwork)
+                {
+                    // 以指定的端口启动
+                    for (int i = 0; i < LANPorts.Length; i++)
+                    {
+                        if (curNetwork.start(LANPorts[i]))
+                            break;
+                    }
+                    if (!curNetwork.isRunning)
+                    {
+                        curNetwork.start();
+                    }
+                }
+                else
+                {
+                    curNetwork.start();
+                }
+            }
+
+            curNetwork.OnRoomListUpdate += roomListChangeEvtHandler;
+            curNetwork.OnGameStart += roomGameStartEvtHandler;
+            curNetwork.onReceive += roomReceiveEvtHandler;
+            curNetwork.OnRoomDataChange += roomDataChangeEvtHandler;
+            curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
+
             if (curNetwork == LANNetwork)
             {
-                LANNetwork.onGetRoom += onGetRoomReq;
+                LANNetwork.onJoinRoomReq += onJoinRoomReq;
                 LANNetwork.onConfirmJoinReq += onConfirmJoinReq;
                 LANNetwork.onConfirmJoinAck += onConfirmJoinAck;
             }
         }
-
         public RoomPlayerData getLocalPlayerData()
         {
-            return curNetwork.getLocalPlayerData();
+            return curNetwork.GetSelfPlayerData();
         }
+
+        public event Action<RoomPlayerData[]> OnPlayerDataChange;
+        private void roomPlayerDataChangeEvtHandler(RoomPlayerData[] obj)
+        {
+            OnPlayerDataChange?.Invoke(obj);
+        }
+
+        public event Action<RoomData> OnRoomDataChange;
+        private void roomDataChangeEvtHandler(RoomData obj)
+        {
+            OnRoomDataChange?.Invoke(obj);
+        }
+
+        public event ResponseHandler OnReceiveData;
+        private Task roomReceiveEvtHandler(int clientID, object obj)
+        {
+            return OnReceiveData?.Invoke(clientID, obj);
+        }
+
         /// <summary>
-        /// 
+        /// 根据所处的模式，创建局域网房间或服务器房间
         /// </summary>
         /// <param name="port">发送或广播创建房间信息的端口</param>
         /// <returns></returns>
@@ -90,36 +158,54 @@ namespace TouhouCardEngine
         public async Task createOnlineRoom()
         {
             logger?.log("客户端创建在线房间");
-            RoomPlayerData localPlayerData = curNetwork.getLocalPlayerData();
-            RoomData room = await curNetwork.createRoom(localPlayerData);
-            localPlayer = localPlayerData;
-            this.room = room;
-            lobby.addRoom(room);
+            localPlayer = curNetwork.GetSelfPlayerData();
+            room = await curNetwork.CreateRoom();
+            room.maxPlayerCount = MAX_PLAYER_COUNT;
+            isLocalRoom = false;
+
+            // lobby.addRoom(room); // 不要在自己的房间列表里面显示自己的房间。
             //this.room.maxPlayerCount = MAX_PLAYER_COUNT;
         }
-        //public void refreshRooms()
-        //{
-        //    logger?.log("客户端刷新房间列表");
-        //    curNetwork.refreshRooms();
-        //}
-        public Task<RoomData[]> getRooms()
+
+        /// <summary>
+        /// 请求房间列表
+        /// </summary>
+        public void refreshRoomList()
         {
             logger?.log("客户端请求房间列表");
-            return curNetwork.getRooms();
+            curNetwork?.RefreshRoomList();
         }
+
         public async Task<bool> joinRoom(string roomId)
         {
             logger?.log("客户端请求加入房间" + roomId);
-            RoomPlayerData joinPlayerData = curNetwork.getLocalPlayerData();
-            return await curNetwork.joinRoom(roomId, joinPlayerData) != null;
+            room = await curNetwork.JoinRoom(roomId);
+            return room != null;
         }
+
+        public async Task<bool> joinRoom(string addr, int port)
+        {
+            if (curNetwork != LANNetwork) return false; 
+            logger?.log("客户端请求加入房间" + addr + ":" + port);
+            room = await LANNetwork.JoinRoom(addr, port);
+            return room != null;
+        }
+
         public Task addAIPlayer()
         {
             logger?.log("主机添加AI玩家");
             RoomPlayerData playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai);
-            room.playerDataList.Add(playerData);
-            if (curNetwork != null)
-                return curNetwork.addPlayer(playerData);
+            var host = curNetwork as INetworkingV3LANHost;
+            if (!isLocalRoom && host != null)
+            {
+                return host.AddPlayer(playerData);
+            }
+            else
+            {
+                // 本地玩家。
+                room.playerDataList.Add(playerData);
+            }
+
             return Task.CompletedTask;
         }
         public Task setRoomProp(string propName, object value)
@@ -127,7 +213,7 @@ namespace TouhouCardEngine
             logger?.log("主机更改房间属性" + propName + "为" + value);
             room.setProp(propName, value);
             if (curNetwork != null)
-                return curNetwork.setRoomProp(propName, value);
+                return curNetwork.SetRoomProp(propName, value);
             return Task.CompletedTask;
         }
         public async Task setPlayerProp(string propName, object value)
@@ -135,56 +221,45 @@ namespace TouhouCardEngine
             logger?.log("玩家更改房间属性" + propName + "为" + value);
             room.setPlayerProp(localPlayer.id, propName, value);
             if (curNetwork != null)
-                await curNetwork.setRoomPlayerProp(localPlayer.id, propName, value);
+                await curNetwork.SetPlayerProp(propName, value);
         }
         public Task quitRoom()
         {
             logger?.log("玩家退出房间" + room.ID);
             room = null;
-            if (curNetwork != null)
-                curNetwork.quitRoom(localPlayer.id);
+            if (curNetwork != null && !isLocalRoom)
+                curNetwork.QuitRoom();
             return Task.CompletedTask;
         }
-        public event Action<RoomData> onNewRoom;
-        public event Action<RoomData> onUpdateRoom;
+        public event Action<LobbyRoomDataList> onRoomListChange;
+        public event Action onGameStart;
         public RoomPlayerData localPlayer { get; private set; } = null;
         public RoomData room { get; private set; } = null;
-        public Lobby lobby { get; } = new Lobby();
+
+        public LobbyRoomDataList roomList { get; protected set; } = new LobbyRoomDataList();
+
         /// <summary>
         /// 网络端口
         /// </summary>
-        public int port => curNetwork != null ? curNetwork.port : -1;
+        public int port => curNetwork != null ? curNetwork.Port : -1;
         public LANNetworking LANNetwork { get; }
-        public IClientNetworking curNetwork { get; set; } = null;
+        public LobbyClientNetworking LobbyNetwork { get; }
+
+        LobbyClientNetworking clientNetwork { get; }
+
+        public CommonClientNetwokingV3 curNetwork { get; set; } = null;
         #endregion
         #region 私有成员
-        private RoomData onGetRoomReq()
+        void roomListChangeEvtHandler(LobbyRoomDataList list)
         {
-            if (room != null)
-                return room;
-            else
-                throw new RPCDontResponseException();
+            roomList = list;
+            onRoomListChange?.Invoke(list);
         }
-        void onNewOrUpdateRoomNtf(RoomData roomData)
-        {
-            logger?.log("客户端更新房间" + roomData.ID);
-            lobby.updateOrAddRoom(roomData, out var newRoom);
-            if (newRoom)
-                onNewRoom?.Invoke(roomData);
-            else
-                onUpdateRoom.Invoke(roomData);
-        }
-        void onRemoveRoomNtf(string roomId)
-        {
-            if (room != null && room.ID == roomId)
-            {
-                logger?.log("客户端与房间" + roomId + "断开连接");
-                room = null;
-            }
-            else
-                logger?.log("客户端移除房间" + roomId);
-            lobby.removeRoom(roomId);
-        }
+        /// <summary>
+        /// 处理玩家连接请求，判断是否可以连接
+        /// </summary>
+        /// <param name="player"></param>
+        /// <returns></returns>
         private RoomData onJoinRoomReq(RoomPlayerData player)
         {
             if (room == null)
@@ -198,6 +273,11 @@ namespace TouhouCardEngine
             else
                 throw new InvalidOperationException("房间已满");
         }
+        /// <summary>
+        /// 将玩家加入房间，然后返回一个房间信息
+        /// </summary>
+        /// <param name="player"></param>
+        /// <returns></returns>
         private RoomData onConfirmJoinReq(RoomPlayerData player)
         {
             if (room == null)
@@ -209,57 +289,22 @@ namespace TouhouCardEngine
                 throw new NullReferenceException("房间中不存在玩家" + player.name);
             return room;
         }
+        /// <summary>
+        /// 房间加入完成
+        /// </summary>
+        /// <param name="joinedRoom"></param>
         private void onConfirmJoinAck(RoomData joinedRoom)
         {
             if (room != null)
                 throw new InvalidOperationException("已经在房间" + room.ID + "中");
-            localPlayer = joinedRoom.getPlayer(curNetwork.getLocalPlayerData().id);
+            localPlayer = joinedRoom.getPlayer(curNetwork.GetSelfPlayerData().id);
             room = joinedRoom;
-            lobby.updateOrAddRoom(joinedRoom, out _);
         }
-        private void onRoomAddPlayerNtf(string roomId, RoomPlayerData playerData)
+
+        private void roomGameStartEvtHandler()
         {
-            Room room = lobby.getRoom(roomId);
-            if (room == null)
-            {
-                logger.logWarn("房间" + roomId + "不存在");
-                return;
-            }
-            if (room.data.playerDataList.Exists(p => p.id == playerData.id))
-            {
-                logger.logWarn("房间中已经存在玩家" + playerData.name);
-                return;
-            }
-            room.data.playerDataList.Add(playerData);
+            onGameStart?.Invoke();
         }
-        private void onRoomRemovePlayerNtf(string roomId, int playerId)
-        {
-            if (!lobby.tryGetRoom(roomId, out var room))
-            {
-                logger?.logWarn("房间" + roomId + "不存在");
-                return;
-            }
-            room.removePlayer(playerId);
-            if (this.room != null && this.room.ID == roomId && localPlayer.id == playerId)
-            {
-                logger?.log("客户端被从房间" + roomId + "中移除");
-                this.room = null;
-            }
-        }
-        private void onRoomSetPropNtf(string roomId, string propName, object value)
-        {
-            if (!lobby.tryGetRoom(roomId, out Room room))
-            {
-                logger.logWarn("房间" + roomId + "不存在");
-                return;
-            }
-            room.setProp(propName, value);
-        }
-        private void onRoomPlayerSetPropNtf(int playerId, string propName, object value)
-        {
-            room.setPlayerProp(playerId, propName, value);
-        }
-        ClientNetworking clientNetwork { get; }
         ILogger logger { get; }
         #endregion
     }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 namespace NitoriNetwork.Common
 {
+    [Obsolete("Use LANNetworking Instead")]
     class LocalHostNetworking : HostNetworking
     {
         public RoomInfo room { get; set; } = null;

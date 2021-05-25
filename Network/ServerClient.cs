@@ -11,6 +11,7 @@ using System;
 using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
+using TouhouCardEngine;
 
 namespace NitoriNetwork.Common
 {
@@ -250,7 +251,6 @@ namespace NitoriNetwork.Common
             // 更新暂存的Session
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
-            UID = await GetUIDAsync();
             saveCookie();
 
             await GetSessionAsync();
@@ -425,10 +425,10 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public BriefRoomInfo CreateRoom()
+        public LobbyRoomData CreateRoom()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = client.Execute<ExecuteResult<BriefRoomInfo>>(request);
+            var response = client.Execute<ExecuteResult<LobbyRoomData>>(request);
 
             errorHandler(response);
             errorHandler(response.Data);
@@ -439,10 +439,10 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public async Task<BriefRoomInfo> CreateRoomAsync()
+        public async Task<LobbyRoomData> CreateRoomAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
-            var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<LobbyRoomData>>(request);
 
             errorHandler(response);
             errorHandler(response.Data);
@@ -453,10 +453,10 @@ namespace NitoriNetwork.Common
         /// 获取房间信息
         /// </summary>
         /// <returns></returns>
-        public BriefRoomInfo[] GetRoomInfos()
+        public LobbyRoomData[] GetRoomInfos()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = client.Execute<ExecuteResult<BriefRoomInfo[]>>(request);
+            var response = client.Execute<ExecuteResult<LobbyRoomData[]>>(request);
 
             errorHandler(response);
             errorHandler(response.Data);
@@ -467,10 +467,10 @@ namespace NitoriNetwork.Common
         /// 获取房间信息
         /// </summary>
         /// <returns></returns>
-        public async Task<BriefRoomInfo[]> GetRoomInfosAsync()
+        public async Task<LobbyRoomData[]> GetRoomInfosAsync()
         {
             RestRequest request = new RestRequest("/api/Room", Method.GET);
-            var response = await client.ExecuteAsync<ExecuteResult<BriefRoomInfo[]>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<LobbyRoomData[]>>(request);
 
             errorHandler(response);
             errorHandler(response.Data);
@@ -508,6 +508,7 @@ namespace NitoriNetwork.Common
             errorHandler(response, response.Data);
             errorHandler(response.Data);
 
+            UID = response.Data.result.UID;
             userInfoCache[response.Data.result.UID] = response.Data.result;
             return response.Data.result;
         }

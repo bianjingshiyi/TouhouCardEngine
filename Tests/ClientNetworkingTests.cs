@@ -80,7 +80,7 @@ namespace Tests
                 var room = clients[0].room;
                 if (room == null)
                     return false;
-                return clients.All(c => c.lobby.getRooms().Any(r => r.data.ID == room.ID));
+                return clients.All(c => c == clients[0] || c.roomList.Any(r => r.Value.RoomID == room.ID));
             }, 5);
         }
         //IEnumerator refreshRoomsAssert(ClientNetworking[] clients)
@@ -122,7 +122,8 @@ namespace Tests
             //每一个人获取房间列表都能获取到两个创建的房间
             yield return TestHelper.waitUntil(() =>
             {
-                return clients.All(c => c.lobby.getRooms().Length == 2);
+                // 每个玩家是看不到自己创建的房间的，这里应该是1才对
+                return clients.All(c => c.roomList.Count == 2);
             }, 5);
             //foreach (var client in clients)
             //{
@@ -206,29 +207,30 @@ namespace Tests
             //第二个人加入房间
             yield return TestHelper.waitUntil(() =>
             {
-                return clients[1].lobby.getRooms().Length > 0;
+                return clients[1].roomList.Count > 0;
             }, 5);
-            RoomData roomData = clients[1].lobby.getRooms()[0].data;
-            Assert.NotNull(roomData);
-            Task<bool> boolTask = clients[1].joinRoom(roomData.ID);
+            var roomInfo = clients[1].roomList.First().Value;
+            Assert.NotNull(roomInfo);
+
+            Task<bool> boolTask = clients[1].joinRoom(roomInfo.RoomID);
             yield return boolTask.wait();
             //预期收到自己加入了房间，里面有两个人
             Assert.True(boolTask.Result);
-            Assert.AreEqual(roomData.ID, clients[1].room.ID);
+            Assert.AreEqual(roomInfo.RoomID, clients[1].room.ID);
             Assert.NotNull(clients[1].localPlayer);
-            roomData = clients[1].room;
+            var roomData = clients[1].room;
             Assert.AreEqual(2, roomData.playerDataList.Count);
             Assert.AreEqual(clients[0].getLocalPlayerData().id, roomData.playerDataList[0].id);
             Assert.AreEqual(clients[1].getLocalPlayerData().id, roomData.playerDataList[1].id);
             //预期其他人看到房间更新了，里面有两个人
             yield return TestHelper.waitUntil(() => clients.All(c =>
             {
-                RoomData rd = c.lobby.getRooms()[0].data;
-                return roomData.ID == rd.ID && rd.playerDataList.Count == 2;
+                var rd = c.roomList.First().Value;
+                return roomData.ID == rd.RoomID && rd.PlayerCount == 2;
             }), 5);
             //第三个人加入房间
-            yield return TestHelper.waitUntil(() => clients[2].lobby.getRooms().Length > 0, 5);
-            roomData = clients[2].lobby.getRooms()[0].data;
+            yield return TestHelper.waitUntil(() => clients[2].roomList.Count > 0, 5);
+            roomInfo = clients[2].roomList.First().Value;
             yield return clients[2].joinRoom(roomData.ID).wait();
             //预期自己加入了房间，里面有3个人
             Assert.AreEqual(roomData.ID, clients[2].room.ID);
@@ -240,8 +242,8 @@ namespace Tests
             //预期其他人看见房间更新了，房间里的人可以看到细节，外面的人只能看到数量变化
             yield return TestHelper.waitUntil(() => clients.All(c =>
             {
-                RoomData rd = c.lobby.getRooms()[0].data;
-                return roomData.ID == rd.ID && rd.playerDataList.Count == 3;
+                var rd = c.roomList.First().Value;
+                return roomData.ID == rd.RoomID && rd.PlayerCount == 3;
             }), 5);
         }
         IEnumerator addAIPlayerAssert(ClientLogic[] clients)
@@ -249,19 +251,20 @@ namespace Tests
             //一个人创建房间
             yield return clients[0].createOnlineRoom().wait();
             //另一个人加入房间
-            yield return TestHelper.waitUntil(() => clients[1].lobby.getRooms().Length > 0, 5);
-            yield return clients[1].joinRoom(clients[1].lobby.getRooms()[0].data.ID).wait();
+            yield return TestHelper.waitUntil(() => clients[1].roomList.Count > 0, 5);
+            yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
             //向房间中添加AI玩家
-            yield return TestHelper.waitUntilAllEventTrig(clients,
-                (c, a) => c.LANNetwork.onRoomAddPlayerNtf += (s, p) => a(),
+            yield return TestHelper.waitUntilEventTrig(clients[0],
+                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
                 () => clients[0].addAIPlayer().wait());
-            //所有人都会收到
+            // 房间内的玩家会收到
             Assert.AreEqual(3, clients[1].room.playerDataList.Count);
+            Assert.AreEqual(RoomPlayerType.ai, clients[1].room.playerDataList[2].type);
+            // 其他人只能看到人数变了
             foreach (var client in clients)
             {
-                Room room = client.lobby.getRooms().First();
-                Assert.AreEqual(3, room.data.playerDataList.Count);
-                Assert.AreEqual(RoomPlayerType.ai, room.data.playerDataList[2].type);
+                var room = client.roomList.First().Value;
+                Assert.AreEqual(3, room.PlayerCount);
             }
         }
         IEnumerator setRoomPropAssert(ClientLogic[] clients)
@@ -269,15 +272,11 @@ namespace Tests
             yield return createAndJoinRoom(clients);
             //更改房间属性
             int randomSeed = DateTime.Now.GetHashCode();
-            yield return TestHelper.waitUntilAllEventTrig(clients,
-                (c, a) => c.LANNetwork.onRoomSetPropNtf += (s1, s2, o) => a(),
+            yield return TestHelper.waitUntilEventTrig(clients[1],
+                (c, a) => c.LANNetwork.OnRoomDataChange += (rd) => a(),
                 () => clients[0].setRoomProp("randomSeed", randomSeed).wait());
             //所有人都会收到房间属性更改
-            foreach (var client in clients)
-            {
-                Room room = client.lobby.getRooms().First();
-                Assert.AreEqual(randomSeed, room.getProp<int>("randomSeed"));
-            }
+            Assert.AreEqual(randomSeed, clients[1].room.getProp<int>("randomSeed"));
         }
         /// <summary>
         /// 一个人创建房间，另一个人加入房间
@@ -287,54 +286,56 @@ namespace Tests
         IEnumerator createAndJoinRoom(ClientLogic[] clients)
         {
             yield return TestHelper.waitUntilEventTrig(clients[1],
-                (c, a) => c.onNewRoom += r => a(),
+                (c, a) => c.onRoomListChange += r => { if (r.Count > 0) a(); },
                 () => clients[0].createOnlineRoom().wait());
-            yield return clients[1].joinRoom(clients[1].lobby.getRooms()[0].data.ID).wait();
+            yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
         }
         IEnumerator setPlayerPropAssert(ClientLogic[] clients)
         {
             yield return createAndJoinRoom(clients);
             //玩家2设置自己的属性，预期房间里的所有人都能收到属性改变
-            yield return TestHelper.waitUntilAllEventTrig(clients.Take(2),
-                (c, a) => c.LANNetwork.onRoomPlayerSetPropNtf += (i, s, o) => a(),
-                () => clients[1].setPlayerProp("deckCount", 30).wait(), 10);
-            for (int i = 0; i < clients.Length; i++)
+            yield return TestHelper.waitUntilEventTrig(clients[0],
+                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
+                () => clients[1].setPlayerProp("deckCount", 30).wait());
+
+            for (int i = 0; i < 2; i++)
             {
-                if (i < 2)
-                    Assert.AreEqual(30, clients[i].room.playerDataList[1].propDict["deckCount"]);
-                else
-                {
-                    Room room = clients[i].lobby.getRooms().First();
-                    Assert.False(room.data.playerDataList[1].propDict.ContainsKey("deckCount"));
-                }
+                Assert.AreEqual(30, clients[i].room.playerDataList[1].propDict["deckCount"]);
             }
         }
         IEnumerator quitRoomAssert(ClientLogic[] clients)
         {
             yield return createAndJoinRoom(clients);
-            foreach (var client in clients)
+            for (int i = 0; i < 2; i++)
             {
-                Room room = client.lobby.getRooms().First();
-                Assert.AreEqual(2, room.data.playerDataList.Count);
+                Assert.AreEqual(2, clients[i].room.playerDataList.Count);
             }
-            //玩家2退出房间，所有人都可以看到房间中人数的减少
-            yield return TestHelper.waitUntilAllEventTrig(clients,
-                (c, a) => c.LANNetwork.onRoomRemovePlayerNtf += (s, i) => a(),
-                () => clients[1].quitRoom().wait());
-            Assert.Null(clients[1].room);
             foreach (var client in clients)
             {
-                Room room = client.lobby.getRooms().First();
-                Assert.AreEqual(1, room.data.playerDataList.Count);
+                Assert.AreEqual(1, client.roomList.Count);
+                Assert.AreEqual(2, client.roomList.First().Value.PlayerCount);
+            }
+
+            //玩家2退出房间，所有人都可以看到房间中人数的减少
+            yield return TestHelper.waitUntilEventTrig(clients[0],
+                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += s => a(),
+                () => clients[1].quitRoom().wait());
+            Debug.Log("Stage2");
+            Assert.Null(clients[1].room);
+            Assert.AreEqual(1, clients[0].room.playerDataList.Count);
+            foreach (var client in clients)
+            {
+                Assert.AreEqual(1, client.roomList.Count);
+                Assert.AreEqual(1, client.roomList.First().Value.PlayerCount);
             }
             //玩家1退出房间，所有人都可以看到房间中人无了
-            yield return TestHelper.waitUntilAllEventTrig(clients.Skip(1),
-                (c, a) => c.LANNetwork.onRemoveRoomNtf += s => a(),
+            yield return TestHelper.waitUntilAllEventTrig(clients, 
+                (c, a) => c.onRoomListChange += s => a(), 
                 () => clients[0].quitRoom().wait());
             Assert.Null(clients[0].room);
             foreach (var client in clients)
             {
-                Assert.AreEqual(0, client.lobby.getRooms().Length);
+                Assert.AreEqual(0, client.roomList.Count);
             }
         }
         //IEnumerator startNetworkAndAssert(int count, Func<string, IClientNetworking> netStarter, Func<IClientNetworking[], IEnumerator> onAssert)
@@ -385,30 +386,31 @@ namespace Tests
                 Object.Destroy(updaters[i].gameObject);
             }
         }
-        int[] getPorts(IClientNetworking[] clients)
+        int[] getPorts(CommonClientNetwokingV3[] clients)
         {
-            return clients.Select(c => c.port).ToArray();
+            return clients.Select(c => c.Port).ToArray();
         }
         int[] getPorts(ClientLogic[] clients)
         {
-            return clients.Select(c => c.curNetwork.port).ToArray();
+            return clients.Select(c => c.curNetwork.Port).ToArray();
         }
         #endregion
         #region 具体网络实现
         LANNetworking startLANNetworking(string name)
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
-            ClientLogic client = new ClientLogic(name, new UnityLogger(name));
+            ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
             client.switchNetToLAN();
             return client.LANNetwork;
         }
         ClientLogic startLANClient(string name)
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
-            ClientLogic client = new ClientLogic(name, new UnityLogger(name));
+            ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
             client.switchNetToLAN();
             return client;
         }
+        [Obsolete("This operation is a part of Networking V1. Use Networking V3 method instead.")]
         ClientNetworking startClientNetworking(string name)
         {
             throw new NotImplementedException();
@@ -430,7 +432,7 @@ namespace Tests
             GameObject remoteUpdater = new GameObject("RemoteUpdater");
             remoteUpdater.AddComponent<Updater>().action = () => remote.net.PollEvents();
             remote.start();
-            local.broadcastPorts = new int[] { remote.port };
+            local.broadcastPorts = new int[] { remote.Port };
             flag = false;
             remote.addRPCMethod(this, nameof(setFlag));
             local.invokeBroadcast(nameof(setFlag), true);

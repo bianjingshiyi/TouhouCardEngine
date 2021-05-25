@@ -11,6 +11,7 @@ using UnityEngine;
 using TouhouCardEngine.Shared;
 namespace TouhouCardEngine
 {
+    [Obsolete("Use ClientLogic")]
     public class HostManager : MonoBehaviour, IHostManager
     {
         [SerializeField]

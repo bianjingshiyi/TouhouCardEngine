@@ -10,10 +10,14 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 using BJSYGameCore;
+using System.Linq;
+
 namespace Tests
 {
     public class ClientLogicTests
     {
+        const string TestServerUrl = "http://localhost:50112";
+
         [UnityTest]
         public IEnumerator localRoomCreateTest()
         {
@@ -21,9 +25,10 @@ namespace Tests
         }
         IEnumerator createLocalRoomAndAssert(Func<ClientLogic, IEnumerator> onAssert)
         {
-            using (ClientLogic client = new ClientLogic("Room", new UnityLogger("Room")))
+            using (ClientLogic client = new ClientLogic("Room", logger: new UnityLogger("Room")))
             {
-                client.createLocalRoom();
+                var task = client.createLocalRoom();
+                yield return task.wait();
                 yield return onAssert(client);
             }
         }
@@ -131,13 +136,19 @@ namespace Tests
         {
             ClientLogic[] clients = new ClientLogic[count];
             Updater[] updaters = new Updater[count];
+            ServerClient serverClient = new ServerClient(TestServerUrl);
+
             for (int i = 0; i < count; i++)
             {
-                ClientLogic client = new ClientLogic(i == 0 ? "Local" : "Remote" + i, new UnityLogger(i == 0 ? "Local" : "Remote" + i));
+                ClientLogic client = new ClientLogic(i == 0 ? "Local" : "Remote" + i, sClient: serverClient, logger: new UnityLogger(i == 0 ? "Local" : "Remote" + i));
                 updaters[i] = new GameObject("Client" + i + "Updater").AddComponent<Updater>();
                 updaters[i].action = () => client.update();
                 client.switchNetToLAN();
                 clients[i] = client;
+            }
+            for (int i = 0; i < clients.Length; i++)
+            {
+                clients[i].LANNetwork.broadcastPorts = clients.Select(c => c.port).ToArray();
             }
             yield return clients[0].createOnlineRoom().wait();
             yield return onAssert(clients);
@@ -154,7 +165,7 @@ namespace Tests
         }
         IEnumerator LANRoomCreateAndAssert(Func<ClientLogic, IEnumerator> onAssert)
         {
-            using (ClientLogic client = new ClientLogic("RoomLocal", new UnityLogger("RoomLocal")))
+            using (ClientLogic client = new ClientLogic("RoomLocal", logger: new UnityLogger("RoomLocal")))
             {
                 client.switchNetToLAN();
                 yield return client.createOnlineRoom().wait();
@@ -163,8 +174,10 @@ namespace Tests
         }
         IEnumerator LANRoomCreateAssert(ClientLogic client1, ClientLogic client2)
         {
-            RoomData room = null;
-            client2.onNewRoom += r => room = r;
+            LobbyRoomData room = null;
+            client2.onRoomListChange += r => {
+                if (r.Count > 0) room = r.First().Value;
+            };
             //客户端创建房间，并且广播新增房间信息
             yield return client1.createOnlineRoom().wait();
             //client2应该会收到创建房间信息
@@ -199,15 +212,17 @@ namespace Tests
         }
         IEnumerator LANRoomJoinAssert(ClientLogic client1, ClientLogic client2)
         {
-            RoomData room = null;
+            LobbyRoomData room = null;
             //等待client2获取到房间
-            client2.onNewRoom += r => room = r;
+            client2.onRoomListChange += r => {
+                if (r.Count > 0) room = r.First().Value;
+            }; ;
             //client1创建房间
             yield return client1.createOnlineRoom();
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
-            yield return client2.joinRoom(room.ID);
-            room = client2.room;
+            yield return client2.joinRoom(room.RoomID).wait();
+            var roomData = client2.room;
             Assert.AreEqual(client1.room.playerDataList[0].id, client1.room.ownerId);
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(RoomPlayerType.human, client1.room.playerDataList[0].type);
@@ -227,19 +242,22 @@ namespace Tests
         }
         IEnumerator LANRoomQuitAssert(ClientLogic client1, ClientLogic client2)
         {
-            RoomData room = null;
+            LobbyRoomData room = null;
+            //等待client2获取到房间
+            client2.onRoomListChange += r => {
+                if (r.Count > 0) room = r.First().Value;
+            };
             //client1创建房间
             yield return client1.createOnlineRoom();
-            //等待client2获取到房间
-            client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
-            yield return client2.joinRoom(room.ID);
+            yield return client2.joinRoom(room.RoomID).wait();
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(2, client2.room.playerDataList.Count);
             //client2退出房间
-            yield return client2.quitRoom();
+            yield return client2.quitRoom().wait();
             Assert.Null(client2.room);
+            yield return new WaitForSeconds(0.5f); // 要等一下才会退出
             Assert.AreEqual(1, client1.room.playerDataList.Count);
         }
         [UnityTest]
@@ -249,14 +267,16 @@ namespace Tests
         }
         IEnumerator LANRoomSetPropAssert(ClientLogic client1, ClientLogic client2)
         {
-            RoomData room = null;
+            LobbyRoomData room = null;
+            //等待client2获取到房间
+            client2.onRoomListChange += r => {
+                if (r.Count > 0) room = r.First().Value;
+            };
             //client1创建房间
             yield return client1.createOnlineRoom();
-            //等待client2获取到房间
-            client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
-            yield return client2.joinRoom(room.ID);
+            yield return client2.joinRoom(room.RoomID).wait();
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(2, client2.room.playerDataList.Count);
             //client1修改房间属性
@@ -272,14 +292,16 @@ namespace Tests
         }
         IEnumerator LANRoomSetPlayerPropAssert(ClientLogic client1, ClientLogic client2)
         {
-            RoomData room = null;
+            LobbyRoomData room = null;
+            //等待client2获取到房间
+            client2.onRoomListChange += r => {
+                if (r.Count > 0) room = r.First().Value;
+            };
             //client1创建房间
             yield return client1.createOnlineRoom();
-            //等待client2获取到房间
-            client2.onNewRoom += r => room = r;
             yield return TestHelper.waitUntil(() => room != null, 5);
             //client2加入房间
-            yield return client2.joinRoom(room.ID);
+            yield return client2.joinRoom(room.RoomID).wait();
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(2, client2.room.playerDataList.Count);
             //client2修改自己的属性

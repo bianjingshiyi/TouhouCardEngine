@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using MongoDB.Bson.Serialization;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using MongoDB.Bson;
 
 namespace TouhouCardEngine
 {
@@ -39,7 +40,7 @@ namespace TouhouCardEngine
         public override RoomPlayerData GetSelfPlayerData()
         {
             // 仅在更换了用户后更新这个PlayerData
-            var info = serverClient.GetUserInfoCached();
+            var info = serverClient.GetUserInfo(serverClient.UID);
             if (localPlayer?.id != info.UID)
                 localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
 
@@ -55,7 +56,7 @@ namespace TouhouCardEngine
             // step 1: 在服务器上创建房间
             var roomInfo = await serverClient.CreateRoomAsync();
             // step 2: 加入这个房间
-            return await joinRoom(new LobbyRoomData(roomInfo));
+            return await joinRoom(roomInfo);
         }
 
         public override event Action<LobbyRoomDataList> OnRoomListUpdate;
@@ -72,11 +73,10 @@ namespace TouhouCardEngine
         public async override Task RefreshRoomList()
         {
             var roomInfos = await serverClient.GetRoomInfosAsync();
-
             lobby.Clear();
             foreach (var item in roomInfos)
             {
-                lobby[item.id] = new LobbyRoomData(item);
+                lobby[item.RoomID] = item;
             }
             OnRoomListUpdate?.Invoke(lobby);
         }
@@ -99,8 +99,9 @@ namespace TouhouCardEngine
         {
             var writer = new NetDataWriter();
             // todo: 规定加入的数据格式。
-            writer.Put(roomInfo.ID);
+            writer.Put(roomInfo.RoomID);
             writer.Put(serverClient.UserSession);
+            writer.Put(localPlayer.ToJson());
             writer.Put(localPlayer.id);
 
             hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
@@ -150,22 +151,22 @@ namespace TouhouCardEngine
 
         public override Task SetRoomProp(string key, object value)
         {
-            return invoke<object>(nameof(IRoomRPCMethodHost.setRoomProp), key, value);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomProp), key, value);
         }
 
         public override Task SetPlayerProp(string name, object val)
         {
-            return invoke<object>(nameof(IRoomRPCMethodHost.setPlayerProp), name, val);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setPlayerProp), name, val);
         }
 
         public override Task GameStart()
         {
-            return invoke<object>(nameof(IRoomRPCMethodHost.gameStart));
+            return invoke<object>(nameof(IRoomRPCMethodLobby.gameStart));
         }
 
-        public override Task Send(object obj)
+        public override Task<T> Send<T>(object obj)
         {
-            return sendTo(hostPeer, obj);
+            return sendTo<T>(hostPeer, obj);
         }
         #endregion
 
@@ -179,7 +180,8 @@ namespace TouhouCardEngine
                 return;
             }
 
-            var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
+            var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodLobby.requestJoinRoom), GetSelfPlayerData());
+            cachedRoomData = roomInfo;
             completeOperation(op, roomInfo);
         }
         #endregion
@@ -217,100 +219,5 @@ namespace TouhouCardEngine
             return (int)latencyAvg.GetAvg();
         }
         #endregion
-    }
-
-    public class LANNetworkingV3 : CommonClientNetwokingV3
-    {
-        public LANNetworkingV3(Shared.ILogger logger) : base("LAN", logger)
-        {
-
-        }
-
-        public override event Action<LobbyRoomDataList> OnRoomListUpdate;
-
-        public override Task AlterRoomInfo(LobbyRoomData newInfo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task<RoomData> CreateRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task DestroyRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task GameStart()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override int GetLatency()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override T GetRoomProp<T>(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override RoomPlayerData GetSelfPlayerData()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task<T> invoke<T>(string mehtod, params object[] args)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task<RoomData> JoinRoom(string roomID)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void QuitRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task RefreshRoomList()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task Send(object obj)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task SetPlayerProp(string name, object val)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override Task SetRoomProp(string name, object val)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnConnectionRequest(ConnectionRequest request)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnPeerConnected(NetPeer peer)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
