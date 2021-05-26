@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Interfaces;
@@ -32,17 +33,17 @@ namespace TouhouCardEngine
         public override bool Equals(object obj)
         {
             if (obj is CardDefine other)
-                return id == other.id;
+                return defineNumber == other.defineNumber;
             return base.Equals(obj);
         }
         public override int GetHashCode()
         {
-            return id;
+            return defineNumber;
         }
         public virtual void setProp<T>(string propName, T value)
         {
-            if (propName == nameof(id))
-                id = (int)(object)value;
+            if (propName == nameof(defineNumber))
+                defineNumber = (int)(object)value;
             _propDict[propName] = value;
         }
         public virtual T getProp<T>(string propName)
@@ -104,19 +105,25 @@ namespace TouhouCardEngine
         /// <summary>
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
-        public virtual int id
+        [BsonIgnore]
+        public virtual int defineNumber
         {
             get { return _id; }
             set { _id = value; }
         }
+        [BsonElement]
         int _id;
+        [BsonIgnore]
         public virtual string type
         {
             get { return _type; }
             set { _type = value; }
         }
+        [BsonElement]
         string _type;
+        [BsonElement]
         Dictionary<string, object> _propDict = new Dictionary<string, object>();
+        [BsonElement]
         List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
         IEffect[] _runtimeEffects;

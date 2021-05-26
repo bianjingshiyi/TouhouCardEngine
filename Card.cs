@@ -440,7 +440,7 @@ namespace TouhouCardEngine
         }
         public string getFormatString()
         {
-            return "{card:" + define.id + "}";
+            return "{card:" + define.defineNumber + "}";
         }
         public static implicit operator Card[](Card card)
         {

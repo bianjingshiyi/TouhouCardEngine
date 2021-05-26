@@ -1,4 +1,7 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Conventions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -372,16 +375,31 @@ namespace TouhouCardEngine
     {
         public TargetChecker(string targetName, ActionValueRef condition, string invalidMsg)
         {
-            this.targetName = targetName;
-            this.condition = condition;
-            this.invalidMsg = invalidMsg;
+            _targetName = targetName;
+            _condition = condition;
+            _invalidMsg = invalidMsg;
         }
         public TargetChecker() : this(string.Empty, null, string.Empty)
         {
         }
-        public string targetName { get; set; }
-        public ActionValueRef condition { get; set; }
-        public string invalidMsg { get; set; }
+        public string targetName
+        {
+            get { return _targetName; }
+            set { _targetName = value; }
+        }
+        string _targetName;
+        public ActionValueRef condition
+        {
+            get { return _condition; }
+            set { _condition = value; }
+        }
+        ActionValueRef _condition;
+        public string invalidMsg
+        {
+            get { return _invalidMsg; }
+            set { _invalidMsg = value; }
+        }
+        string _invalidMsg;
     }
     /// <summary>
     /// 单个动作的数据结构。
@@ -1084,5 +1102,23 @@ namespace TouhouCardEngine
         public string paramName { get; }
         public bool isConst { get; }
         public bool isParams { get; }
+    }
+    public class FieldOnlyClassMapConvention : IClassMapConvention
+    {
+        public string Name { get; } = "FieldOnlyClassMapConvention";
+        public void Apply(BsonClassMap classMap)
+        {
+            var memberMaps = classMap.DeclaredMemberMaps.ToArray();
+            foreach (var memberMap in memberMaps)
+            {
+                if (memberMap.MemberInfo.MemberType == MemberTypes.Property)
+                    classMap.UnmapMember(memberMap.MemberInfo);
+            }
+            foreach (var fieldInfo in classMap.ClassType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(f => f.GetCustomAttribute<BsonIgnoreAttribute>() == null && f.GetCustomAttribute<NonSerializedAttribute>() == null))
+            {
+                classMap.MapMember(fieldInfo);
+            }
+        }
     }
 }

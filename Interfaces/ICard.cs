@@ -54,7 +54,7 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface ICardDefine
     {
-        int id { get; }
+        int defineNumber { get; }
 
         IEffect[] getEffects();
     }

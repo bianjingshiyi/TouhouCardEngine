@@ -204,9 +204,9 @@ namespace TouhouCardEngine
         #region CardDefine
         public void addDefine(CardDefine define)
         {
-            if (cardDefineDic.ContainsKey(define.id))
-                throw new ConflictDefineException(cardDefineDic[define.id], define);
-            cardDefineDic.Add(define.id, define);
+            if (cardDefineDic.ContainsKey(define.defineNumber))
+                throw new ConflictDefineException(cardDefineDic[define.defineNumber], define);
+            cardDefineDic.Add(define.defineNumber, define);
         }
         public T getDefine<T>() where T : CardDefine
         {

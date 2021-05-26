@@ -6,7 +6,7 @@ namespace TouhouCardEngine
     public class ConflictDefineException : Exception
     {
         public ConflictDefineException() { }
-        public ConflictDefineException(CardDefine a, CardDefine b) : base(a + "和" + b + "具有相同的ID:" + a.id)
+        public ConflictDefineException(CardDefine a, CardDefine b) : base(a + "和" + b + "具有相同的ID:" + a.defineNumber)
         {
         }
         public ConflictDefineException(string message) : base(message) { }

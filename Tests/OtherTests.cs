@@ -9,8 +9,9 @@ using System.Net;
 using TouhouCardEngine;
 using UnityEngine;
 using UnityEngine.TestTools;
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Conventions;
 
 namespace Tests
 {
@@ -48,15 +49,6 @@ namespace Tests
             Assert.True(result);
         }
         [Test]
-        public void serializeObjectArrayTest()
-        {
-            object[] array = new object[] { 1 };
-            StringWriter writer = new StringWriter();
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Serialize(writer, array);
-            Debug.Log(writer.ToString());
-        }
-        [Test]
         public void cardDefineSerializeTest()
         {
             object cards =
@@ -83,46 +75,14 @@ namespace Tests
                     }))
                 }), new string[0])
             });
-            //new CardDefine[]
-            //{
-            //    new CardDefine(0, "Spell", new Dictionary<string, object>()
-            //    {
-            //        { "cost", 5 },
-            //        { "tags", new string[] { "Fire" } }
-            //    }, new GeneratedEffect[]
-            //    {
-            //        new GeneratedEffect(null, new TargetChecker[]
-            //        {
-            //            new TargetChecker("Character", null, "必须以角色为目标")
-            //        }, new ActionNode("Damage", new ActionValueRef[]
-            //        {
-            //            new ActionValueRef(new ActionNode("GetTarget", new object[] { "Target" })),
-            //            new ActionValueRef(new ActionNode("GetVariable", new object[] { "Card" })),
-            //            new ActionValueRef(new ActionNode("GetSpellDamage", new ActionValueRef[]
-            //            {
-            //                new ActionValueRef(new ActionNode("GetOwner", new ActionValueRef[]
-            //                {
-            //                    new ActionValueRef(new ActionNode("GetVariable", new object[] { "Card" }))
-            //                })),
-            //                new ActionValueRef(new ActionNode("IntegerConst", new object[] { 7 }))
-            //            }))
-            //        }), new string[0])
-            //    })
-            //};
-            StringWriter writer = new StringWriter();
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Error += Serializer_Error;
-            serializer.Serialize(writer, cards);
-            object dObj = serializer.Deserialize(new StringReader(writer.ToString()), cards.GetType());
-            StringWriter dWriter = new StringWriter();
-            serializer.Serialize(dWriter, dObj);
-            Assert.AreEqual(writer.ToString(), dWriter.ToString());
-            Debug.Log(dWriter.ToString());
-        }
-
-        private void Serializer_Error(object sender, Newtonsoft.Json.Serialization.ErrorEventArgs e)
-        {
-            Debug.LogError(e.CurrentObject + "序列化发生异常：" + e.ErrorContext.Error);
+            ConventionRegistry.Register(nameof(FieldOnlyClassMapConvention), new ConventionPack()
+            {
+                new FieldOnlyClassMapConvention()
+            }, t => true);
+            object dObj = BsonSerializer.Deserialize(cards.ToJson(), cards.GetType());
+            Assert.AreEqual(cards.ToJson(), dObj.ToJson());
+            Debug.Log(dObj.ToJson());
+            ConventionRegistry.Remove(nameof(FieldOnlyClassMapConvention));
         }
     }
 }

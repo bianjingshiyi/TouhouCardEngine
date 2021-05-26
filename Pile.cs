@@ -402,7 +402,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Card getCardByDefine(int defineId)
         {
-            return cardList.FirstOrDefault(c => c.define != null && c.define.id == defineId);
+            return cardList.FirstOrDefault(c => c.define != null && c.define.defineNumber == defineId);
         }
         public Card getCardByRandom(IGame game)
         {
