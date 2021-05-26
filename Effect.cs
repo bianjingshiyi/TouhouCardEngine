@@ -165,11 +165,14 @@ namespace TouhouCardEngine
         #region 方法
         public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
         {
-            _pileList.AddRange(piles);
+            if (piles != null)
+                _pileList.AddRange(piles);
             _onEnableAction = onEnable;
             _onDisableAction = onDisable;
-            _triggerList.AddRange(triggers);
-            _tagList.AddRange(tags);
+            if (triggers != null)
+                _triggerList.AddRange(triggers);
+            if (tags != null)
+                _tagList.AddRange(tags);
         }
         public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers) : this(piles, onEnable, onDisable, triggers, new string[0])
         {
@@ -200,6 +203,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="action"></param>
         public GeneratedEffect(ActionNode action) : this(null, new TargetChecker[0], action, new string[0])
+        {
+        }
+        public GeneratedEffect() : this(null, null, null, null, null)
         {
         }
         public void onEnable(IGame game, ICard card, IBuff buff)
@@ -259,9 +265,9 @@ namespace TouhouCardEngine
             if (trigger != null)
             {
                 invalidMsg = null;
-                if (trigger.targetCheckers == null || trigger.targetCheckers.Length < 1)
+                if (trigger.targetCheckerList == null || trigger.targetCheckerList.Count < 1)
                     return true;
-                foreach (var targetChecker in trigger.targetCheckers)
+                foreach (var targetChecker in trigger.targetCheckerList)
                 {
                     var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
                     if (task.IsCompleted)
@@ -306,9 +312,17 @@ namespace TouhouCardEngine
         #region 属性字段
         public List<string> pileList => _pileList;
         List<string> _pileList = new List<string>();
-        public ActionNode onEnableAction => _onEnableAction;
+        public ActionNode onEnableAction
+        {
+            get { return _onEnableAction; }
+            set { _onEnableAction = value; }
+        }
         ActionNode _onEnableAction;
-        public ActionNode onDisableAction => _onDisableAction;
+        public ActionNode onDisableAction
+        {
+            get { return _onDisableAction; }
+            set { _onDisableAction = value; }
+        }
         ActionNode _onDisableAction;
         public List<TriggerGraph> triggerList => _triggerList;
         List<TriggerGraph> _triggerList = new List<TriggerGraph>();
@@ -323,7 +337,7 @@ namespace TouhouCardEngine
         {
             this.eventName = eventName;
             this.condition = condition;
-            this.targetCheckers = targetCheckers;
+            targetCheckerList.AddRange(targetCheckers);
             this.action = action;
         }
         public TriggerGraph(string eventName, ActionValueRef condition, ActionNode action) : this(eventName, condition, new TargetChecker[0], action)
@@ -332,10 +346,26 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
-        public string eventName { get; set; }
-        public ActionValueRef condition { get; set; }
-        public TargetChecker[] targetCheckers { get; set; }
-        public ActionNode action { get; set; }
+        public string eventName
+        {
+            get { return _eventName; }
+            set { _eventName = value; }
+        }
+        string _eventName;
+        public ActionValueRef condition
+        {
+            get { return _condition; }
+            set { _condition = value; }
+        }
+        ActionValueRef _condition;
+        public List<TargetChecker> targetCheckerList => _targetCheckerList;
+        List<TargetChecker> _targetCheckerList = new List<TargetChecker>();
+        public ActionNode action
+        {
+            get { return _action; }
+            set { _action = value; }
+        }
+        ActionNode _action;
     }
     [Serializable]
     public class TargetChecker
@@ -357,11 +387,11 @@ namespace TouhouCardEngine
     /// 单个动作的数据结构。
     /// 由于要方便编辑器统一进行操作更改和存储，这个数据结构不允许多态。
     /// 这个数据结构必须同时支持多种类型的语句，比如赋值，分支，循环，返回，方法调用。
-    /// 所以这里有两个很矛盾的地方，
     /// </summary>
     [Serializable]
     public sealed class ActionNode
     {
+        #region 方法
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
         {
             _defineName = defineName;
@@ -387,7 +417,12 @@ namespace TouhouCardEngine
         public ActionNode() : this(string.Empty, new ActionValueRef[0], new object[0], new ActionNode[0])
         {
         }
-        public string defineName => _defineName;
+        #endregion
+        public string defineName
+        {
+            get { return _defineName; }
+            set { _defineName = value; }
+        }
         string _defineName;
         public List<ActionNode> branchList => _branchList;
         List<ActionNode> _branchList = new List<ActionNode>();
@@ -399,6 +434,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class ActionValueRef
     {
+        #region 方法
         public ActionValueRef(ActionNode action, int index)
         {
             this.action = action;
@@ -407,8 +443,25 @@ namespace TouhouCardEngine
         public ActionValueRef(ActionNode action) : this(action, 0)
         {
         }
-        public ActionNode action { get; }
-        public int index { get; }
+        /// <summary>
+        /// 供序列化使用的默认构造器
+        /// </summary>
+        public ActionValueRef() : this(null, 0)
+        {
+        }
+        #endregion
+        public ActionNode action
+        {
+            get { return _action; }
+            set { _action = value; }
+        }
+        ActionNode _action;
+        public int index
+        {
+            get { return _index; }
+            set { _index = value; }
+        }
+        int _index;
     }
     public abstract class ActionDefine
     {

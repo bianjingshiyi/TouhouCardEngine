@@ -10,6 +10,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class CardDefine : ICardDefine
     {
+        #region 方法
         public CardDefine(int id, string type, Dictionary<string, object> props, GeneratedEffect[] effects)
         {
             _id = id;
@@ -20,6 +21,12 @@ namespace TouhouCardEngine
                 _effectList.AddRange(effects);
         }
         public CardDefine(int id, string type) : this(id, type, null, null)
+        {
+        }
+        /// <summary>
+        /// 供序列化使用的默认构造器
+        /// </summary>
+        public CardDefine() : this(0, string.Empty, null, null)
         {
         }
         public override bool Equals(object obj)
@@ -59,7 +66,6 @@ namespace TouhouCardEngine
         }
         public virtual IEffect[] getEffects()
         {
-            setEffects(new GeneratedEffect[0]);
             if (_effectList != null && _effectList.Count > 0)
                 return _effectList.ToArray();
             return _runtimeEffects;
@@ -94,6 +100,7 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+        #endregion
         /// <summary>
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
@@ -110,9 +117,9 @@ namespace TouhouCardEngine
         }
         string _type;
         Dictionary<string, object> _propDict = new Dictionary<string, object>();
+        List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
         IEffect[] _runtimeEffects;
-        List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
     }
     /// <summary>
     /// 忽略这张卡
