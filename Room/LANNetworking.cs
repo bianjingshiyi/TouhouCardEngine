@@ -26,6 +26,7 @@ namespace TouhouCardEngine
         /// <param name="logger"></param>
         public LANNetworking(string name, ILogger logger) : base("LAN", logger)
         {
+            // todo: 局域网的玩家应当随机分配玩家名称
             _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), name, RoomPlayerType.human);
 
             addRPCMethod(this, typeof(IRoomRPCMethodHost));
@@ -221,7 +222,11 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public override Task AlterRoomInfo(LobbyRoomData newInfo)
         {
-            // todo: 更新房间信息
+            // 更新房间信息
+            _roomInfo.OwnerId = newInfo.OwnerId;
+            _roomInfo.MaxPlayerCount = newInfo.MaxPlayerCount;
+            _hostRoomData.maxPlayerCount = newInfo.MaxPlayerCount;
+
             invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
             return Task.CompletedTask;
         }

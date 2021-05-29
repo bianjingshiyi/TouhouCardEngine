@@ -245,7 +245,7 @@ namespace TouhouCardEngine
                     break;
                 case DisconnectReason.RemoteConnectionClose: // 远程关闭
                     break;
-                case DisconnectReason.Reconnect:
+                case DisconnectReason.Reconnect: // 重连后当前连接关闭
                     break;
                 case DisconnectReason.Timeout:
                     break;

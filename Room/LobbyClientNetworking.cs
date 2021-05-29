@@ -98,11 +98,14 @@ namespace TouhouCardEngine
         private Task<RoomData> joinRoom(LobbyRoomData roomInfo)
         {
             var writer = new NetDataWriter();
-            // todo: 规定加入的数据格式。
+
+            GetSelfPlayerData(); // 更新缓存的player数据
+
             writer.Put(roomInfo.RoomID);
             writer.Put(serverClient.UserSession);
             writer.Put(localPlayer.ToJson());
             writer.Put(localPlayer.id);
+            log.logTrace($"尝试以 {localPlayer.id}: {serverClient.UserSession} 连接");
 
             hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
             JoinRoomOperation op = new JoinRoomOperation();
