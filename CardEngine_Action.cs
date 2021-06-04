@@ -41,7 +41,7 @@ namespace TouhouCardEngine
                 {
                     //是变长参数，所有当前index之后的值塞进一个数组
                     List<object> paramList = new List<object>();
-                    foreach (var valueRef in action.inputList.Skip(i))
+                    foreach (var valueRef in action.inputs.Skip(i))
                     {
                         paramList.Add((await doActionAsync(card, buff, eventArg, valueRef.action))[valueRef.index]);
                     }
@@ -51,7 +51,7 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    var valueRef = action.inputList[i];
+                    var valueRef = action.inputs[i];
                     if (valueRef != null)
                     {
                         object arg = (await doActionAsync(card, buff, eventArg, valueRef.action))[valueRef.index];
@@ -61,7 +61,7 @@ namespace TouhouCardEngine
                         args[i] = null;
                 }
             }
-            return await define.execute(this, card, buff, eventArg, args, action.constList.ToArray());
+            return await define.execute(this, card, buff, eventArg, args, action.consts.ToArray());
         }
         /// <summary>
         /// 执行一串动作链表
@@ -77,8 +77,8 @@ namespace TouhouCardEngine
             while (curAction != null)
             {
                 await doActionAsync(card, buff, eventArg, curAction);
-                if (curAction.branchList != null && curAction.branchList.Count > 0)
-                    curAction = curAction.branchList[0];
+                if (curAction.branches != null && curAction.branches.Length > 0)
+                    curAction = curAction.branches[0];
                 else
                     break;
             }

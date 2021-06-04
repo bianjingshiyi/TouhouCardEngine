@@ -156,19 +156,9 @@ namespace TouhouCardEngine
                 addDefine(define);
             }
             //初始化动作定义
-            var actionDefines = ActionDefine.loadDefinesFromAssemblies(assemblies);
-            foreach (var actionDefine in actionDefines)
+            foreach (var pair in ActionDefine.loadDefinesFromAssemblies(assemblies))
             {
-                string name;
-                if (actionDefine is MethodActionDefine methodActionDefine)
-                    name = methodActionDefine.methodName;
-                else
-                {
-                    name = actionDefine.GetType().Name;
-                    if (name.EndsWith("ActionDefine"))
-                        name = name.Substring(0, name.Length - 12);
-                }
-                addActionDefine(name, actionDefine);
+                addActionDefine(pair.Key, pair.Value);
             }
             return rule.onGameInit(this, options, players);
         }

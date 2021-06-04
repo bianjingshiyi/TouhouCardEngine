@@ -413,9 +413,9 @@ namespace TouhouCardEngine
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
         {
             _defineName = defineName;
-            _branchList.AddRange(branches);
-            _inputList.AddRange(inputs);
-            _constList.AddRange(consts);
+            _branches = branches;
+            _inputs = inputs;
+            _consts = consts;
         }
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, inputs, consts, new ActionNode[0])
         {
@@ -436,18 +436,28 @@ namespace TouhouCardEngine
         {
         }
         #endregion
+        /// <summary>
+        /// 用来区分不同动作节点的ID。
+        /// </summary>
+        /// <remarks>其实这个ID在逻辑上并没有什么特殊的作用，但是编辑器需要一个ID来保存对应的视图信息。</remarks>
+        public int id
+        {
+            get { return _id; }
+            set { _id = value; }
+        }
+        int _id;
         public string defineName
         {
             get { return _defineName; }
             set { _defineName = value; }
         }
         string _defineName;
-        public List<ActionNode> branchList => _branchList;
-        List<ActionNode> _branchList = new List<ActionNode>();
-        public List<ActionValueRef> inputList => _inputList;
-        List<ActionValueRef> _inputList = new List<ActionValueRef>();
-        public List<object> constList => _constList;
-        List<object> _constList = new List<object>();
+        public ActionNode[] branches => _branches;
+        ActionNode[] _branches;
+        public ActionValueRef[] inputs => _inputs;
+        ActionValueRef[] _inputs;
+        public object[] consts => _consts;
+        object[] _consts;
     }
     [Serializable]
     public class ActionValueRef
@@ -484,7 +494,7 @@ namespace TouhouCardEngine
     public abstract class ActionDefine
     {
         #region 方法
-        public static Task<ActionDefine[]> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<Dictionary<string, ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => loadDefinesFromAssemblies(assemblies));
         }
@@ -493,9 +503,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="assemblies"></param>
         /// <returns></returns>
-        public static ActionDefine[] loadDefinesFromAssemblies(Assembly[] assemblies)
+        public static Dictionary<string, ActionDefine> loadDefinesFromAssemblies(Assembly[] assemblies)
         {
-            List<ActionDefine> defineList = new List<ActionDefine>();
+            Dictionary<string, ActionDefine> defineDict = new Dictionary<string, ActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -505,12 +515,19 @@ namespace TouhouCardEngine
                         !type.IsAbstract &&
                         type.GetConstructor(new Type[0]) is ConstructorInfo constructor)
                     {
-                        defineList.Add((ActionDefine)constructor.Invoke(new object[0]));
+                        ActionDefine actionDefine = (ActionDefine)constructor.Invoke(new object[0]);
+                        string name = actionDefine.GetType().Name;
+                        if (name.EndsWith("ActionDefine"))
+                            name = name.Substring(0, name.Length - 12);
+                        defineDict.Add(name, actionDefine);
                     }
                 }
             }
-            defineList.AddRange(MethodActionDefine.loadMethodsFromAssemblies(assemblies));
-            return defineList.ToArray();
+            foreach (var pair in MethodActionDefine.loadMethodsFromAssemblies(assemblies))
+            {
+                defineDict.Add(pair.Key, pair.Value);
+            }
+            return defineDict;
         }
         public abstract Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues);
         #endregion
@@ -862,13 +879,13 @@ namespace TouhouCardEngine
     /// </summary>
     public class MethodActionDefine : ActionDefine
     {
-        public static Task<MethodActionDefine[]> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<Dictionary<string, MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => Task.FromResult(loadMethodsFromAssemblies(assemblies)));
         }
-        public static MethodActionDefine[] loadMethodsFromAssemblies(Assembly[] assemblies)
+        public static Dictionary<string, MethodActionDefine> loadMethodsFromAssemblies(Assembly[] assemblies)
         {
-            List<MethodActionDefine> defineList = new List<MethodActionDefine>();
+            Dictionary<string, MethodActionDefine> defineDict = new Dictionary<string, MethodActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -877,12 +894,12 @@ namespace TouhouCardEngine
                     {
                         if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
                         {
-                            defineList.Add(new MethodActionDefine(attribute.methodName, method));
+                            defineDict.Add(attribute.methodName, new MethodActionDefine(attribute.methodName, method));
                         }
                     }
                 }
             }
-            return defineList.ToArray();
+            return defineDict;
         }
         /// <summary>
         /// 
