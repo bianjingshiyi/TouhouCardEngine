@@ -373,21 +373,21 @@ namespace TouhouCardEngine
     [Serializable]
     public class TargetChecker
     {
-        public TargetChecker(string targetName, ActionValueRef condition, string invalidMsg)
+        public TargetChecker(string targetType, ActionValueRef condition, string invalidMsg)
         {
-            _targetName = targetName;
+            _targetType = targetType;
             _condition = condition;
             _invalidMsg = invalidMsg;
         }
         public TargetChecker() : this(string.Empty, null, string.Empty)
         {
         }
-        public string targetName
+        public string targetType
         {
-            get { return _targetName; }
-            set { _targetName = value; }
+            get { return _targetType; }
+            set { _targetType = value; }
         }
-        string _targetName;
+        string _targetType;
         public ActionValueRef condition
         {
             get { return _condition; }
