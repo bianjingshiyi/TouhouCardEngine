@@ -33,17 +33,17 @@ namespace TouhouCardEngine
         public override bool Equals(object obj)
         {
             if (obj is CardDefine other)
-                return defineNumber == other.defineNumber;
+                return id == other.id;
             return base.Equals(obj);
         }
         public override int GetHashCode()
         {
-            return defineNumber;
+            return id;
         }
         public virtual void setProp<T>(string propName, T value)
         {
-            if (propName == nameof(defineNumber))
-                defineNumber = (int)(object)value;
+            if (propName == nameof(id))
+                id = (int)(object)value;
             _propDict[propName] = value;
         }
         public virtual T getProp<T>(string propName)
@@ -106,7 +106,7 @@ namespace TouhouCardEngine
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
         [BsonIgnore]
-        public virtual int defineNumber
+        public virtual int id
         {
             get { return _id; }
             set { _id = value; }
