@@ -169,13 +169,13 @@ namespace TouhouCardEngine
         public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
         {
             if (piles != null)
-                _pileList.AddRange(piles);
-            _onEnableAction = onEnable;
-            _onDisableAction = onDisable;
+                pileList.AddRange(piles);
+            onEnableAction = onEnable;
+            onDisableAction = onDisable;
             if (triggers != null)
-                _triggerList.AddRange(triggers);
+                triggerList.AddRange(triggers);
             if (tags != null)
-                _tagList.AddRange(tags);
+                tagList.AddRange(tags);
         }
         public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers) : this(piles, onEnable, onDisable, triggers, new string[0])
         {
@@ -313,24 +313,11 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public List<string> pileList => _pileList;
-        List<string> _pileList = new List<string>();
-        public ActionNode onEnableAction
-        {
-            get { return _onEnableAction; }
-            set { _onEnableAction = value; }
-        }
-        ActionNode _onEnableAction;
-        public ActionNode onDisableAction
-        {
-            get { return _onDisableAction; }
-            set { _onDisableAction = value; }
-        }
-        ActionNode _onDisableAction;
-        public List<TriggerGraph> triggerList => _triggerList;
-        List<TriggerGraph> _triggerList = new List<TriggerGraph>();
-        public List<string> tagList => _tagList;
-        List<string> _tagList = new List<string>();
+        public List<string> pileList = new List<string>();
+        public ActionNode onEnableAction;
+        public ActionNode onDisableAction;
+        public List<TriggerGraph> triggerList = new List<TriggerGraph>();
+        public List<string> tagList = new List<string>();
         #endregion
     }
     [Serializable]
@@ -349,26 +336,10 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
-        public string eventName
-        {
-            get { return _eventName; }
-            set { _eventName = value; }
-        }
-        string _eventName;
-        public ActionValueRef condition
-        {
-            get { return _condition; }
-            set { _condition = value; }
-        }
-        ActionValueRef _condition;
-        public List<TargetChecker> targetCheckerList => _targetCheckerList;
-        List<TargetChecker> _targetCheckerList = new List<TargetChecker>();
-        public ActionNode action
-        {
-            get { return _action; }
-            set { _action = value; }
-        }
-        ActionNode _action;
+        public string eventName;
+        public ActionValueRef condition;
+        public List<TargetChecker> targetCheckerList = new List<TargetChecker>();
+        public ActionNode action;
     }
     [Serializable]
     public class TargetChecker

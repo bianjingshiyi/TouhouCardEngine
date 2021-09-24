@@ -126,7 +126,7 @@ namespace TouhouCardEngine
         [BsonElement]
         List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
-        IEffect[] _runtimeEffects;
+        IEffect[] _runtimeEffects = new IEffect[0];
     }
     /// <summary>
     /// 忽略这张卡
