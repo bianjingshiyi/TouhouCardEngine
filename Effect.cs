@@ -280,7 +280,7 @@ namespace TouhouCardEngine
                         {
                             if (b == false)
                             {
-                                invalidMsg = targetChecker.invalidMsg;
+                                invalidMsg = targetChecker.errorTip;
                                 return false;
                             }
                         }
@@ -346,31 +346,16 @@ namespace TouhouCardEngine
     {
         public TargetChecker(string targetType, ActionValueRef condition, string invalidMsg)
         {
-            _targetType = targetType;
-            _condition = condition;
-            _invalidMsg = invalidMsg;
+            this.targetType = targetType;
+            this.condition = condition;
+            this.errorTip = invalidMsg;
         }
         public TargetChecker() : this(string.Empty, null, string.Empty)
         {
         }
-        public string targetType
-        {
-            get { return _targetType; }
-            set { _targetType = value; }
-        }
-        string _targetType;
-        public ActionValueRef condition
-        {
-            get { return _condition; }
-            set { _condition = value; }
-        }
-        ActionValueRef _condition;
-        public string invalidMsg
-        {
-            get { return _invalidMsg; }
-            set { _invalidMsg = value; }
-        }
-        string _invalidMsg;
+        public string targetType;
+        public ActionValueRef condition;
+        public string errorTip;
     }
     /// <summary>
     /// 单个动作的数据结构。
@@ -383,10 +368,10 @@ namespace TouhouCardEngine
         #region 方法
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
         {
-            _defineName = defineName;
-            _branches = branches;
-            _inputs = inputs;
-            _consts = consts;
+            this.defineName = defineName;
+            this.branches = branches;
+            this.inputs = inputs;
+            this.consts = consts;
         }
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, inputs, consts, new ActionNode[0])
         {
@@ -411,24 +396,11 @@ namespace TouhouCardEngine
         /// 用来区分不同动作节点的ID。
         /// </summary>
         /// <remarks>其实这个ID在逻辑上并没有什么特殊的作用，但是编辑器需要一个ID来保存对应的视图信息。</remarks>
-        public int id
-        {
-            get { return _id; }
-            set { _id = value; }
-        }
-        int _id;
-        public string defineName
-        {
-            get { return _defineName; }
-            set { _defineName = value; }
-        }
-        string _defineName;
-        public ActionNode[] branches => _branches;
-        ActionNode[] _branches;
-        public ActionValueRef[] inputs => _inputs;
-        ActionValueRef[] _inputs;
-        public object[] consts => _consts;
-        object[] _consts;
+        public int id;
+        public string defineName;
+        public ActionNode[] branches;
+        public ActionValueRef[] inputs;
+        public object[] consts;
     }
     [Serializable]
     public class ActionValueRef
@@ -449,18 +421,8 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public ActionNode action
-        {
-            get { return _action; }
-            set { _action = value; }
-        }
-        ActionNode _action;
-        public int index
-        {
-            get { return _index; }
-            set { _index = value; }
-        }
-        int _index;
+        public ActionNode action;
+        public int index;
     }
     public abstract class ActionDefine
     {
