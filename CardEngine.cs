@@ -15,10 +15,10 @@ namespace TouhouCardEngine
     }
     public abstract class Rule
     {
-        public CardDefine[] defines { get; }
-        public Rule(CardDefine[] defines)
+        public List<CardDefine> cardList { get; } = new List<CardDefine>();
+        public Rule(IEnumerable<CardDefine> cards)
         {
-            this.defines = defines;
+            cardList.AddRange(cards);
         }
         public abstract Task onGameInit(CardEngine game, GameOption options, IRoomPlayer[] players);
         public abstract Task onGameRun(CardEngine game);
@@ -151,7 +151,7 @@ namespace TouhouCardEngine
             //初始化随机
             random = new Random(options.randomSeed);
             //初始化卡片定义
-            foreach (CardDefine define in rule.defines)
+            foreach (CardDefine define in rule.cardList)
             {
                 addDefine(define);
             }
