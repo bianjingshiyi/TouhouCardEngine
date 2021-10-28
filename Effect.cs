@@ -272,6 +272,8 @@ namespace TouhouCardEngine
                     return true;
                 foreach (var targetChecker in trigger.targetCheckerList)
                 {
+                    if (targetChecker.condition.action == null)
+                        continue;
                     var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
                     if (task.IsCompleted)
                     {
