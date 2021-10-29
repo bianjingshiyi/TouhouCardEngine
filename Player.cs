@@ -88,7 +88,7 @@ namespace TouhouCardEngine
             return new Player[] { player };
         }
         #region 动作定义
-        [ActionNodeMethod("GetPile")]
+        [ActionNodeMethod("GetPile", "Player")]
         [return: ActionNodeParam("Pile")]
         public static Pile getPile([ActionNodeParam("Player")] Player player, [ActionNodeParam("PileName")] string pileName)
         {

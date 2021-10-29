@@ -315,13 +315,13 @@ namespace TouhouCardEngine
             return buffList.Contains(buff);
         }
         #region 动作定义
-        [ActionNodeMethod("GetOwner")]
+        [ActionNodeMethod("GetOwner", "Card")]
         [return: ActionNodeParam("Owner")]
         public static Player getOwner([ActionNodeParam("Card")] Card card)
         {
             return card.owner;
         }
-        [ActionNodeMethod("AddIntModifier")]
+        [ActionNodeMethod("AddIntModifier", "Card")]
         [return: ActionNodeParam("Modifier")]
         public static IntPropModifier addIntModifier(IGame game, [ActionNodeParam("Card")] Card card,
                                                      [ActionNodeParam("PropertyName")] string propName,
@@ -332,19 +332,19 @@ namespace TouhouCardEngine
             card.addModifier(game, modifier);
             return modifier;
         }
-        [ActionNodeMethod("RemoveModifier")]
+        [ActionNodeMethod("RemoveModifier", "Card")]
         [return: ActionNodeParam("RemoveModifierEvent")]
         public static Task<IRemoveModiEventArg> removeModifier(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] PropModifier modifier)
         {
             return card.removeModifier(game, modifier);
         }
-        [ActionNodeMethod("GetProperty")]
+        [ActionNodeMethod("GetProperty", "Card")]
         [return: ActionNodeParam("Value")]
         public static object getProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName)
         {
             return card.getProp(game, propName);
         }
-        [ActionNodeMethod("SetProperty")]
+        [ActionNodeMethod("SetProperty", "Card")]
         [return: ActionNodeParam("PropChangeEvent")]
         public static Task<IPropChangeEventArg> setProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName, [ActionNodeParam("Value")] object value)
         {
@@ -360,7 +360,7 @@ namespace TouhouCardEngine
         /// <param name="eventArg"></param>
         /// <param name="propName"></param>
         /// <returns></returns>
-        [ActionNodeMethod("GetUniquePropertyName")]
+        [ActionNodeMethod("GetUniquePropertyName", "Card")]
         [return: ActionNodeParam("PropertyName")]
         public static string getUniquePropName(IGame game, ICard card, IBuff buff, IEventArg eventArg, [ActionNodeParam("PropertyName")] string propName)
         {

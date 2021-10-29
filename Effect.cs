@@ -478,24 +478,24 @@ namespace TouhouCardEngine
         public string name { get; set; }
         public bool isParams { get; set; }
     }
-    public class BuiltinActionDefine : ActionDefine
-    {
-        #region 方法
-        public BuiltinActionDefine(Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action) : base()
-        {
-            this.action = action;
-            consts = new ValueDefine[0];
-        }
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
-        {
-            return action(game, card, buff, eventArg, args, constValues);
-        }
-        #endregion
-        Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action { get; }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
-    }
+    //public class BuiltinActionDefine : ActionDefine
+    //{
+    //    #region 方法
+    //    public BuiltinActionDefine(Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action) : base()
+    //    {
+    //        this.action = action;
+    //        consts = new ValueDefine[0];
+    //    }
+    //    public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
+    //    {
+    //        return action(game, card, buff, eventArg, args, constValues);
+    //    }
+    //    #endregion
+    //    Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action { get; }
+    //    public override ValueDefine[] inputs { get; }
+    //    public override ValueDefine[] consts { get; }
+    //    public override ValueDefine[] outputs { get; }
+    //}
     public class IntegerOperationActionDefine : ActionDefine
     {
         public IntegerOperationActionDefine()
@@ -632,7 +632,7 @@ namespace TouhouCardEngine
         /// <param name="collection"></param>
         /// <param name="elements"></param>
         /// <returns></returns>
-        [ActionNodeMethod("Except")]
+        [ActionNodeMethod("Except", "CollectionOperation")]
         [return: ActionNodeParam("Collection")]
         public static IEnumerable except([ActionNodeParam("Collection")] IEnumerable collection, [ActionNodeParam("Element", isParams: true)] object[] elements)
         {
@@ -643,7 +643,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="collection"></param>
         /// <returns></returns>
-        [ActionNodeMethod("GetCount")]
+        [ActionNodeMethod("GetCount", "CollectionOperation")]
         [return: ActionNodeParam("Collection")]
         public static int getCount([ActionNodeParam("Collection")] IEnumerable collection)
         {
@@ -829,7 +829,7 @@ namespace TouhouCardEngine
                     {
                         if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
                         {
-                            defineDict.Add(attribute.methodName, new MethodActionDefine(attribute.methodName, method));
+                            defineDict.Add(attribute.methodName, new MethodActionDefine(attribute, method));
                         }
                     }
                 }
@@ -840,19 +840,20 @@ namespace TouhouCardEngine
         /// 
         /// </summary>
         /// <param name="methodInfo">必须是静态方法</param>
-        public MethodActionDefine(string methodName, MethodInfo methodInfo)
+        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo)
         {
             if (!methodInfo.IsStatic)
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));
-            this.methodName = methodName;
+            methodName = attribute.methodName;
+            category = attribute.category;
             _methodInfo = methodInfo;
             List<ValueDefine> outputList = new List<ValueDefine>();
             //首先如果方法返回类型为void或者Task，视为无返回值，否则有返回值
-            ActionNodeParamAttribute attribute;
+            ActionNodeParamAttribute paramAttr;
             if (methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(Task))
             {
-                attribute = methodInfo.ReturnParameter.GetCustomAttribute<ActionNodeParamAttribute>();
-                string returnValueName = attribute?.paramName;
+                paramAttr = methodInfo.ReturnParameter.GetCustomAttribute<ActionNodeParamAttribute>();
+                string returnValueName = paramAttr?.paramName;
                 if (methodInfo.ReturnType.IsGenericType && methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
                     //如果返回类型为Task<T>，则返回值类型视为T
@@ -878,38 +879,38 @@ namespace TouhouCardEngine
             for (int i = 0; i < _paramsInfo.Length; i++)
             {
                 var paramInfo = _paramsInfo[i];
-                attribute = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
                 //如果参数是out参数，那么它是一个输出
                 if (paramInfo.IsOut)
                 {
                     outputList.Add(new ValueDefine()
                     {
-                        name = attribute != null && !string.IsNullOrEmpty(attribute.paramName) ? attribute.paramName : "Value",
+                        name = paramAttr != null && !string.IsNullOrEmpty(paramAttr.paramName) ? paramAttr.paramName : "Value",
                         type = paramInfo.ParameterType
                     });
                 }
                 else
                 {
-                    if (attribute != null)
+                    if (paramAttr != null)
                     {
                         //用特性指定了一定是输入
-                        if (attribute.isConst)
+                        if (paramAttr.isConst)
                         {
                             //用特性指定是常量
                             constList.Add(new ValueDefine()
                             {
-                                name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                name = string.IsNullOrEmpty(paramAttr.paramName) ? "Value" : paramAttr.paramName,
                                 type = paramInfo.ParameterType
                             });
                         }
                         else
                         {
                             //用特性指定是输入
-                            if (attribute.isParams)
+                            if (paramAttr.isParams)
                             {
                                 inputList.Add(new ValueDefine()
                                 {
-                                    name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                    name = string.IsNullOrEmpty(paramAttr.paramName) ? "Value" : paramAttr.paramName,
                                     type = paramInfo.ParameterType.GetElementType(),
                                     isParams = true
                                 });
@@ -918,7 +919,7 @@ namespace TouhouCardEngine
                             {
                                 inputList.Add(new ValueDefine()
                                 {
-                                    name = string.IsNullOrEmpty(attribute.paramName) ? "Value" : attribute.paramName,
+                                    name = string.IsNullOrEmpty(paramAttr.paramName) ? "Value" : paramAttr.paramName,
                                     type = paramInfo.ParameterType,
                                     isParams = false
                                 });
@@ -1027,6 +1028,7 @@ namespace TouhouCardEngine
             }
         }
         public string methodName { get; }
+        public string category { get; }
         public override ValueDefine[] inputs { get; }
         public override ValueDefine[] consts { get; }
         public override ValueDefine[] outputs { get; }
@@ -1036,11 +1038,13 @@ namespace TouhouCardEngine
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
     public class ActionNodeMethodAttribute : Attribute
     {
-        public ActionNodeMethodAttribute(string methodName)
+        public ActionNodeMethodAttribute(string methodName, string category)
         {
             this.methodName = methodName;
+            this.category = category;
         }
         public string methodName { get; }
+        public string category { get; }
     }
     [AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
     public class ActionNodeParamAttribute : Attribute

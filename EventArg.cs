@@ -23,13 +23,13 @@ namespace TouhouCardEngine
             varDict[varName] = value;
         }
         #region 动作定义
-        [ActionNodeMethod("GetVariable")]
+        [ActionNodeMethod("GetVariable", "Event")]
         [return: ActionNodeParam("Value")]
         public static object getVariable(EventArg eventArg, [ActionNodeParam("VariableName", true)] string varName)
         {
             return eventArg.getVar(varName);
         }
-        [ActionNodeMethod("SetVariable")]
+        [ActionNodeMethod("SetVariable", "Event")]
         public static void setVariable(EventArg eventArg, [ActionNodeParam("VariableName")] string varName, [ActionNodeParam("Value")] object value)
         {
             eventArg.setVar(varName, value);

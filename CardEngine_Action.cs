@@ -84,7 +84,7 @@ namespace TouhouCardEngine
             }
         }
         #region 动作定义
-        [ActionNodeMethod("ThisCard")]
+        [ActionNodeMethod("ThisCard", "Game")]
         [return: ActionNodeParam("Card")]
         public static Card thisCard(Card card)
         {

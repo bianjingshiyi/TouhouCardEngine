@@ -51,7 +51,7 @@ namespace TouhouCardEngine
         /// <param name="modifier"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        [ActionNodeMethod("SetIntPropModifierValue")]
+        [ActionNodeMethod("SetIntPropModifierValue", "Modifier")]
         [return: ActionNodeParam("PropertyChangeEvent")]
         public static Task<IPropChangeEventArg> setIntPropModifierValue(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] IntPropModifier modifier, [ActionNodeParam("Value")] int value)
         {

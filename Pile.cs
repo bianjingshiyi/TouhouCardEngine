@@ -217,7 +217,7 @@ namespace TouhouCardEngine
                 return "将" + card + "从" + from + "移动到" + to + "的" + position;
             }
             #region 动作定义
-            [ActionNodeMethod("IsPlayerPileChanged")]
+            [ActionNodeMethod("IsPlayerPileChanged", "Pile")]
             [return: ActionNodeParam("IsChanged")]
             public static bool isPlayerPileChanged(MoveCardEventArg moveCardEvent, [ActionNodeParam("Player")] Player player, [ActionNodeParam("PileName")] string pileName)
             {
