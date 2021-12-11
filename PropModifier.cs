@@ -1,10 +1,13 @@
 ﻿using TouhouCardEngine.Interfaces;
 using System.Threading.Tasks;
+using System;
+
 namespace TouhouCardEngine
 {
+    [Serializable]
     public abstract class PropModifier : IPropModifier
     {
-        public abstract string propName { get; protected set; }
+        public abstract string getPropName();
         public virtual bool checkCondition(IGame game, Card card)
         {
             return true;
@@ -28,20 +31,11 @@ namespace TouhouCardEngine
         public abstract object calc(IGame game, Card card, object value);
         public abstract PropModifier clone();
     }
+    [Serializable]
     public abstract class PropModifier<T> : PropModifier
     {
-        public override string propName { get; protected set; }
-        public T value { get; protected set; }
-        public PropModifier(string propName, T value)
-        {
-            this.propName = propName;
-            this.value = value;
-        }
-        protected PropModifier(PropModifier<T> origin)
-        {
-            propName = origin.propName;
-            value = origin.value;
-        }
+        public override string getPropName()
+        { return propertyName; }
         /// <summary>
         /// 设置修改器的修改值。
         /// </summary>
@@ -52,15 +46,15 @@ namespace TouhouCardEngine
             {
                 return Task.FromResult(default(IPropChangeEventArg));
             }
-            object beforeValue = card.getProp(game, propName);
+            object beforeValue = card.getProp(game, getPropName());
             this.value = value;
             return game.triggers.doEvent<IPropChangeEventArg>(new Card.PropChangeEventArg()
             {
                 game = game,
                 card = card,
-                propName = propName,
+                propName = getPropName(),
                 beforeValue = beforeValue,
-                value = card.getProp(game, propName)
+                value = card.getProp(game, getPropName())
             }, arg => Task.CompletedTask);
         }
         public sealed override object calc(IGame game, Card card, object value)
@@ -71,5 +65,9 @@ namespace TouhouCardEngine
                 return value;
         }
         public abstract T calc(IGame game, Card card, T value);
+        #region 属性字段
+        public string propertyName;
+        public T value;
+        #endregion
     }
 }

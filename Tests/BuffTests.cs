@@ -35,11 +35,24 @@ namespace Tests
         {
             public const int ID = 0x001;
             public override int id { get; } = ID;
-            public override PropModifier[] modifiers { get; } = new PropModifier[]
+
+            private readonly PropModifier[] modifiers1 = new PropModifier[]
             {
                 new IntPropModifier("attack",1)
             };
-            public override IPassiveEffect[] effects { get; }
+
+            public override PropModifier[] getPropertyModifiers(CardEngine game)
+            {
+                return modifiers1;
+            }
+
+            private readonly IPassiveEffect[] effects1;
+
+            public override IPassiveEffect[] getEffects(CardEngine game)
+            {
+                return effects1;
+            }
+
             public override int instanceID { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
             public override Buff clone()
             {

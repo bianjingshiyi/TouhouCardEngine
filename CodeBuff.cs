@@ -2,38 +2,36 @@
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public class GeneratedBuff : Buff
+    public class CodeBuff : Buff
     {
-        [Obsolete("使用效果中的buff替代")]
-        public override int id { get; } = 0;
-        public override int instanceID { get; set; } = -1;
-        public override PropModifier[] modifiers { get; } = new PropModifier[0];
-        public override IPassiveEffect[] effects { get; } = new IPassiveEffect[0];
-        public GeneratedBuff(int id, params PropModifier[] modifiers)
+        #region 公有方法
+        #region 构造方法
+        public CodeBuff(int id, params PropModifier[] modifiers)
         {
             this.id = id;
             this.modifiers = modifiers;
         }
-        public GeneratedBuff(int id, params IPassiveEffect[] effects)
+        public CodeBuff(int id, params IPassiveEffect[] effects)
         {
             this.id = id;
             this.effects = effects;
         }
-        public GeneratedBuff(int id, PropModifier modifier, params IPassiveEffect[] effects)
+        public CodeBuff(int id, PropModifier modifier, params IPassiveEffect[] effects)
         {
             this.id = id;
-            modifiers = new PropModifier[] { modifier };
+            modifiers = (new PropModifier[] { modifier });
             this.effects = effects;
         }
-        GeneratedBuff(GeneratedBuff origin)
+        CodeBuff(CodeBuff origin)
         {
             id = origin.id;
             modifiers = origin.modifiers;
             effects = origin.effects;
         }
+        #endregion
         public override Buff clone()
         {
-            return new GeneratedBuff(this);
+            return new CodeBuff(this);
         }
         public override string ToString()
         {
@@ -53,5 +51,25 @@ namespace TouhouCardEngine
             }
             return s;
         }
+        #endregion
+        #region 属性字段
+        [Obsolete("使用效果中的buff替代")]
+        public override int id { get; } = 0;
+        public override int instanceID { get; set; } = -1;
+
+        private readonly PropModifier[] modifiers = new PropModifier[0];
+
+        public override PropModifier[] getPropertyModifiers(CardEngine game)
+        {
+            return modifiers;
+        }
+
+        private readonly IPassiveEffect[] effects = new IPassiveEffect[0];
+
+        public override IPassiveEffect[] getEffects(CardEngine game)
+        {
+            return effects;
+        }
+        #endregion
     }
 }

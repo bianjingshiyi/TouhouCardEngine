@@ -61,7 +61,22 @@ namespace TouhouCardEngine
                         args[i] = null;
                 }
             }
-            return await define.execute(this, card, buff, eventArg, args, action.consts.ToArray());
+            try
+            {
+                var result = await define.execute(this, card, buff, eventArg, args, action.consts.ToArray());
+                string msg = "执行动作" + action + "成功，参数：" + string.Join(",", args);
+                if (result != null && result.Length > 0)
+                {
+                    msg += "，返回值：" + string.Join(",", result);
+                }
+                logger.log(msg);
+                return result;
+            }
+            catch (Exception e)
+            {
+                logger.logError("Game", "执行动作" + action + "发生异常：" + e);
+                throw e;
+            }
         }
         /// <summary>
         /// 执行一串动作链表
@@ -83,6 +98,36 @@ namespace TouhouCardEngine
                     break;
             }
         }
+        /// <summary>
+        /// 获取动作的返回值
+        /// </summary>
+        /// <param name="card">执行动作环境的卡牌</param>
+        /// <param name="buff">执行动作环境的增益</param>
+        /// <param name="eventArg">执行动作环境的事件</param>
+        /// <param name="action">执行的动作</param>
+        /// <param name="valueIndex">如果不指定返回值的索引，则会从返回值中查找指定类型的返回结果并返回第一个匹配的，否则将尝试将指定索引的返回值转化为指定类型</param>
+        /// <typeparam name="T">指定返回值的类型</typeparam>
+        /// <returns></returns>
+        public async Task<T> getActionReturnValueAsync<T>(Card card, Buff buff, EventArg eventArg, ActionNode action, int valueIndex = -1)
+        {
+            object[] results = await doActionAsync(card, buff, eventArg, action);
+            if (valueIndex < 0)
+            {
+                for (int i = 0; i < results.Length; i++)
+                {
+                    if (results[i] is T result)
+                        return result;
+                }
+                throw new InvalidCastException("执行结果{" + string.Join(",", results) + "}中不包含类型为" + typeof(T).Name + "的返回值");
+            }
+            else
+            {
+                if (results[valueIndex] is T result)
+                    return result;
+                else
+                    throw new InvalidCastException("无法将" + results[valueIndex] + "转化为" + typeof(T).Name);
+            }
+        }
         #region 动作定义
         [ActionNodeMethod("ThisCard", "Game")]
         [return: ActionNodeParam("Card")]
@@ -90,7 +135,26 @@ namespace TouhouCardEngine
         {
             return card;
         }
+        [ActionNodeMethod("ThisBuff", "Game")]
+        [return: ActionNodeParam("Buff")]
+        public static Buff thisBuff(Buff buff)
+        {
+            return buff;
+        }
         #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
+    }
+    /// <summary>
+    /// 当以同步的方式调用异步方法但是返回Task并未执行完成时抛出
+    /// </summary>
+    [Serializable]
+    public class TaskNotCompleteException : Exception
+    {
+        public TaskNotCompleteException() { }
+        public TaskNotCompleteException(string message) : base(message) { }
+        public TaskNotCompleteException(string message, Exception inner) : base(message, inner) { }
+        protected TaskNotCompleteException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }

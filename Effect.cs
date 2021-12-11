@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -163,10 +164,11 @@ namespace TouhouCardEngine
         }
     }
     [Serializable]
-    public class GeneratedEffect : IEffect
+    public class GeneratedEffect : IPassiveEffect
     {
-        #region 方法
-        public GeneratedEffect(string[] piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
+        #region 公有方法
+        #region 构造方法
+        public GeneratedEffect(IEnumerable<string> piles, ActionNode onEnable, ActionNode onDisable, TriggerGraph[] triggers, string[] tags)
         {
             if (piles != null)
                 pileList.AddRange(piles);
@@ -208,13 +210,23 @@ namespace TouhouCardEngine
         public GeneratedEffect(ActionNode action) : this(null, new TargetChecker[0], action, new string[0])
         {
         }
+        /// <summary>
+        /// 构造一个包含一个触发器的被动效果
+        /// </summary>
+        /// <param name="piles"></param>
+        /// <param name="trigger"></param>
+        public GeneratedEffect(IEnumerable<string> piles, TriggerGraph trigger) : this(piles.ToArray(), null, null, new TriggerGraph[] { trigger }, new string[0])
+        {
+
+        }
         public GeneratedEffect() : this(null, null, null, null, null)
         {
         }
-        public void onEnable(IGame game, ICard card, IBuff buff)
+        #endregion
+        public virtual async Task onEnable(IGame game, ICard card, IBuff buff)
         {
             if (onEnableAction != null)
-                game.doActionsAsync(card, buff, null, onEnableAction);
+                await game.doActionsAsync(card, buff, null, onEnableAction);
             foreach (var graph in triggerList)
             {
                 string triggerName = getEffectName(game, card, buff, graph.eventName);
@@ -223,24 +235,24 @@ namespace TouhouCardEngine
                 {
                     return game.doActionsAsync(card, buff, args.OfType<IEventArg>().FirstOrDefault(), graph.action);
                 }, name: triggerName);
-                card.setProp(game, triggerName, trigger);
+                await card.setProp(game, triggerName, trigger);
                 game.triggers.register(graph.eventName, trigger);
             }
         }
-        public void onDisable(IGame game, ICard card, IBuff buff)
+        public virtual async Task onDisable(IGame game, ICard card, IBuff buff)
         {
             foreach (var graph in triggerList)
             {
                 string triggerName = getEffectName(game, card, buff, graph.eventName);
                 game.logger.log("Effect", card + "注销触发器" + triggerName);
                 Trigger trigger = card.getProp<Trigger>(game, triggerName);
-                card.setProp(game, triggerName, null);
+                await card.setProp(game, triggerName, null);
                 game.triggers.remove(graph.eventName, trigger);
             }
             if (onDisableAction != null)
-                game.doActionsAsync(card, buff, null, onDisableAction);
+                await game.doActionsAsync(card, buff, null, onDisableAction);
         }
-        public bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        public virtual bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
             TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
@@ -262,7 +274,7 @@ namespace TouhouCardEngine
             else
                 return false;
         }
-        public bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
+        public virtual bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
             TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
@@ -300,7 +312,7 @@ namespace TouhouCardEngine
                 return false;
             }
         }
-        public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        public virtual Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
             TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
@@ -308,6 +320,51 @@ namespace TouhouCardEngine
             else
                 return Task.CompletedTask;
         }
+        public virtual EffectPropertyInfo[] getPropInfos()
+        {
+            return fieldInfos;
+        }
+        public T getProp<T>(string name)
+        {
+            return (T)getProp(name);
+        }
+        public virtual object getProp(string name)
+        {
+            if (name == nameof(pileList))
+                return pileList;
+            else if (name == nameof(onEnableAction))
+                return onEnableAction;
+            else if (name == nameof(onDisableAction))
+                return onDisableAction;
+            else if (name == nameof(triggerList))
+                return triggerList;
+            else if (name == nameof(tagList))
+                return tagList;
+            else
+            {
+                if (propDict.TryGetValue(name, out object value))
+                    return value;
+                else
+                    return null;
+            }
+        }
+        public virtual void setProp(string name, object value)
+        {
+            if (name == nameof(pileList))
+                pileList = value as PileNameCollection;
+            else if (name == nameof(onEnableAction))
+                onEnableAction = value as ActionNode;
+            else if (name == nameof(onDisableAction))
+                onDisableAction = value as ActionNode;
+            else if (name == nameof(triggerList))
+                triggerList = value as TriggerCollection;
+            else if (name == nameof(tagList))
+                tagList = value as TagCollection;
+            else
+                propDict[name] = value;
+        }
+        #endregion
+        #region 私有方法
         private string getEffectName(IGame game, ICard card, IBuff buff, string eventName)
         {
             return (buff != null ? buff.instanceID.ToString() : string.Empty) +
@@ -315,12 +372,44 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public List<string> pileList = new List<string>();
+        string[] IPassiveEffect.piles => pileList.ToArray();
+        public PileNameCollection pileList = new PileNameCollection();
         public ActionNode onEnableAction;
         public ActionNode onDisableAction;
-        public List<TriggerGraph> triggerList = new List<TriggerGraph>();
-        public List<string> tagList = new List<string>();
+        public TriggerCollection triggerList = new TriggerCollection();
+        public TagCollection tagList = new TagCollection();
+        public Dictionary<string, object> propDict = new Dictionary<string, object>();
+        static EffectPropertyInfo[] fieldInfos = new EffectPropertyInfo[]
+        {
+            new EffectPropertyInfo(typeof(PileNameCollection),nameof(pileList)),
+            new EffectPropertyInfo(typeof(ActionNode),nameof(onEnableAction)),
+            new EffectPropertyInfo(typeof(ActionNode),nameof(onDisableAction)),
+            new EffectPropertyInfo(typeof(TriggerCollection),nameof(triggerList)),
+            new EffectPropertyInfo(typeof(TagCollection),nameof(tagList)),
+        };
         #endregion
+    }
+    [Serializable]
+    public class PileNameCollection : List<string>
+    {
+    }
+    [Serializable]
+    public class TriggerCollection : List<TriggerGraph>
+    {
+    }
+    [Serializable]
+    public class TagCollection : List<string>
+    {
+    }
+    public class EffectPropertyInfo
+    {
+        public EffectPropertyInfo(Type type, string name)
+        {
+            this.type = type;
+            this.name = name;
+        }
+        public string name;
+        public Type type;
     }
     [Serializable]
     public class TriggerGraph
@@ -384,7 +473,7 @@ namespace TouhouCardEngine
         public ActionNode(string defineName, ActionValueRef[] inputs) : this(defineName, inputs, new object[0], new ActionNode[0])
         {
         }
-        public ActionNode(string defineName, object[] consts) : this(defineName, new ActionValueRef[0], consts, new ActionNode[0])
+        public ActionNode(string defineName, params object[] consts) : this(defineName, new ActionValueRef[0], consts, new ActionNode[0])
         {
         }
         public ActionNode(string defineName) : this(defineName, new ActionValueRef[0], new object[0], new ActionNode[0])
@@ -392,6 +481,22 @@ namespace TouhouCardEngine
         }
         public ActionNode() : this(string.Empty, new ActionValueRef[0], new object[0], new ActionNode[0])
         {
+        }
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(defineName);
+            sb.Append('(');
+            for (int i = 0; i < branches.Length; i++)
+            {
+                if (i != 0)
+                {
+                    sb.Append(',');
+                }
+                sb.Append(branches[i].ToString());
+            }
+            sb.Append(')');
+            return string.Intern(sb.ToString());
         }
         #endregion
         /// <summary>
@@ -408,11 +513,20 @@ namespace TouhouCardEngine
     public class ActionValueRef
     {
         #region 方法
+        /// <summary>
+        /// 返回指定索引返回值的构造器
+        /// </summary>
+        /// <param name="action"></param>
+        /// <param name="index"></param>
         public ActionValueRef(ActionNode action, int index)
         {
             this.action = action;
             this.index = index;
         }
+        /// <summary>
+        /// 返回第一个返回值的构造器
+        /// </summary>
+        /// <param name="action"></param>
         public ActionValueRef(ActionNode action) : this(action, 0)
         {
         }
@@ -583,7 +697,7 @@ namespace TouhouCardEngine
                 new ValueDefine()
                 {
                     name = "operator",
-                    type = typeof(IntegerOperator)
+                    type = typeof(LogicOperator)
                 }
             };
             outputs = new ValueDefine[1]
@@ -1064,16 +1178,21 @@ namespace TouhouCardEngine
         public string Name { get; } = "FieldOnlyClassMapConvention";
         public void Apply(BsonClassMap classMap)
         {
-            var memberMaps = classMap.DeclaredMemberMaps.ToArray();
-            foreach (var memberMap in memberMaps)
+            //去掉所有属性
+            while (classMap != null)
             {
-                if (memberMap.MemberInfo.MemberType == MemberTypes.Property)
-                    classMap.UnmapMember(memberMap.MemberInfo);
-            }
-            foreach (var fieldInfo in classMap.ClassType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(f => f.GetCustomAttribute<BsonIgnoreAttribute>() == null && f.GetCustomAttribute<NonSerializedAttribute>() == null))
-            {
-                classMap.MapMember(fieldInfo);
+                var memberMaps = classMap.DeclaredMemberMaps.ToArray();
+                foreach (var memberMap in memberMaps)
+                {
+                    if (memberMap.MemberInfo.MemberType == MemberTypes.Property)
+                        classMap.UnmapMember(memberMap.MemberInfo);
+                }
+                foreach (var fieldInfo in classMap.ClassType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                    .Where(f => f.GetCustomAttribute<BsonIgnoreAttribute>() == null && f.GetCustomAttribute<NonSerializedAttribute>() == null))
+                {
+                    classMap.MapMember(fieldInfo);
+                }
+                classMap = classMap.BaseClassMap;
             }
         }
     }

@@ -77,6 +77,17 @@ namespace TouhouCardEngine
         {
             return pileList.ToArray();
         }
+        public Pile[] getPiles(IEnumerable<string> pileNames)
+        {
+            if (pileNames == null)
+                return new Pile[0];
+            List<Pile> pileList = new List<Pile>();
+            foreach (var pileName in pileNames)
+            {
+                pileList.Add(getPile(pileName));
+            }
+            return pileList.ToArray();
+        }
         private List<Pile> pileList { get; } = new List<Pile>();
         #endregion
         public override string ToString()

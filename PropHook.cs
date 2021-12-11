@@ -24,23 +24,26 @@ namespace TouhouCardEngine
         public string hookPropName { get; }
         public delegate T CalcDelegate(IGame game, Card card, T originValue, T value);
         CalcDelegate onCalc { get; }
-        public PropHook(string targetPropName, string hookPropName, Card hookCard = null, CalcDelegate onCalc = null) : base(targetPropName, default)
+        public PropHook(string targetPropName, string hookPropName, Card hookCard = null, CalcDelegate onCalc = null)
         {
-            propName = targetPropName;
+            propertyName = targetPropName;
+            value = default;
             this.hookCard = new CConst<Card>(hookCard);
             this.hookPropName = hookPropName;
             this.onCalc = onCalc;
         }
-        public PropHook(string targetPropName, string hookPropName, CExpr<Card> hookCard, CalcDelegate onCalc = null) : base(targetPropName, default)
+        public PropHook(string targetPropName, string hookPropName, CExpr<Card> hookCard, CalcDelegate onCalc = null)
         {
-            propName = targetPropName;
+            propertyName = targetPropName;
+            value = default;
             this.hookCard = hookCard;
             this.hookPropName = hookPropName;
             this.onCalc = onCalc;
         }
-        PropHook(PropHook<T> origin) : base(origin)
+        PropHook(PropHook<T> origin)
         {
-            propName = origin.propName;
+            propertyName = origin.getPropName();
+            value = origin.value;
             hookPropName = origin.hookPropName;
         }
         Trigger<IPropChangeEventArg> trigger { get; set; }

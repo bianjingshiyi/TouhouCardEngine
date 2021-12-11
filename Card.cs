@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 using System.Threading.Tasks;
-using System.Collections;
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -107,28 +106,27 @@ namespace TouhouCardEngine
         public Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg()
-                { game = game, card = this, modifier = modifier, valueBefore = getProp(game, modifier.propName) },
-                async arg =>
+            {
+                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg() { game = game, card = this, modifier = modifier, valueBefore = getProp(game, modifier.getPropName()) }, async arg =>
                 {
                     Card card = arg.card as Card;
                     modifier = arg.modifier as PropModifier;
                     if (modifier == null)
                         throw new ArgumentNullException(nameof(modifier));
-                    object beforeValue = card.getProp(game, modifier.propName);
+                    object beforeValue = card.getProp(game, modifier.getPropName());
                     await modifier.beforeAdd(game, card);
                     card.modifierList.Add(modifier);
                     await modifier.afterAdd(game, card);
-                    object value = card.getProp(game, modifier.propName);
+                    object value = card.getProp(game, modifier.getPropName());
                     (arg as AddModiEventArg).valueAfter = value;
-                    game?.logger?.logTrace(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + propToString(value));
-                    await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.propName, beforeValue = beforeValue, value = value },
-                    arg2 =>
+                    game?.logger?.logTrace(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + StringHelper.propToString(value));
+                    await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value }, arg2 =>
                     {
-                        arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + propToString(arg2.value));
+                        arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                         return Task.CompletedTask;
                     });
                 });
+            }
             else
             {
                 if (modifier == null)
@@ -136,46 +134,10 @@ namespace TouhouCardEngine
                 modifier.beforeAdd(game, this);
                 modifierList.Add(modifier);
                 modifier.afterAdd(game, this);
-                object prop = getProp(game, modifier.propName);
-                string propString = propToString(prop);
+                object prop = getProp(game, modifier.getPropName());
+                string propString = StringHelper.propToString(prop);
                 return Task.FromResult<IAddModiEventArg>(default);
             }
-        }
-        string propToString(object prop)
-        {
-            if (prop is string str)
-                return str;
-            else if (prop is Array a)
-            {
-                string s = "[";
-                for (int i = 0; i < a.Length; i++)
-                {
-                    s += propToString(a.GetValue(i));
-                    if (i != a.Length - 1)
-                        s += ",";
-                }
-                s += "]";
-                return s;
-            }
-            else if (prop is IEnumerable e)
-            {
-                string s = "{";
-                bool isFirst = true;
-                foreach (var obj in e)
-                {
-                    if (isFirst)
-                        isFirst = false;
-                    else
-                        s += ",";
-                    s += propToString(obj);
-                }
-                s += "}";
-                return s;
-            }
-            else if (prop == null)
-                return "null";
-            else
-                return prop.ToString();
         }
         public class AddModiEventArg : EventArg, IAddModiEventArg
         {
@@ -197,16 +159,16 @@ namespace TouhouCardEngine
                     {
                         Card card = arg.card as Card;
                         modifier = arg.modifier as PropModifier;
-                        object beforeValue = card.getProp(game, modifier.propName);
+                        object beforeValue = card.getProp(game, modifier.getPropName());
                         await modifier.beforeRemove(game, card);
                         card.modifierList.Remove(modifier);
                         await modifier.afterRemove(game, card);
-                        object value = card.getProp(game, modifier.propName);
-                        game?.logger?.logTrace("PropModifier", card + "移除属性修正" + modifier + "=>" + propToString(value));
-                        await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.propName, beforeValue = beforeValue, value = value },
+                        object value = card.getProp(game, modifier.getPropName());
+                        game?.logger?.logTrace("PropModifier", card + "移除属性修正" + modifier + "=>" + StringHelper.propToString(value));
+                        await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value },
                         arg2 =>
                         {
-                            arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + propToString(arg2.value));
+                            arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                             return Task.CompletedTask;
                         });
                     });
@@ -215,8 +177,8 @@ namespace TouhouCardEngine
                     await modifier.beforeRemove(game, this);
                     modifierList.Remove(modifier);
                     await modifier.afterRemove(game, this);
-                    object prop = getProp(game, modifier.propName);
-                    game?.logger?.logTrace("PropModifier", this + "移除属性修正" + modifier + "=>" + propToString(prop));
+                    object prop = getProp(game, modifier.getPropName());
+                    game?.logger?.logTrace("PropModifier", this + "移除属性修正" + modifier + "=>" + StringHelper.propToString(prop));
                     return default;
                 }
             }
@@ -240,16 +202,16 @@ namespace TouhouCardEngine
             buffList.Add(buff);
             _lastBuffId++;
             buff.instanceID = _lastBuffId;
-            if (buff.modifiers != null)
+            if (buff.getPropertyModifiers(game as CardEngine) != null)
             {
-                foreach (var modifier in buff.modifiers)
+                foreach (var modifier in buff.getPropertyModifiers(game as CardEngine))
                 {
                     await addModifier(game, modifier);
                 }
             }
-            if (buff.effects != null)
+            if (buff.getEffects(game as CardEngine) != null)
             {
-                foreach (var efffect in buff.effects)
+                foreach (var efffect in buff.getEffects(game as CardEngine))
                 {
                     await efffect.onEnable(game, this, buff);
                 }
@@ -268,11 +230,11 @@ namespace TouhouCardEngine
             {
                 game?.logger?.logTrace("Buff", this + "移除增益" + buff);
                 buffList.Remove(buff);
-                foreach (var modifier in buff.modifiers)
+                foreach (var modifier in buff.getPropertyModifiers(game as CardEngine))
                 {
                     await removeModifier(game, modifier);
                 }
-                foreach (var effect in buff.effects)
+                foreach (var effect in buff.getEffects(game as CardEngine))
                 {
                     await effect.onDisable(game, this, buff);
                 }
@@ -368,6 +330,17 @@ namespace TouhouCardEngine
                 propName = buff.instanceID + propName;
             return propName;
         }
+        [ActionNodeMethod("AddBuff", "Card")]
+        public static Task addBuff([ActionNodeParam("Card")]Card card, CardEngine game, [ActionNodeParam("Buff")]BuffDefine buffDefine)
+        {
+            return card.addBuff(game, new GeneratedBuff(buffDefine));
+        }
+        [ActionNodeMethod("RemoveBuff", "Card")]
+        [return: ActionNodeParam("IsBuffRemoved")]
+        public static Task<bool> removeBuff([ActionNodeParam("Card")]Card card, CardEngine game, [ActionNodeParam("Buff")]Buff buff)
+        {
+            return card.removeBuff(game, buff);
+        }
         #endregion   
         #region 属性
         public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
@@ -379,7 +352,7 @@ namespace TouhouCardEngine
                     propName = arg.propName;
                     var v = arg.value;
                     propDic[propName] = v;
-                    game.logger?.logTrace("Game", card + "的属性" + propName + "=>" + propToString(v));
+                    game.logger?.logTrace("Game", card + "的属性" + propName + "=>" + StringHelper.propToString(v));
                     return Task.CompletedTask;
                 });
             else
@@ -407,7 +380,7 @@ namespace TouhouCardEngine
             else if (define.hasProp(propName) && define[propName] is T dt)
                 value = dt;
             foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
-                mt.propName == propName &&
+                mt.getPropName() == propName &&
                 (game == null || mt.checkCondition(game, this))))
             {
                 value = modifier.calc(game, this, value);
@@ -422,7 +395,7 @@ namespace TouhouCardEngine
             else if (define.hasProp(propName))
                 value = define[propName];
             foreach (var modifier in modifierList.Where(m =>
-                m.propName == propName &&
+                m.getPropName() == propName &&
                 (game == null || m.checkCondition(game, this))))
             {
                 value = modifier.calc(game, this, value);

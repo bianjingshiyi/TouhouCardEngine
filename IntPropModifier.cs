@@ -4,19 +4,22 @@ namespace TouhouCardEngine
 {
     public class IntPropModifier : PropModifier<int>
     {
-        public bool isSet { get; set; }
-        public int minValue { get; set; } = 0;
-        public int maxValue { get; set; } = int.MaxValue;
-        public IntPropModifier(string propName, int value) : base(propName, value)
+        public IntPropModifier(string propName, int value)
         {
+            propertyName = propName;
+            this.value = value;
             isSet = false;
         }
-        public IntPropModifier(string propName, int value, bool isSet) : base(propName, value)
+        public IntPropModifier(string propName, int value, bool isSet)
         {
+            propertyName = propName;
+            this.value = value;
             this.isSet = isSet;
         }
-        protected IntPropModifier(IntPropModifier origin) : base(origin)
+        protected IntPropModifier(IntPropModifier origin)
         {
+            propertyName = origin.getPropName();
+            value = origin.value;
             isSet = origin.isSet;
         }
         public override int calc(IGame game, Card card, int value)
@@ -38,9 +41,9 @@ namespace TouhouCardEngine
         public override string ToString()
         {
             if (isSet)
-                return propName + "=" + value;
+                return getPropName() + "=" + value;
             else
-                return propName + (value < 0 ? value.ToString() : "+" + value);
+                return getPropName() + (value < 0 ? value.ToString() : "+" + value);
         }
         #region 动作定义
         /// <summary>
@@ -58,5 +61,8 @@ namespace TouhouCardEngine
             return modifier.setValue(game, card, value);
         }
         #endregion
+        public bool isSet;
+        public int minValue = 0;
+        public int maxValue = int.MaxValue;
     }
 }

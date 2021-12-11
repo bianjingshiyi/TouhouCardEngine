@@ -18,6 +18,13 @@ namespace TouhouCardEngine
             else
                 return null;
         }
+        public T getVar<T>(string varName)
+        {
+            if (varDict.TryGetValue(varName, out object value) && value is T t)
+                return t;
+            else
+                return default;
+        }
         public void setVar(string varName, object value)
         {
             varDict[varName] = value;
