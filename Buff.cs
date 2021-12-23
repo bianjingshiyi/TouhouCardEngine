@@ -50,8 +50,6 @@ namespace TouhouCardEngine
 
         #endregion
         #region 属性字段
-        #endregion
-        #region 属性字段
         public int id = 0;
         public List<PropModifier> propModifierList = new List<PropModifier>();
         public List<GeneratedEffect> effectList = new List<GeneratedEffect>();

@@ -84,7 +84,11 @@ namespace TouhouCardEngine
             List<Pile> pileList = new List<Pile>();
             foreach (var pileName in pileNames)
             {
-                pileList.Add(getPile(pileName));
+                Pile pile = getPile(pileName);
+                if (pile != null)
+                {
+                    pileList.Add(pile);
+                }
             }
             return pileList.ToArray();
         }

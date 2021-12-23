@@ -274,14 +274,24 @@ namespace TouhouCardEngine
             else
                 return false;
         }
+        /// <summary>
+        /// 检查目标卡牌是否是效果的合法目标
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="card">目标卡牌</param>
+        /// <param name="buff"></param>
+        /// <param name="eventArg"></param>
+        /// <param name="invalidMsg"></param>
+        /// <returns></returns>
         public virtual bool checkTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
             TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
             {
                 invalidMsg = null;
+                //如果触发不包含任何目标，那么目标肯定不是合法目标
                 if (trigger.targetCheckerList == null || trigger.targetCheckerList.Count < 1)
-                    return true;
+                    return false;
                 foreach (var targetChecker in trigger.targetCheckerList)
                 {
                     if (targetChecker.condition.action == null)
@@ -294,6 +304,7 @@ namespace TouhouCardEngine
                         {
                             if (b == false)
                             {
+                                //有条件没有通过，不是合法目标
                                 invalidMsg = targetChecker.errorTip;
                                 return false;
                             }
@@ -304,6 +315,7 @@ namespace TouhouCardEngine
                     else
                         throw new InvalidOperationException("不能在条件中调用需要等待的动作");
                 }
+                //有目标并且没有条件不通过或者没有条件，返回真
                 return true;
             }
             else
@@ -486,16 +498,32 @@ namespace TouhouCardEngine
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(defineName);
-            sb.Append('(');
-            for (int i = 0; i < branches.Length; i++)
+            if (consts != null && consts.Length > 0)
             {
-                if (i != 0)
+                sb.Append('<');
+                for (int i = 0; i < consts.Length; i++)
                 {
-                    sb.Append(',');
+                    if (i != 0)
+                    {
+                        sb.Append(',');
+                    }
+                    sb.Append(consts[i].ToString());
                 }
-                sb.Append(branches[i].ToString());
+                sb.Append('>');
             }
-            sb.Append(')');
+            sb.Append('(');
+            if (inputs != null && inputs.Length > 0)
+            {
+                for (int i = 0; i < inputs.Length; i++)
+                {
+                    if (i != 0)
+                    {
+                        sb.Append(',');
+                    }
+                    sb.Append(inputs[i].ToString());
+                }
+            }
+            sb.Append("); ");
             return string.Intern(sb.ToString());
         }
         #endregion

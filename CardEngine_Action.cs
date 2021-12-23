@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -64,7 +65,11 @@ namespace TouhouCardEngine
             try
             {
                 var result = await define.execute(this, card, buff, eventArg, args, action.consts.ToArray());
-                string msg = "执行动作" + action + "成功，参数：" + string.Join(",", args);
+                string msg = "执行动作" + action + "成功";
+                if (args != null && args.Length > 0)
+                {
+                    msg += "，参数：" + string.Join(",", args);
+                }
                 if (result != null && result.Length > 0)
                 {
                     msg += "，返回值：" + string.Join(",", result);
@@ -74,6 +79,8 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
+                if (e is TargetInvocationException targetInvocationException)
+                    e = targetInvocationException.InnerException;
                 logger.logError("Game", "执行动作" + action + "发生异常：" + e);
                 throw e;
             }
