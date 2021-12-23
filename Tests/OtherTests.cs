@@ -12,6 +12,7 @@ using UnityEngine.TestTools;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
+using System.Threading.Tasks;
 
 namespace Tests
 {
@@ -83,6 +84,15 @@ namespace Tests
             Assert.AreEqual(cards.ToJson(), dObj.ToJson());
             Debug.Log(dObj.ToJson());
             ConventionRegistry.Remove(nameof(FieldOnlyClassMapConvention));
+        }
+        [Test]
+        public void getTaskResultTest()
+        {
+            object obj = Task.CompletedTask;
+            if (obj is Task task)
+            {
+                Debug.Log(task.GetType().Name);
+            }
         }
     }
 }

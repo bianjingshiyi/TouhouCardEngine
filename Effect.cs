@@ -1148,10 +1148,12 @@ namespace TouhouCardEngine
             {
                 await task;
                 //返回Task则视为返回null，返回Task<T>则返回对应值
-                if (task.GetType() == typeof(Task))
-                    return null;
+                if (task.GetType().GetProperty(nameof(Task<object>.Result)) is PropertyInfo propInfo)
+                {
+                    return new object[] { propInfo.GetValue(task) };
+                }
                 else
-                    return new object[] { (object)((dynamic)task).Result };
+                    return null;
             }
             else
             {
