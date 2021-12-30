@@ -8,10 +8,41 @@ namespace TouhouCardEngine
     [Serializable]
     public class Card : ICard
     {
+        #region 共有方法
+        public Player getOwner(CardEngine game)
+        {
+            for (int i = 0; i < game.playerCount; i++)
+            {
+                Player player = game.getPlayerAt(i);
+                foreach (Pile pile in player.getPiles())
+                {
+                    if (pile.Contains(this))
+                        return player;
+                }
+            }
+            return null;
+        }
+        public Pile getPile(CardEngine game)
+        {
+            for (int i = 0; i < game.playerCount; i++)
+            {
+                Player player = game.getPlayerAt(i);
+                foreach (Pile pile in player.getPiles())
+                {
+                    if (pile.Contains(this))
+                        return pile;
+                }
+            }
+            return null;
+        }
+        #endregion
+        #region 属性字段
+        int ICard.id => id;
         /// <summary>
         /// 卡片的id
         /// </summary>
-        public int id { get; internal set; } = 0;
+        public int id = 0;
+        #endregion
         public Player owner { get; internal set; } = null;
         /// <summary>
         /// 卡片所在的牌堆
@@ -27,7 +58,6 @@ namespace TouhouCardEngine
         int _lastBuffId = 0;
         public Card()
         {
-
         }
         public Card(CardDefine define)
         {

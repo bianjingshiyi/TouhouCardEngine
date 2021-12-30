@@ -17,11 +17,15 @@ namespace TouhouCardEngine
     public partial class CardEngine : IGame
     {
         #region 公共成员
-
-        public CardEngine()
+        public CardEngine(Rule rule)
         {
             trigger = new SyncTriggerSystem(this);
             random = new Random(0);
+            this.rule = rule;
+        }
+        public CardEngine() : this(null)
+        {
+
         }
 
         public ITimeManager time { get; set; } = null;
@@ -126,7 +130,7 @@ namespace TouhouCardEngine
         #region 游戏流程
         public bool isRunning { get; set; } = false;
         public bool isInited { get; set; } = false;
-        public GameOption option { get; set; }
+        public GameOption option;
         public Task init(Assembly[] assemblies, Rule rule, GameOption options, IRoomPlayer[] players)
         {
             this.rule = rule;
@@ -233,6 +237,10 @@ namespace TouhouCardEngine
             Card card = new Card(id, define);
             cardDic.Add(id, card);
             return card;
+        }
+        public Card createCard(int cardDefineId)
+        {
+            return createCard(getDefine(cardDefineId));
         }
         public Card getCard(int id)
         {
@@ -342,7 +350,6 @@ namespace TouhouCardEngine
             public string commandName;
             public object[] commandArgs;
         }
-        private List<Player> playerList { get; } = new List<Player>();
         public delegate void EventAction(Event @event);
         public event EventAction beforeEvent;
         public event EventAction afterEvent;

@@ -6,6 +6,29 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
+    partial class CardEngine
+    {
+        #region 公有方法
+        /// <summary>
+        /// 开始游戏
+        /// </summary>
+        /// <returns></returns>
+        public Task startGame(GameOption option, Player[] players)
+        {
+            this.option = option;
+            playerList.Clear();
+            playerList.AddRange(players);
+            foreach (Player player in playerList)
+            {
+                rule.onPlayerInit(this, player);
+            }
+            return rule.onGameStart(this);
+        }
+        #endregion
+        #region 属性字段
+        public List<Player> playerList { get; } = new List<Player>();
+        #endregion
+    }
     public partial class CardEngine
     {
         public void addActionDefine(string name, ActionDefine actionDefine)
