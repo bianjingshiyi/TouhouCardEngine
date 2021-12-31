@@ -201,6 +201,8 @@ namespace TouhouCardEngine
         }
         public CardDefine getDefine(int id)
         {
+            if (rule.getCardDefine(id) is CardDefine cardDefine)
+                return cardDefine;
             if (cardDefineDic.ContainsKey(id))
                 return cardDefineDic[id];
             else

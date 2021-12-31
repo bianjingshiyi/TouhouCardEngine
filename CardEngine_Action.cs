@@ -13,16 +13,16 @@ namespace TouhouCardEngine
         /// 开始游戏
         /// </summary>
         /// <returns></returns>
-        public Task startGame(GameOption option, Player[] players)
+        public async Task startGame(GameOption option, Player[] players)
         {
             this.option = option;
             playerList.Clear();
             playerList.AddRange(players);
             foreach (Player player in playerList)
             {
-                rule.onPlayerInit(this, player);
+                await rule.onPlayerInit(this, player);
             }
-            return rule.onGameStart(this);
+            await rule.onGameStart(this);
         }
         #endregion
         #region 属性字段
