@@ -536,6 +536,10 @@ namespace TouhouCardEngine
         public ActionNode[] branches;
         public ActionValueRef[] inputs;
         public object[] consts;
+        /// <summary>
+        /// 用于标识返回值是否需要保存为局部变量
+        /// </summary>
+        public bool[] regVar;
     }
     [Serializable]
     public class ActionValueRef
@@ -549,6 +553,11 @@ namespace TouhouCardEngine
         public ActionValueRef(ActionNode action, int index)
         {
             this.action = action;
+            this.index = index;
+        }
+        public ActionValueRef(int actionNodeId, int index)
+        {
+            this.actionNodeId = actionNodeId;
             this.index = index;
         }
         /// <summary>
@@ -565,8 +574,18 @@ namespace TouhouCardEngine
         {
         }
         #endregion
+        /// <summary>
+        /// 引用的动作节点
+        /// </summary>
         public ActionNode action;
+        /// <summary>
+        /// 引用的动作节点返回值索引
+        /// </summary>
         public int index;
+        /// <summary>
+        /// 引用的动作节点ID
+        /// </summary>
+        public int actionNodeId;
     }
     public abstract class ActionDefine
     {
