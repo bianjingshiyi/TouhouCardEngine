@@ -20,7 +20,7 @@ namespace TouhouCardEngine
         }
         public T getVar<T>(string varName)
         {
-            if (varDict.TryGetValue(varName, out object value) && value is T t)
+            if (getVar(varName) is T t)
                 return t;
             else
                 return default;
