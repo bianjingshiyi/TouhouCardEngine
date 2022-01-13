@@ -29,6 +29,14 @@ namespace TouhouCardEngine
         {
             varDict[varName] = value;
         }
+        /// <summary>
+        /// 获取事件的参数信息。
+        /// </summary>
+        /// <returns></returns>
+        public virtual EventVariableInfo[] getEventVarInfos()
+        {
+            throw new NotImplementedException();
+        }
         #region 动作定义
         [ActionNodeMethod("GetVariable", "Event")]
         [return: ActionNodeParam("Value")]
@@ -62,5 +70,10 @@ namespace TouhouCardEngine
         }
         IEventArg _parent;
         Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+    }
+    public class EventVariableInfo
+    {
+        public string name;
+        public Type type;
     }
 }

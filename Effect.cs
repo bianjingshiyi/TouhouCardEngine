@@ -1222,27 +1222,4 @@ namespace TouhouCardEngine
         public bool isConst { get; }
         public bool isParams { get; }
     }
-    public class FieldOnlyClassMapConvention : IClassMapConvention
-    {
-        public string Name { get; } = "FieldOnlyClassMapConvention";
-        public void Apply(BsonClassMap classMap)
-        {
-            //去掉所有属性
-            while (classMap != null)
-            {
-                var memberMaps = classMap.DeclaredMemberMaps.ToArray();
-                foreach (var memberMap in memberMaps)
-                {
-                    if (memberMap.MemberInfo.MemberType == MemberTypes.Property)
-                        classMap.UnmapMember(memberMap.MemberInfo);
-                }
-                foreach (var fieldInfo in classMap.ClassType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                    .Where(f => f.GetCustomAttribute<BsonIgnoreAttribute>() == null && f.GetCustomAttribute<NonSerializedAttribute>() == null))
-                {
-                    classMap.MapMember(fieldInfo);
-                }
-                classMap = classMap.BaseClassMap;
-            }
-        }
-    }
 }

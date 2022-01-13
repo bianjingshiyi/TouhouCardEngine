@@ -50,42 +50,6 @@ namespace Tests
             Assert.True(result);
         }
         [Test]
-        public void cardDefineSerializeTest()
-        {
-            object cards =
-            new CardDefine(0, "Spell", new Dictionary<string, object>()
-            {
-                { "cost", 5 },
-                { "tags", new string[] { "Fire" } }
-            }, new GeneratedEffect[]
-            {
-                new GeneratedEffect(null, new TargetChecker[]
-                {
-                    new TargetChecker("Character", null, "必须以角色为目标")
-                }, new ActionNode("Damage", new ActionValueRef[]
-                {
-                    new ActionValueRef(new ActionNode("GetTarget", new object[] { "Target" })),
-                    new ActionValueRef(new ActionNode("GetVariable", new object[] { "Card" })),
-                    new ActionValueRef(new ActionNode("GetSpellDamage", new ActionValueRef[]
-                    {
-                        new ActionValueRef(new ActionNode("GetOwner", new ActionValueRef[]
-                        {
-                            new ActionValueRef(new ActionNode("GetVariable", new object[] { "Card" }))
-                        })),
-                        new ActionValueRef(new ActionNode("IntegerConst", new object[] { 7 }))
-                    }))
-                }), new string[0])
-            });
-            ConventionRegistry.Register(nameof(FieldOnlyClassMapConvention), new ConventionPack()
-            {
-                new FieldOnlyClassMapConvention()
-            }, t => true);
-            object dObj = BsonSerializer.Deserialize(cards.ToJson(), cards.GetType());
-            Assert.AreEqual(cards.ToJson(), dObj.ToJson());
-            Debug.Log(dObj.ToJson());
-            ConventionRegistry.Remove(nameof(FieldOnlyClassMapConvention));
-        }
-        [Test]
         public void getTaskResultTest()
         {
             object obj = Task.CompletedTask;
