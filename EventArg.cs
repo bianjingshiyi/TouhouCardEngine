@@ -30,10 +30,18 @@ namespace TouhouCardEngine
             varDict[varName] = value;
         }
         /// <summary>
-        /// 获取事件的参数信息。
+        /// 获取事件发生时的参数信息。
         /// </summary>
         /// <returns></returns>
-        public virtual EventVariableInfo[] getEventVarInfos()
+        public virtual EventVariableInfo[] getBeforeEventVarInfos()
+        {
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 获取事件发生后的参数信息。
+        /// </summary>
+        /// <returns></returns>
+        public virtual EventVariableInfo[] getAfterEventVarInfos()
         {
             throw new NotImplementedException();
         }
