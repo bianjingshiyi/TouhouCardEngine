@@ -35,7 +35,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public virtual EventVariableInfo[] getBeforeEventVarInfos()
         {
-            throw new NotImplementedException();
+            return null;
         }
         /// <summary>
         /// 获取事件发生后的参数信息。
@@ -43,7 +43,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public virtual EventVariableInfo[] getAfterEventVarInfos()
         {
-            throw new NotImplementedException();
+            return null;
         }
         #region 动作定义
         [ActionNodeMethod("GetVariable", "Event")]
