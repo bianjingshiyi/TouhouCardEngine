@@ -533,7 +533,13 @@ namespace TouhouCardEngine
         /// <remarks>其实这个ID在逻辑上并没有什么特殊的作用，但是编辑器需要一个ID来保存对应的视图信息。</remarks>
         public int id;
         public string defineName;
+        /// <summary>
+        /// 该动作的后续动作，根据动作的类型不同可能有多个动作分支，比如条件结构，或者循环结构
+        /// </summary>
         public ActionNode[] branches;
+        /// <summary>
+        /// 该动作引用的输入值
+        /// </summary>
         public ActionValueRef[] inputs;
         public object[] consts;
         /// <summary>
@@ -559,6 +565,10 @@ namespace TouhouCardEngine
         {
             this.actionNodeId = actionNodeId;
             this.index = index;
+        }
+        public ActionValueRef(string eventVarName)
+        {
+            this.eventVarName = eventVarName;
         }
         /// <summary>
         /// 返回第一个返回值的构造器
@@ -586,6 +596,10 @@ namespace TouhouCardEngine
         /// 引用的动作节点ID
         /// </summary>
         public int actionNodeId;
+        /// <summary>
+        /// 事件变量名称
+        /// </summary>
+        public string eventVarName;
     }
     public abstract class ActionDefine
     {

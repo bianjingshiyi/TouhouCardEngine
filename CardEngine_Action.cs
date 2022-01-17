@@ -122,12 +122,16 @@ namespace TouhouCardEngine
                 {
                     //是变长参数，所有当前index之后的值塞进一个数组
                     List<object> paramList = new List<object>();
-                    foreach (var valueRef in action.inputs.Skip(i))
+                    foreach (ActionValueRef valueRef in action.inputs.Skip(i))
                     {
                         object arg;
                         if (valueRef.action != null)
                         {
                             arg = (await doActionAsync(card, buff, eventArg, valueRef.action, varDict))[valueRef.index];
+                        }
+                        else if (!string.IsNullOrEmpty(valueRef.eventVarName))
+                        {
+                            arg = eventArg.getVar(valueRef.eventVarName);
                         }
                         else
                         {
@@ -142,13 +146,17 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    var valueRef = action.inputs[i];
+                    ActionValueRef valueRef = action.inputs[i];
                     if (valueRef != null)
                     {
                         object arg;
                         if (valueRef.action != null)
                         {
                             arg = (await doActionAsync(card, buff, eventArg, valueRef.action, varDict))[valueRef.index];
+                        }
+                        else if (!string.IsNullOrEmpty(valueRef.eventVarName))
+                        {
+                            arg = eventArg.getVar(valueRef.eventVarName);
                         }
                         else
                         {
