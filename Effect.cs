@@ -550,7 +550,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class ActionValueRef
     {
-        #region 方法
+        #region 公有方法
         /// <summary>
         /// 返回指定索引返回值的构造器
         /// </summary>
@@ -582,6 +582,27 @@ namespace TouhouCardEngine
         /// </summary>
         public ActionValueRef() : this(null, 0)
         {
+        }
+        public override string ToString()
+        {
+            string s;
+            if (action != null)
+            {
+                s = action.ToString() + "[" + index + "]";
+            }
+            else if (actionNodeId != 0)
+            {
+                s = "{" + actionNodeId + "}[" + index + "]";
+            }
+            else if (!string.IsNullOrEmpty(eventVarName))
+            {
+                s = "{" + eventVarName + "}";
+            }
+            else
+            {
+                s = "null";
+            }
+            return string.Intern(s);
         }
         #endregion
         /// <summary>
