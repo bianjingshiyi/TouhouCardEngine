@@ -371,7 +371,7 @@ namespace TouhouCardEngine
             else if (name == nameof(triggerList))
                 triggerList = value as TriggerCollection;
             else if (name == nameof(tagList))
-                tagList = value as TagCollection;
+                tagList = value as EffectTagCollection;
             else
                 propDict[name] = value;
         }
@@ -389,7 +389,7 @@ namespace TouhouCardEngine
         public ActionNode onEnableAction;
         public ActionNode onDisableAction;
         public TriggerCollection triggerList = new TriggerCollection();
-        public TagCollection tagList = new TagCollection();
+        public EffectTagCollection tagList = new EffectTagCollection();
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         static EffectPropertyInfo[] fieldInfos = new EffectPropertyInfo[]
         {
@@ -397,7 +397,7 @@ namespace TouhouCardEngine
             new EffectPropertyInfo(typeof(ActionNode),nameof(onEnableAction)),
             new EffectPropertyInfo(typeof(ActionNode),nameof(onDisableAction)),
             new EffectPropertyInfo(typeof(TriggerCollection),nameof(triggerList)),
-            new EffectPropertyInfo(typeof(TagCollection),nameof(tagList)),
+            new EffectPropertyInfo(typeof(EffectTagCollection),nameof(tagList)),
         };
         #endregion
     }
@@ -410,7 +410,7 @@ namespace TouhouCardEngine
     {
     }
     [Serializable]
-    public class TagCollection : List<string>
+    public class EffectTagCollection : List<string>
     {
     }
     public class EffectPropertyInfo

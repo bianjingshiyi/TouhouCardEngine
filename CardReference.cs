@@ -2,7 +2,7 @@
 namespace TouhouCardEngine
 {
     [Serializable]
-    public struct CardReference
+    public class CardReference
     {
         public int cardPoolId;
         public int cardId;
