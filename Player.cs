@@ -23,9 +23,15 @@ namespace TouhouCardEngine
         }
         public T getProp<T>(string propName)
         {
-            if (propDict.ContainsKey(propName) && propDict[propName] is T)
-                return (T)propDict[propName];
+            if (getProp(propName) is T t)
+                return t;
             return default;
+        }
+        public object getProp(string propName)
+        {
+            if (propDict.ContainsKey(propName))
+                return propDict[propName];
+            return null;
         }
         public bool hasProp(string propName)
         {
