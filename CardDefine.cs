@@ -81,6 +81,15 @@ namespace TouhouCardEngine
             else
                 _runtimeEffects = value;
         }
+        public int getEffectIndex(IEffect effect)
+        {
+            if (effect is GeneratedEffect generatedEffect)
+            {
+                return _effectList.IndexOf(generatedEffect);
+            }
+            else
+                return -1;
+        }
         public IActiveEffect getActiveEffect()
         {
             return getEffects().FirstOrDefault(e => e is IActiveEffect) as IActiveEffect;
