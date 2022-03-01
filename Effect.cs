@@ -375,6 +375,73 @@ namespace TouhouCardEngine
             else
                 propDict[name] = value;
         }
+        /// <summary>
+        /// 遍历效果中的动作节点
+        /// </summary>
+        /// <param name="action"></param>
+        public void traverseActionNode(Action<ActionNode> action)
+        {
+            if (action == null)
+                return;
+            foreach (var propInfo in getPropInfos())
+            {
+                object value = getProp(propInfo.name);
+                if (value == null)
+                    continue;
+                if (value is ActionNode actionNode)
+                {
+                    actionNode.traverse(action);
+                }
+                else if (value is IEnumerable<ActionNode> actionNodeCol)
+                {
+                    foreach (var actionNodeEle in actionNodeCol)
+                    {
+                        if (actionNodeEle == null)
+                            continue;
+                        actionNodeEle.traverse(action);
+                    }
+                }
+                else if (value is ActionValueRef valueRef)
+                {
+                    valueRef.traverse(action);
+                }
+                else if (value is IEnumerable<ActionValueRef> valueRefCol)
+                {
+                    foreach (var valueRefEle in valueRefCol)
+                    {
+                        if (valueRefEle == null)
+                            continue;
+                        valueRefEle.traverse(action);
+                    }
+                }
+                else if (value is TargetChecker targetChecker)
+                {
+                    targetChecker.traverse(action);
+                }
+                else if (value is IEnumerable<TargetChecker> targetCheckerCol)
+                {
+                    foreach (var targetCheckerEle in targetCheckerCol)
+                    {
+                        if (targetCheckerEle == null)
+                            continue;
+                        targetCheckerEle.traverse(action);
+                    }
+                }
+                else if (value is TriggerGraph trigger)
+                {
+                    trigger.traverse(action);
+                }
+                else if (value is IEnumerable<TriggerGraph> triggerCol)
+                {
+                    foreach (var triggerEle in triggerCol)
+                    {
+                        if (triggerEle == null)
+                            continue;
+                        triggerEle.traverse(action);
+                    }
+                }
+            }
+        }
         #endregion
         #region 私有方法
         private string getEffectName(IGame game, ICard card, IBuff buff, string eventName)
@@ -426,6 +493,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class TriggerGraph
     {
+        #region 公有方法
         public TriggerGraph(string eventName, ActionValueRef condition, TargetChecker[] targetCheckers, ActionNode action)
         {
             this.eventName = eventName;
@@ -439,6 +507,25 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
+        public void traverse(Action<ActionNode> action)
+        {
+            if (action == null)
+                return;
+            if (condition != null)
+                condition.traverse(action);
+            if (targetCheckerList != null && targetCheckerList.Count > 0)
+            {
+                for (int i = 0; i < targetCheckerList.Count; i++)
+                {
+                    if (targetCheckerList[i] == null)
+                        continue;
+                    targetCheckerList[i].traverse(action);
+                }
+            }
+            if (this.action != null)
+                this.action.traverse(action);
+        }
+        #endregion
         public string eventName;
         public ActionValueRef condition;
         public List<TargetChecker> targetCheckerList = new List<TargetChecker>();
@@ -447,6 +534,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class TargetChecker
     {
+        #region 公有方法
         public TargetChecker(string targetType, ActionValueRef condition, string invalidMsg)
         {
             this.targetType = targetType;
@@ -456,6 +544,14 @@ namespace TouhouCardEngine
         public TargetChecker() : this(string.Empty, null, string.Empty)
         {
         }
+        public void traverse(Action<ActionNode> action)
+        {
+            if (action == null)
+                return;
+            if (condition != null)
+                condition.traverse(action);
+        }
+        #endregion
         public string targetType;
         public ActionValueRef condition;
         public string errorTip;
@@ -468,7 +564,8 @@ namespace TouhouCardEngine
     [Serializable]
     public sealed class ActionNode
     {
-        #region 方法
+        #region 公有方法
+        #region 构造方法
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
         {
             this.defineName = defineName;
@@ -493,6 +590,58 @@ namespace TouhouCardEngine
         }
         public ActionNode() : this(string.Empty, new ActionValueRef[0], new object[0], new ActionNode[0])
         {
+        }
+        #endregion
+        public void traverse(Action<ActionNode> action)
+        {
+            if (action == null)
+                return;
+            action(this);
+            //遍历输入
+            if (inputs != null && inputs.Length > 0)
+            {
+                for (int i = 0; i < inputs.Length; i++)
+                {
+                    if (inputs[i] == null)
+                        continue;
+                    inputs[i].traverse(action);
+                }
+            }
+            //遍历常量
+            if (consts != null && consts.Length > 0)
+            {
+                for (int i = 0; i < consts.Length; i++)
+                {
+                    if (consts[i] == null)
+                        continue;
+                    if (consts[i] is ActionNode childActionNode)
+                    {
+                        childActionNode.traverse(action);
+                    }
+                    else if (consts[i] is ActionValueRef valueRef)
+                    {
+                        valueRef.traverse(action);
+                    }
+                    else if (consts[i] is TargetChecker targetChecker)
+                    {
+                        targetChecker.traverse(action);
+                    }
+                    else if (consts[i] is TriggerGraph trigger)
+                    {
+                        trigger.traverse(action);
+                    }
+                }
+            }
+            //遍历后续
+            if (branches != null && branches.Length > 0)
+            {
+                for (int i = 0; i < branches.Length; i++)
+                {
+                    if (branches[i] == null)
+                        continue;
+                    branches[i].traverse(action);
+                }
+            }
         }
         public override string ToString()
         {
@@ -551,6 +700,7 @@ namespace TouhouCardEngine
     public class ActionValueRef
     {
         #region 公有方法
+        #region 构造方法
         /// <summary>
         /// 返回指定索引返回值的构造器
         /// </summary>
@@ -582,6 +732,15 @@ namespace TouhouCardEngine
         /// </summary>
         public ActionValueRef() : this(null, 0)
         {
+        }
+        #endregion
+        public void traverse(Action<ActionNode> action)
+        {
+            if (this.action == null)
+                return;
+            if (action == null)
+                return;
+            this.action.traverse(action);
         }
         public override string ToString()
         {
@@ -625,6 +784,11 @@ namespace TouhouCardEngine
     public abstract class ActionDefine
     {
         #region 方法
+        public ActionDefine(string defineName, params string[] obsoleteNames)
+        {
+            this.defineName = defineName;
+            this.obsoleteNames = obsoleteNames;
+        }
         public static Task<Dictionary<string, ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => loadDefinesFromAssemblies(assemblies));
@@ -663,6 +827,8 @@ namespace TouhouCardEngine
         public abstract Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues);
         #endregion
         #region 属性字段
+        public string defineName;
+        public string[] obsoleteNames;
         public abstract ValueDefine[] inputs { get; }
         public abstract ValueDefine[] consts { get; }
         public abstract ValueDefine[] outputs { get; }
@@ -694,7 +860,7 @@ namespace TouhouCardEngine
     //}
     public class IntegerOperationActionDefine : ActionDefine
     {
-        public IntegerOperationActionDefine()
+        public IntegerOperationActionDefine() : base("IntegerOperation")
         {
             inputs = new ValueDefine[1]
             {
@@ -763,7 +929,7 @@ namespace TouhouCardEngine
     }
     public class LogicOperationActionDefine : ActionDefine
     {
-        public LogicOperationActionDefine()
+        public LogicOperationActionDefine() : base("LogicOperation")
         {
             inputs = new ValueDefine[1]
             {
@@ -848,7 +1014,7 @@ namespace TouhouCardEngine
     }
     public class CompareActionDefine : ActionDefine
     {
-        public CompareActionDefine()
+        public CompareActionDefine() : base("Compare")
         {
             inputs = new ValueDefine[2]
             {
@@ -899,7 +1065,7 @@ namespace TouhouCardEngine
     }
     public class IntegerConstActionDefine : ActionDefine
     {
-        public IntegerConstActionDefine()
+        public IntegerConstActionDefine() : base("IntegerConst")
         {
             inputs = new ValueDefine[0];
             consts = new ValueDefine[1]
@@ -929,7 +1095,7 @@ namespace TouhouCardEngine
     }
     public class StringConstActionDefine : ActionDefine
     {
-        public StringConstActionDefine()
+        public StringConstActionDefine() : base("StringConst")
         {
             inputs = new ValueDefine[0];
             consts = new ValueDefine[1]
@@ -959,7 +1125,7 @@ namespace TouhouCardEngine
     }
     public class BooleanConstActionDefine : ActionDefine
     {
-        public BooleanConstActionDefine()
+        public BooleanConstActionDefine() : base("BooleanConst")
         {
             inputs = new ValueDefine[0];
             consts = new ValueDefine[1]
@@ -1010,6 +1176,8 @@ namespace TouhouCardEngine
     /// </summary>
     public class MethodActionDefine : ActionDefine
     {
+        #region 公有方法
+        #region 静态方法
         public static Task<Dictionary<string, MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => Task.FromResult(loadMethodsFromAssemblies(assemblies)));
@@ -1032,15 +1200,15 @@ namespace TouhouCardEngine
             }
             return defineDict;
         }
+        #endregion
         /// <summary>
         /// 
         /// </summary>
         /// <param name="methodInfo">必须是静态方法</param>
-        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo)
+        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo) : base(attribute.methodName, attribute.obsoleteNames)
         {
             if (!methodInfo.IsStatic)
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));
-            methodName = attribute.methodName;
             category = attribute.category;
             _methodInfo = methodInfo;
             List<ValueDefine> outputList = new List<ValueDefine>();
@@ -1225,7 +1393,8 @@ namespace TouhouCardEngine
                 return outputList.ToArray();
             }
         }
-        public string methodName { get; }
+        #endregion
+        public string methodName => defineName;
         public string category { get; }
         public override ValueDefine[] inputs { get; }
         public override ValueDefine[] consts { get; }
@@ -1236,13 +1405,15 @@ namespace TouhouCardEngine
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
     public class ActionNodeMethodAttribute : Attribute
     {
-        public ActionNodeMethodAttribute(string methodName, string category)
+        public ActionNodeMethodAttribute(string methodName, string category, params string[] obsoleteNames)
         {
             this.methodName = methodName;
             this.category = category;
+            this.obsoleteNames = obsoleteNames;
         }
         public string methodName { get; }
         public string category { get; }
+        public string[] obsoleteNames { get; }
     }
     [AttributeUsage(AttributeTargets.ReturnValue | AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
     public class ActionNodeParamAttribute : Attribute

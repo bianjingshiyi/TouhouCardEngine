@@ -102,6 +102,10 @@ namespace TouhouCardEngine
         {
             return getEffects().FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getNameAfter<T>())) as ITriggerEffect;
         }
+        public GeneratedEffect[] getGeneratedEffects()
+        {
+            return _effectList.ToArray();
+        }
         /// <summary>
         /// 将读取到的更新的卡牌数据合并到这个卡牌上来。
         /// </summary>

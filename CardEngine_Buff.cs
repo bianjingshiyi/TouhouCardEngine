@@ -7,14 +7,6 @@
         {
             return rule.getBuffDefine(id);
         }
-        #region 动作定义
-        [ActionNodeMethod("GetBuffDefine", "Game")]
-        [return: ActionNodeParam("BuffDefine")]
-        public static BuffDefine getBuffDefine(CardEngine game, [ActionNodeParam("Id", isConst: true)]int id)
-        {
-            return game.getBuffDefine(id);
-        }
-        #endregion
         #endregion
     }
 }

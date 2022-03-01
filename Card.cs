@@ -307,12 +307,6 @@ namespace TouhouCardEngine
             return buffList.Contains(buff);
         }
         #region 动作定义
-        [ActionNodeMethod("GetOwner", "Card")]
-        [return: ActionNodeParam("Owner")]
-        public static Player getOwner([ActionNodeParam("Card")] Card card)
-        {
-            return card.owner;
-        }
         [ActionNodeMethod("AddIntModifier", "Card")]
         [return: ActionNodeParam("Modifier")]
         public static IntPropModifier addIntModifier(IGame game, [ActionNodeParam("Card")] Card card,
@@ -329,47 +323,6 @@ namespace TouhouCardEngine
         public static Task<IRemoveModiEventArg> removeModifier(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] PropModifier modifier)
         {
             return card.removeModifier(game, modifier);
-        }
-        [ActionNodeMethod("GetProperty", "Card")]
-        [return: ActionNodeParam("Value")]
-        public static object getProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName)
-        {
-            return card.getProp(game, propName);
-        }
-        [ActionNodeMethod("SetProperty", "Card")]
-        [return: ActionNodeParam("PropChangeEvent")]
-        public static Task<IPropChangeEventArg> setProp(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("PropertyName")] string propName, [ActionNodeParam("Value")] object value)
-        {
-            return card.setProp(game, propName, value);
-        }
-        /// <summary>
-        /// 获取一个独一无二的属性名。当你在一段可以重复生效的效果中为卡牌设置额外属性的时候，应该使用这个方法。
-        /// 注意，这个方法是为了避免属性名之间的冲突，在不会发生冲突的情况下，输入相同的参数仍然会让这个方法返回相同的属性名。
-        /// </summary>
-        /// <param name="game"></param>
-        /// <param name="card"></param>
-        /// <param name="buff"></param>
-        /// <param name="eventArg"></param>
-        /// <param name="propName"></param>
-        /// <returns></returns>
-        [ActionNodeMethod("GetUniquePropertyName", "Card")]
-        [return: ActionNodeParam("PropertyName")]
-        public static string getUniquePropName(IGame game, ICard card, IBuff buff, IEventArg eventArg, [ActionNodeParam("PropertyName")] string propName)
-        {
-            if (buff != null)
-                propName = buff.instanceID + propName;
-            return propName;
-        }
-        [ActionNodeMethod("AddBuff", "Card")]
-        public static Task addBuff([ActionNodeParam("Card")]Card card, CardEngine game, [ActionNodeParam("Buff")]BuffDefine buffDefine)
-        {
-            return card.addBuff(game, new GeneratedBuff(buffDefine));
-        }
-        [ActionNodeMethod("RemoveBuff", "Card")]
-        [return: ActionNodeParam("IsBuffRemoved")]
-        public static Task<bool> removeBuff([ActionNodeParam("Card")]Card card, CardEngine game, [ActionNodeParam("Buff")]Buff buff)
-        {
-            return card.removeBuff(game, buff);
         }
         #endregion   
         #region 属性

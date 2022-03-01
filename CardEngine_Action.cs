@@ -204,20 +204,6 @@ namespace TouhouCardEngine
             }
         }
         #endregion
-        #region 动作定义
-        [ActionNodeMethod("ThisCard", "Game")]
-        [return: ActionNodeParam("Card")]
-        public static Card thisCard(Card card)
-        {
-            return card;
-        }
-        [ActionNodeMethod("ThisBuff", "Game")]
-        [return: ActionNodeParam("Buff")]
-        public static Buff thisBuff(Buff buff)
-        {
-            return buff;
-        }
-        #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
     }
     /// <summary>
