@@ -294,26 +294,12 @@ namespace TouhouCardEngine
                     return false;
                 foreach (var targetChecker in trigger.targetCheckerList)
                 {
-                    if (targetChecker.condition.action == null)
-                        continue;
-                    var task = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action);
-                    if (task.IsCompleted)
+                    //检查目标条件
+                    if (!targetChecker.isValidTarget(game, card, buff, eventArg, out invalidMsg))
                     {
-                        object[] returnValues = game.doActionAsync(card, buff, eventArg, targetChecker.condition.action).Result;
-                        if (returnValues[targetChecker.condition.index] is bool b)
-                        {
-                            if (b == false)
-                            {
-                                //有条件没有通过，不是合法目标
-                                invalidMsg = targetChecker.errorTip;
-                                return false;
-                            }
-                        }
-                        else
-                            throw new InvalidCastException(returnValues[targetChecker.condition.index] + "不是真值类型");
+                        //有条件没有通过，不是合法目标
+                        return false;
                     }
-                    else
-                        throw new InvalidOperationException("不能在条件中调用需要等待的动作");
                 }
                 //有目标并且没有条件不通过或者没有条件，返回真
                 return true;
@@ -550,6 +536,38 @@ namespace TouhouCardEngine
                 return;
             if (condition != null)
                 condition.traverse(action);
+        }
+        public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
+        {
+            if (condition == null || condition.action == null)
+            {
+                invalidMsg = null;
+                return true;
+            }
+            var task = game.doActionAsync(card, buff, eventArg, condition.action);
+            if (task.IsCompleted)
+            {
+                object[] returnValues = game.doActionAsync(card, buff, eventArg, condition.action).Result;
+                if (returnValues[condition.index] is bool returnValue)
+                {
+                    if (!returnValue)
+                    {
+                        //有条件没有通过，不是合法目标
+                        invalidMsg = errorTip;
+                        return false;
+                    }
+                    else
+                    {
+                        //是合法目标
+                        invalidMsg = null;
+                        return true;
+                    }
+                }
+                else
+                    throw new InvalidCastException(returnValues[condition.index] + "不是真值类型");
+            }
+            else
+                throw new InvalidOperationException("不能在条件中调用需要等待的动作");
         }
         #endregion
         public string targetType;
