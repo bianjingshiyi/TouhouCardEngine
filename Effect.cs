@@ -1345,11 +1345,19 @@ namespace TouhouCardEngine
                     //指定了不能省略的参数
                     if (attribute.isConst)
                     {
+                        if (isObjectNeedToPackForType(constValues[constIndex], paramInfo.ParameterType))
+                            constValues[constIndex] = packObjectToArray(constValues[constIndex], paramInfo.ParameterType.GetElementType());
+                        else if (isObjectNeedToUnpackForType(constValues[constIndex], paramInfo.ParameterType))
+                            constValues[constIndex] = unpackArrayToObject(constValues[constIndex] as Array);
                         paramters[i] = constValues[constIndex];
                         constIndex++;
                     }
                     else
                     {
+                        if (isObjectNeedToPackForType(args[argIndex], paramInfo.ParameterType))
+                            args[argIndex] = packObjectToArray(args[argIndex], paramInfo.ParameterType.GetElementType());
+                        else if (isObjectNeedToUnpackForType(args[argIndex], paramInfo.ParameterType))
+                            args[argIndex] = unpackArrayToObject(args[argIndex] as Array);
                         paramters[i] = args[argIndex];
                         argIndex++;
                     }
@@ -1377,7 +1385,10 @@ namespace TouhouCardEngine
                     }
                     else
                     {
-                        //不是可以省略的类型
+                        if (isObjectNeedToPackForType(args[argIndex], paramInfo.ParameterType))
+                            args[argIndex] = packObjectToArray(args[argIndex], paramInfo.ParameterType.GetElementType());
+                        else if (isObjectNeedToUnpackForType(args[argIndex], paramInfo.ParameterType))
+                            args[argIndex] = unpackArrayToObject(args[argIndex] as Array);
                         paramters[i] = args[argIndex];
                         argIndex++;
                     }
@@ -1410,6 +1421,26 @@ namespace TouhouCardEngine
                 }
                 return outputList.ToArray();
             }
+        }
+        #endregion
+        #region 私有方法
+        private bool isObjectNeedToPackForType(object obj, Type type)
+        {
+            return type.IsArray && !(obj is Array);
+        }
+        private bool isObjectNeedToUnpackForType(object obj, Type type)
+        {
+            return !type.IsArray && obj is Array;
+        }
+        private object packObjectToArray(object obj, Type elementType)
+        {
+            Array array = Array.CreateInstance(elementType, 1);
+            array.SetValue(obj, 0);
+            return array;
+        }
+        private object unpackArrayToObject(Array array)
+        {
+            return array.GetValue(0);
         }
         #endregion
         public string methodName => defineName;
