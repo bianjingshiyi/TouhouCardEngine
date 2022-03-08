@@ -161,7 +161,12 @@ namespace TouhouCardEngine
                         else
                         {
                             long key = ((long)valueRef.actionNodeId << 32) + valueRef.index;
-                            arg = varDict[key];
+                            if (varDict.ContainsKey(key))
+                            {
+                                arg = varDict[key];
+                            }
+                            else
+                                throw new KeyNotFoundException("作用域变量中不存在动作节点" + action + "引用的输入" + i + "，变量序号：" + key);
                         }
                         args[i] = arg;
                     }
