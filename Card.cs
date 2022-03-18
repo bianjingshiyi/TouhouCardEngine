@@ -306,6 +306,10 @@ namespace TouhouCardEngine
         {
             return buffList.Contains(buff);
         }
+        public bool hasBuff(BuffDefine buffDefine)
+        {
+            return buffList.Exists(b => b is GeneratedBuff generatedBuff && generatedBuff.defineId == buffDefine.getId());
+        }
         #region 动作定义
         [ActionNodeMethod("AddIntModifier", "Card")]
         [return: ActionNodeParam("Modifier")]
