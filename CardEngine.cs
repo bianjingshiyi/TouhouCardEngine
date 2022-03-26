@@ -19,7 +19,7 @@ namespace TouhouCardEngine
         #region 公共成员
         public CardEngine(Rule rule)
         {
-            trigger = new SyncTriggerSystem(this);
+            //trigger = new SyncTriggerSystem(this);
             random = new Random(0);
             this.rule = rule;
         }
@@ -30,7 +30,7 @@ namespace TouhouCardEngine
 
         public ITimeManager time { get; set; } = null;
         public ITriggerManager triggers { get; set; } = null;
-        public SyncTriggerSystem trigger { get; }
+        //public SyncTriggerSystem trigger { get; }
         IAnswerManager _answers;
         public IAnswerManager answers
         {
