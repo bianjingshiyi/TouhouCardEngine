@@ -151,7 +151,18 @@ namespace TouhouCardEngine
                 return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(game, propName)), arg =>
                 {
                     arg.getVar<Buff>(PropertyChangeEventArg.VAR_BUFF).propDict[arg.getVar<string>(PropertyChangeEventArg.VAR_PROPERTY_NAME)] = arg.getVar(PropertyChangeEventArg.VAR_VALUE);
-                    game.logger?.logTrace("Game", arg.getVar<Buff>(PropertyChangeEventArg.VAR_BUFF) + "的属性" + arg.getVar<string>(PropertyChangeEventArg.VAR_PROPERTY_NAME) + "=>" + StringHelper.propToString(arg.getVar(PropertyChangeEventArg.VAR_VALUE)));
+                    //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
+                    foreach (PropModifier propModifier in getPropertyModifiers(game))
+                    {
+                        if (propModifier.relatedPropName == arg.propName)
+                        {
+                            propModifier.setValue(game, null, this, arg.value);
+                        }
+                    }
+                    game.logger?.logTrace("Game", string.Format("{0}的属性{1}=>{2}",
+                        arg.getVar<Buff>(PropertyChangeEventArg.VAR_BUFF),
+                        arg.getVar<string>(PropertyChangeEventArg.VAR_PROPERTY_NAME),
+                        StringHelper.propToString(arg.getVar(PropertyChangeEventArg.VAR_VALUE))));
                     return Task.CompletedTask;
                 });
             }
@@ -179,6 +190,26 @@ namespace TouhouCardEngine
                 setVar(VAR_PROPERTY_NAME, propName);
                 setVar(VAR_VALUE, value);
                 setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
+            }
+            public Buff buff
+            {
+                get { return getVar<Buff>(VAR_BUFF); }
+                set { setVar(VAR_BUFF, value); }
+            }
+            public string propName
+            {
+                get { return getVar<string>(VAR_PROPERTY_NAME); }
+                set { setVar(VAR_PROPERTY_NAME, value); }
+            }
+            public object value
+            {
+                get { return getVar(VAR_VALUE); }
+                set { setVar(VAR_VALUE, value); }
+            }
+            public object valueBeforeChanged
+            {
+                get { return getVar(VAR_VALUE_BEFORE_CHANGED); }
+                set { setVar(VAR_VALUE_BEFORE_CHANGED, value); }
             }
             public const string VAR_BUFF = "Buff";
             public const string VAR_PROPERTY_NAME = "PropertyName";

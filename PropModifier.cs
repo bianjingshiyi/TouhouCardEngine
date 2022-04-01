@@ -8,10 +8,12 @@ namespace TouhouCardEngine
     public abstract class PropModifier : IPropModifier
     {
         public abstract string getPropName();
+        public abstract object getValue();
         public virtual bool checkCondition(IGame game, Card card)
         {
             return true;
         }
+        public abstract Task<IPropChangeEventArg> setValue(CardEngine game, Card card, Buff buff, object value);
         public virtual Task beforeAdd(IGame game, Card card)
         {
             return Task.CompletedTask;
@@ -30,12 +32,29 @@ namespace TouhouCardEngine
         }
         public abstract object calc(IGame game, Card card, object value);
         public abstract PropModifier clone();
+        #region 属性字段
+        public string relatedPropName = null;
+        #endregion
     }
     [Serializable]
     public abstract class PropModifier<T> : PropModifier
     {
+        #region 公有方法
         public override string getPropName()
-        { return propertyName; }
+        {
+            return propertyName;
+        }
+        public override object getValue()
+        {
+            return value;
+        }
+        public override Task<IPropChangeEventArg> setValue(CardEngine game, Card card, Buff buff, object value)
+        {
+            if (value is T t)
+                return setValue(game, card, buff, t);
+            else
+                throw new InvalidCastException("属性修整器" + this + "的值类型必须是" + typeof(T).Name);
+        }
         /// <summary>
         /// 设置修改器的修改值。
         /// </summary>
@@ -65,6 +84,7 @@ namespace TouhouCardEngine
                 return value;
         }
         public abstract T calc(IGame game, Card card, T value);
+        #endregion
         #region 属性字段
         public string propertyName;
         public T value;
