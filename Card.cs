@@ -229,6 +229,7 @@ namespace TouhouCardEngine
             if (buff == null)
                 throw new ArgumentNullException(nameof(buff));
             game?.logger?.logTrace("Buff", this + "获得增益" + buff);
+            buff.card = this;
             buffList.Add(buff);
             _lastBuffId++;
             buff.instanceID = _lastBuffId;

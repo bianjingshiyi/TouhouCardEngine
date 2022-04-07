@@ -6,23 +6,23 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public CodeBuff(int id, params PropModifier[] modifiers)
+        public CodeBuff(int id, params PropModifier[] modifiers) : base()
         {
             this.id = id;
             this.modifiers = modifiers;
         }
-        public CodeBuff(int id, params IPassiveEffect[] effects)
+        public CodeBuff(int id, params IPassiveEffect[] effects) : base()
         {
             this.id = id;
             this.effects = effects;
         }
-        public CodeBuff(int id, PropModifier modifier, params IPassiveEffect[] effects)
+        public CodeBuff(int id, PropModifier modifier, params IPassiveEffect[] effects) : base()
         {
             this.id = id;
             modifiers = (new PropModifier[] { modifier });
             this.effects = effects;
         }
-        CodeBuff(CodeBuff origin)
+        private CodeBuff(CodeBuff origin)
         {
             id = origin.id;
             modifiers = origin.modifiers;

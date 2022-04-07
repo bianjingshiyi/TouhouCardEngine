@@ -13,7 +13,7 @@ namespace TouhouCardEngine
         {
             return true;
         }
-        public abstract Task<IPropChangeEventArg> setValue(CardEngine game, Card card, Buff buff, object value);
+        public abstract Task<IPropChangeEventArg> setValue(CardEngine game, Card card, object value);
         public virtual Task beforeAdd(IGame game, Card card)
         {
             return Task.CompletedTask;
@@ -48,10 +48,10 @@ namespace TouhouCardEngine
         {
             return value;
         }
-        public override Task<IPropChangeEventArg> setValue(CardEngine game, Card card, Buff buff, object value)
+        public override Task<IPropChangeEventArg> setValue(CardEngine game, Card card, object value)
         {
             if (value is T t)
-                return setValue(game, card, buff, t);
+                return setValue(game, card, t);
             else
                 throw new InvalidCastException("属性修整器" + this + "的值类型必须是" + typeof(T).Name);
         }

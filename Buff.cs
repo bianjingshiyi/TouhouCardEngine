@@ -75,14 +75,9 @@ namespace TouhouCardEngine
     public class GeneratedBuff : Buff
     {
         #region 公有方法
-        public GeneratedBuff(BuffDefine buffDefine)
+        public GeneratedBuff(BuffDefine buffDefine) : base()
         {
             defineId = buffDefine.getId();
-        }
-        GeneratedBuff(GeneratedBuff originBuff)
-        {
-            defineId = originBuff.defineId;
-            instanceId = originBuff.instanceId;
         }
         public Task onEnable(CardEngine game, Card card)
         {
@@ -97,6 +92,13 @@ namespace TouhouCardEngine
         public override Buff clone()
         {
             return new GeneratedBuff(this);
+        }
+        #endregion
+        #region 私有方法
+        private GeneratedBuff(GeneratedBuff originBuff) : base()
+        {
+            defineId = originBuff.defineId;
+            instanceId = originBuff.instanceId;
         }
         #endregion
         #region 属性字段
@@ -129,6 +131,9 @@ namespace TouhouCardEngine
     public abstract class Buff : IBuff
     {
         #region 公有方法
+        public Buff()
+        {
+        }
         public object getProp(CardEngine game, string propName)
         {
             if (propDict.TryGetValue(propName, out object value))
@@ -156,7 +161,7 @@ namespace TouhouCardEngine
                     {
                         if (propModifier.relatedPropName == arg.propName)
                         {
-                            propModifier.setValue(game, null, this, arg.value);
+                            propModifier.setValue(game, card, arg.value);
                         }
                     }
                     game.logger?.logTrace("Game", string.Format("{0}的属性{1}=>{2}",
@@ -179,6 +184,7 @@ namespace TouhouCardEngine
         #region 属性字段
         public abstract int id { get; }
         public abstract int instanceID { get; set; }
+        public Card card;
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         #endregion
         #region 嵌套类型

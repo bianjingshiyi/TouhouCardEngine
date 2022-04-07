@@ -56,10 +56,11 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public async Task doActionsAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode actions)
         {
+            Scope scope = new Scope();
             ActionNode curAction = actions;
             while (curAction != null)
             {
-                await doActionAsync(card, buff, eventArg, curAction);
+                await doActionAsync(card, buff, eventArg, curAction, scope);
                 if (curAction.branches != null && curAction.branches.Length > 0)
                     curAction = curAction.branches[0];
                 else
@@ -137,7 +138,12 @@ namespace TouhouCardEngine
                         if (valueInput.isOut)
                         {
                             //输入参数不要求执行就可以从环境中获得
-                            arg = scope.getLocalVar(valueRef.actionNodeId, valueRef.index);
+                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
+                            {
+                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                logger.logError(msg);
+                                throw new KeyNotFoundException(msg);
+                            }
                         }
                         else if (valueRef.action != null)
                         {
@@ -160,7 +166,12 @@ namespace TouhouCardEngine
                         }
                         else
                         {
-                            arg = scope.getLocalVar(valueRef.actionNodeId, valueRef.index);
+                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
+                            {
+                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                logger.logError(msg);
+                                throw new KeyNotFoundException(msg);
+                            }
                         }
                         paramList.Add(arg);
                     }
@@ -176,7 +187,12 @@ namespace TouhouCardEngine
                         if (valueInput.isOut)
                         {
                             //输入参数不要求执行就可以从环境中获得
-                            arg = scope.getLocalVar(valueRef.actionNodeId, valueRef.index);
+                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
+                            {
+                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                logger.logError(msg);
+                                throw new KeyNotFoundException(msg);
+                            }
                         }
                         else if (valueRef.action != null)
                         {
@@ -201,7 +217,12 @@ namespace TouhouCardEngine
                         }
                         else
                         {
-                            arg = scope.getLocalVar(valueRef.actionNodeId, valueRef.index);
+                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
+                            {
+                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                logger.logError(msg);
+                                throw new KeyNotFoundException(msg);
+                            }
                         }
                         args[actionOutputs.Length + i] = arg;
                     }
@@ -272,6 +293,10 @@ namespace TouhouCardEngine
         public object getLocalVar(int actionNodeId, int index)
         {
             return localVarDict[getLocalVarName(actionNodeId, index)];
+        }
+        public bool tryGetLoacalVar(int actionNodeId, int index, out object value)
+        {
+            return localVarDict.TryGetValue(getLocalVarName(actionNodeId, index), out value);
         }
         #endregion
         #region 属性字段
