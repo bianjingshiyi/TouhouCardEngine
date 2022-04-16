@@ -60,12 +60,47 @@ namespace TouhouCardEngine
             ActionNode curAction = actions;
             while (curAction != null)
             {
-                await doActionAsync(card, buff, eventArg, curAction, scope);
+                await doActionAsyncImp(card, buff, eventArg, curAction, scope);
                 if (curAction.branches != null && curAction.branches.Length > 0)
                     curAction = curAction.branches[0];
                 else
                     break;
             }
+        }
+        public async Task<object[]> getActionsReturnValueAsync(Card card, Buff buff, EventArg eventArg, ActionNode actions, Scope scope, ReturnValueRef[] returnValueRefs)
+        {
+            object[] returnValues = new object[0];
+            if (scope == null)
+            {
+                scope = new Scope();
+            }
+            ActionNode curAction = actions;
+            while (curAction != null)
+            {
+                object[] values = await doActionAsyncImp(card, buff, eventArg, curAction, scope);
+                if (returnValueRefs != null && returnValueRefs.Length > 0)
+                {
+                    for (int i = 0; i < returnValueRefs.Length; i++)
+                    {
+                        if (returnValueRefs[i] == null ||
+                            returnValueRefs[i].valueRef == null ||
+                            curAction.id != returnValueRefs[i].valueRef.actionNodeId)
+                            continue;
+                        if (returnValues.Length <= returnValueRefs[i].returnIndex)
+                        {
+                            object[] newArray = new object[returnValueRefs[i].returnIndex + 1];
+                            Array.Copy(returnValues, newArray, returnValues.Length);
+                            returnValues = newArray;
+                        }
+                        returnValues[returnValueRefs[i].returnIndex] = values[returnValueRefs[i].valueRef.index];
+                    }
+                }
+                if (curAction.branches != null && curAction.branches.Length > 0)
+                    curAction = curAction.branches[0];
+                else
+                    break;
+            }
+            return returnValues;
         }
         /// <summary>
         /// 执行单个动作并返回指定变量值，这是一个会等待动作的异步方法。
@@ -77,7 +112,13 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Task<object[]> doActionAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode action)
         {
-            return doActionAsync(card, buff, eventArg, action, new Scope());
+            return doActionAsyncImp(card, buff, eventArg, action, new Scope());
+        }
+        public Task<object[]> doActionAsync(Card card, Buff buff, EventArg eventArg, ActionNode action, Scope scope = null)
+        {
+            if (scope == null)
+                scope = new Scope();
+            return doActionAsyncImp(card, buff, eventArg, action, scope);
         }
         /// <summary>
         /// 获取动作的返回值
@@ -111,9 +152,9 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有方法
-        private async Task<object[]> doActionAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, Scope scope)
+        private async Task<object[]> doActionAsyncImp(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, Scope scope)
         {
-            scope.actionNodeStack.Push(action);
+            scope.actionNode = action;
             //获取动作定义
             ActionDefine define = getActionDefine(action.defineName);
             //从环境中取参数值
@@ -149,7 +190,8 @@ namespace TouhouCardEngine
                         {
                             try
                             {
-                                object[] result = await doActionAsync(card, buff, eventArg, valueRef.action, scope);
+                                Scope childScope = new Scope() { parentScope = scope };
+                                object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
                                 arg = result[valueRef.index];
                             }
                             catch (Exception e)
@@ -162,9 +204,9 @@ namespace TouhouCardEngine
                         }
                         else if (!string.IsNullOrEmpty(valueRef.eventVarName))
                         {
-                            arg = eventArg.getVar(valueRef.eventVarName);
+                            arg = eventArg != null ? eventArg.getVar(valueRef.eventVarName) : scope.getLocalVar(valueRef.eventVarName);
                         }
-                        else
+                        else if (valueRef.actionNodeId != 0)
                         {
                             if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
                             {
@@ -172,6 +214,13 @@ namespace TouhouCardEngine
                                 logger.logError(msg);
                                 throw new KeyNotFoundException(msg);
                             }
+                        }
+                        else
+                        {
+                            if (valueRef.argIndex < scope.args.Length)
+                                arg = scope.args[valueRef.argIndex];
+                            else
+                                arg = scope.consts[valueRef.argIndex - scope.args.Length];
                         }
                         paramList.Add(arg);
                     }
@@ -199,7 +248,8 @@ namespace TouhouCardEngine
                             //logger.log("正在获取" + action + "的参数" + valueInput.name + "，值引用：" + valueRef);
                             try
                             {
-                                object[] result = await doActionAsync(card, buff, eventArg, valueRef.action, scope);
+                                Scope childScope = new Scope() { parentScope = scope };
+                                object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
                                 arg = result[valueRef.index];
                                 //logger.log("成功获取" + action + "的参数" + valueInput.name + "，返回结果：" + string.Join("，", result) + "，索引" + valueRef.index);
                             }
@@ -213,9 +263,9 @@ namespace TouhouCardEngine
                         }
                         else if (!string.IsNullOrEmpty(valueRef.eventVarName))
                         {
-                            arg = eventArg.getVar(valueRef.eventVarName);
+                            arg = eventArg != null ? eventArg.getVar(valueRef.eventVarName) : scope.getLocalVar(valueRef.eventVarName);
                         }
-                        else
+                        else if (valueRef.actionNodeId != 0)
                         {
                             if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
                             {
@@ -223,6 +273,13 @@ namespace TouhouCardEngine
                                 logger.logError(msg);
                                 throw new KeyNotFoundException(msg);
                             }
+                        }
+                        else
+                        {
+                            if (valueRef.argIndex < scope.args.Length)
+                                arg = scope.args[valueRef.argIndex];
+                            else
+                                arg = scope.consts[valueRef.argIndex - scope.args.Length];
                         }
                         args[actionOutputs.Length + i] = arg;
                     }
@@ -266,10 +323,6 @@ namespace TouhouCardEngine
                 logger.logError("Game", "执行动作" + action + "发生异常：" + e);
                 throw e;
             }
-            finally
-            {
-                scope.actionNodeStack.Pop();
-            }
         }
         #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
@@ -280,7 +333,7 @@ namespace TouhouCardEngine
         #region 公有方法
         public string getLocalVarName(int index)
         {
-            return getLocalVarName(actionNodeStack.Peek().id, index);
+            return getLocalVarName(actionNode.id, index);
         }
         public string getLocalVarName(int actionNodeId, int index)
         {
@@ -292,7 +345,11 @@ namespace TouhouCardEngine
         }
         public object getLocalVar(int actionNodeId, int index)
         {
-            return localVarDict[getLocalVarName(actionNodeId, index)];
+            return getLocalVar(getLocalVarName(actionNodeId, index));
+        }
+        public object getLocalVar(string varName)
+        {
+            return localVarDict[varName];
         }
         public bool tryGetLoacalVar(int actionNodeId, int index, out object value)
         {
@@ -300,8 +357,13 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public Stack<ActionNode> actionNodeStack = new Stack<ActionNode>();
+        //public Stack<ActionNode> actionNodeStack = new Stack<ActionNode>();
+        public Scope parentScope = null;
+        public ActionNode actionNode = null;
+        public object[] args = null;
+        public object[] consts = null;
         public Dictionary<string, object> localVarDict = new Dictionary<string, object>();
+        public object[] returns = null;
         #endregion
     }
     /// <summary>

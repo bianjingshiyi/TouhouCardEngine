@@ -25,6 +25,10 @@ namespace TouhouCardEngine
         {
             this.eventVarName = eventVarName;
         }
+        public ActionValueRef(int argIndex)
+        {
+            this.argIndex = argIndex;
+        }
         /// <summary>
         /// 返回第一个返回值的构造器
         /// </summary>
@@ -85,5 +89,9 @@ namespace TouhouCardEngine
         /// 事件变量名称
         /// </summary>
         public string eventVarName;
+        /// <summary>
+        /// 参数索引
+        /// </summary>
+        public int argIndex;
     }
 }

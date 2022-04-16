@@ -13,29 +13,31 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts, ActionNode[] branches)
+        public ActionNode(int id, string defineName, ActionValueRef[] inputs, object[] consts, bool[] regVar, ActionNode[] branches)
         {
+            this.id = id;
             this.defineName = defineName;
             this.branches = branches;
             this.inputs = inputs;
             this.consts = consts;
+            this.regVar = regVar;
         }
-        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(defineName, inputs, consts, new ActionNode[0])
+        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(0, defineName, inputs, consts, new bool[0], new ActionNode[0])
         {
         }
-        public ActionNode(string defineName, ActionValueRef[] inputs, ActionNode next) : this(defineName, inputs, new object[0], new ActionNode[] { next })
+        public ActionNode(string defineName, ActionValueRef[] inputs, ActionNode next) : this(0, defineName, inputs, new object[0], new bool[0], new ActionNode[] { next })
         {
         }
-        public ActionNode(string defineName, ActionValueRef[] inputs) : this(defineName, inputs, new object[0], new ActionNode[0])
+        public ActionNode(string defineName, ActionValueRef[] inputs) : this(0, defineName, inputs, new object[0], new bool[0], new ActionNode[0])
         {
         }
-        public ActionNode(string defineName, params object[] consts) : this(defineName, new ActionValueRef[0], consts, new ActionNode[0])
+        public ActionNode(string defineName, object[] consts) : this(0, defineName, new ActionValueRef[0], consts, new bool[0], new ActionNode[0])
         {
         }
-        public ActionNode(string defineName) : this(defineName, new ActionValueRef[0], new object[0], new ActionNode[0])
+        public ActionNode(string defineName) : this(0, defineName, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
         {
         }
-        public ActionNode() : this(string.Empty, new ActionValueRef[0], new object[0], new ActionNode[0])
+        public ActionNode() : this(0, string.Empty, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
         {
         }
         #endregion
