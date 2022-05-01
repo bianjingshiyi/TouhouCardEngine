@@ -352,11 +352,11 @@ namespace TouhouCardEngine
             public string commandName;
             public object[] commandArgs;
         }
-        public delegate void EventAction(Event @event);
-        public event EventAction beforeEvent;
-        public event EventAction afterEvent;
-        Event currentEvent { get; set; } = null;
-        List<Event> eventList { get; } = new List<Event>();
+        //public delegate void EventAction(Event @event);
+        //public event EventAction beforeEvent;
+        //public event EventAction afterEvent;
+        //Event currentEvent { get; set; } = null;
+        //List<Event> eventList { get; } = new List<Event>();
         /// <summary>
         /// 随机整数1~max
         /// </summary>

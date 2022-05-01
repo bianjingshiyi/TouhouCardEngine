@@ -15,47 +15,35 @@ namespace TouhouCardEngine
         {
             if (data.inputList != null)
             {
-                inputs = new ValueDefine[data.inputList.Count];
                 for (int i = 0; i < data.inputList.Count; i++)
                 {
-                    inputs[i] = data.inputList[i].toValueDefine(typeFinder);
+                    inputList.Add(data.inputList[i].toValueDefine(typeFinder));
                 }
-            }
-            else
-            {
-                inputs = new ValueDefine[0];
             }
             if (data.constList != null)
             {
-                consts = new ValueDefine[data.constList.Count];
                 for (int i = 0; i < data.constList.Count; i++)
                 {
-                    consts[i] = data.constList[i].toValueDefine(typeFinder);
+                    constList.Add(data.constList[i].toValueDefine(typeFinder));
                 }
-            }
-            else
-            {
-                consts = new ValueDefine[0];
             }
             if (data.outputList != null)
             {
-                outputs = new ValueDefine[data.outputList.Count];
                 for (int i = 0; i < data.outputList.Count; i++)
                 {
-                    outputs[i] = data.outputList[i].toValueDefine(typeFinder);
+                    outputList.Add(data.outputList[i].toValueDefine(typeFinder));
                 }
-            }
-            else
-            {
-                outputs = new ValueDefine[0];
             }
             action = data.action;
         }
         public GeneratedActionDefine(string defineName, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ReturnValueRef[] returnValueRefs, ActionNode action) : base(defineName, null)
         {
-            this.inputs = inputs;
-            this.consts = consts;
-            this.outputs = outputs;
+            if (inputs != null)
+                inputList.AddRange(inputs);
+            if (consts != null)
+                constList.AddRange(consts);
+            if (outputs != null)
+                outputList.AddRange(outputs);
             this.action = action;
             this.returnValueRefs = returnValueRefs;
         }
@@ -67,9 +55,12 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
+        public override ValueDefine[] inputs => inputList.ToArray();
+        public override ValueDefine[] consts => constList.ToArray();
+        public override ValueDefine[] outputs => outputList.ToArray();
+        public List<ValueDefine> inputList = new List<ValueDefine>();
+        public List<ValueDefine> constList = new List<ValueDefine>();
+        public List<ValueDefine> outputList = new List<ValueDefine>();
         public ActionNode action;
         public ReturnValueRef[] returnValueRefs;
         #endregion
