@@ -113,10 +113,13 @@ namespace TouhouCardEngine
                         break;
                 }
             }
+            if (isArray)
+                type = type.MakeArrayType();
             return new ValueDefine(type, name, isParams, false);
         }
         public string typeName;
         public string name;
         public bool isParams;
+        public bool isArray;
     }
 }
