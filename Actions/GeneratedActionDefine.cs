@@ -91,6 +91,7 @@ namespace TouhouCardEngine
         public List<SerializableValueDefine> inputList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> constList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
+        public List<ReturnValueRef> returnList = new List<ReturnValueRef>();
         public ActionNode action;
     }
     [Serializable]
