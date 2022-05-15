@@ -75,6 +75,11 @@ namespace TouhouCardEngine
             valueRef = new ActionValueRef(actionNodeId, index);
             this.returnIndex = returnIndex;
         }
+        public ReturnValueRef(int argIndex, int returnIndex)
+        {
+            valueRef = new ActionValueRef(argIndex);
+            this.returnIndex = returnIndex;
+        }
         public ReturnValueRef() : this(0, 0, 0)
         {
         }
@@ -88,6 +93,7 @@ namespace TouhouCardEngine
     {
         public int id;
         public string name;
+        public string category;
         public List<SerializableValueDefine> inputList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> constList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
