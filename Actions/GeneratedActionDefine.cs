@@ -13,6 +13,8 @@ namespace TouhouCardEngine
         #region 构造方法
         public GeneratedActionDefine(SerializableActionDefine data, Func<string, Type> typeFinder = null) : base(data.name, null)
         {
+            id = data.id;
+            category = data.category;
             if (data.inputList != null)
             {
                 for (int i = 0; i < data.inputList.Count; i++)
@@ -35,9 +37,13 @@ namespace TouhouCardEngine
                 }
             }
             action = data.action;
+            if (data.returnList != null)
+                returnValueRefList.AddRange(data.returnList);
         }
-        public GeneratedActionDefine(string defineName, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ReturnValueRef[] returnValueRefs, ActionNode action) : base(defineName, null)
+        public GeneratedActionDefine(int id, string category, string defineName, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ReturnValueRef[] returnValueRefs, ActionNode action) : base(defineName, null)
         {
+            this.id = id;
+            this.category = category;
             if (inputs != null)
                 inputList.AddRange(inputs);
             if (consts != null)
@@ -45,16 +51,19 @@ namespace TouhouCardEngine
             if (outputs != null)
                 outputList.AddRange(outputs);
             this.action = action;
-            this.returnValueRefs = returnValueRefs;
+            if (returnValueRefs != null)
+                returnValueRefList.AddRange(returnValueRefs);
         }
         #endregion
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
             Scope invokeScope = new Scope() { parentScope = scope, args = args, consts = constValues };
-            return (game as CardEngine).getActionsReturnValueAsync(card as Card, buff as Buff, eventArg as EventArg, action, invokeScope, returnValueRefs);
+            return (game as CardEngine).getActionsReturnValueAsync(card as Card, buff as Buff, eventArg as EventArg, action, invokeScope, returnValueRefList.ToArray());
         }
         #endregion
         #region 属性字段
+        public int id { get; }
+        public string category;
         public override ValueDefine[] inputs => inputList.ToArray();
         public override ValueDefine[] consts => constList.ToArray();
         public override ValueDefine[] outputs => outputList.ToArray();
@@ -62,7 +71,7 @@ namespace TouhouCardEngine
         public List<ValueDefine> constList = new List<ValueDefine>();
         public List<ValueDefine> outputList = new List<ValueDefine>();
         public ActionNode action;
-        public ReturnValueRef[] returnValueRefs;
+        public List<ReturnValueRef> returnValueRefList = new List<ReturnValueRef>();
         #endregion
     }
     [Serializable]
@@ -91,6 +100,21 @@ namespace TouhouCardEngine
     [Serializable]
     public class SerializableActionDefine
     {
+        #region 公有方法
+        #region 构造函数
+        public SerializableActionDefine(GeneratedActionDefine generatedActionDefine)
+        {
+            id = generatedActionDefine.id;
+            name = generatedActionDefine.defineName;
+            inputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => new SerializableValueDefine(v)));
+            constList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.consts, v => new SerializableValueDefine(v)));
+            outputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.outputs, v => new SerializableValueDefine(v)));
+            returnList = new List<ReturnValueRef>(generatedActionDefine.returnValueRefList);
+            action = generatedActionDefine.action;
+        }
+        #endregion
+        #endregion
+        #region 属性字段
         public int id;
         public string name;
         public string category;
@@ -99,10 +123,21 @@ namespace TouhouCardEngine
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
         public List<ReturnValueRef> returnList = new List<ReturnValueRef>();
         public ActionNode action;
+        #endregion
     }
     [Serializable]
     public class SerializableValueDefine
     {
+        #region 公有方法
+        #region 构造函数
+        public SerializableValueDefine(ValueDefine valueDefine)
+        {
+            typeName = valueDefine.type.FullName;
+            name = valueDefine.name;
+            isParams = valueDefine.isParams;
+            isArray = valueDefine.type.IsArray;
+        }
+        #endregion
         public ValueDefine toValueDefine(Func<string, Type> typeFinder = null)
         {
             Type type;
@@ -124,9 +159,12 @@ namespace TouhouCardEngine
                 type = type.MakeArrayType();
             return new ValueDefine(type, name, isParams, false);
         }
+        #endregion
+        #region 属性字段
         public string typeName;
         public string name;
         public bool isParams;
         public bool isArray;
+        #endregion
     }
 }

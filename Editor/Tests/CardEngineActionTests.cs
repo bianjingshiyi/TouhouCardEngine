@@ -13,7 +13,7 @@ namespace Tests
             CardEngine game = new CardEngine();
             game.addActionDefine("IntegerBinaryOperation", new IntegerOperationActionDefine());
             game.addActionDefine("IntegerConst", new IntegerConstActionDefine());
-            game.addActionDefine("GeneratedActionDefine", new GeneratedActionDefine("GeneratedActionDefine",
+            game.addActionDefine("GeneratedActionDefine", new GeneratedActionDefine(1, null, "GeneratedActionDefine",
                 new ValueDefine[]
                 {
                     new ValueDefine(typeof(int),"A",false,false),
