@@ -132,7 +132,7 @@ namespace TouhouCardEngine
         #region 构造函数
         public SerializableValueDefine(ValueDefine valueDefine)
         {
-            typeName = valueDefine.type.FullName;
+            typeName = valueDefine.type.IsArray ? valueDefine.type.GetElementType().FullName : valueDefine.type.FullName;
             name = valueDefine.name;
             isParams = valueDefine.isParams;
             isArray = valueDefine.type.IsArray;
@@ -143,7 +143,7 @@ namespace TouhouCardEngine
             Type type;
             if (typeFinder != null)
             {
-                type = typeFinder(typeName);
+                type = typeFinder(typeName.EndsWith("[]") ? typeName.Substring(0, typeName.Length - 2) : typeName);
             }
             else
             {

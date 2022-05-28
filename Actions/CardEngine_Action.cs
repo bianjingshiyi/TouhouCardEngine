@@ -331,6 +331,10 @@ namespace TouhouCardEngine
     public class Scope
     {
         #region 公有方法
+        public void setOutParamValue(int index, object value)
+        {
+            localVarDict[getLocalVarName(index)] = value;
+        }
         public string getLocalVarName(int index)
         {
             return getLocalVarName(actionNode.id, index);
