@@ -43,4 +43,35 @@ namespace TouhouCardEngine
         public List<TargetChecker> targetCheckerList = new List<TargetChecker>();
         public ActionNode action;
     }
+    [Serializable]
+    public class SerializableTrigger
+    {
+        #region 公有方法
+        #region 构造方法
+        public SerializableTrigger(TriggerGraph trigger)
+        {
+            eventName = trigger.eventName;
+            condition = new SerializableActionValueRef(trigger.condition);
+            targetCheckerList = trigger.targetCheckerList.ConvertAll(t => new SerializableTargetChecker(t));
+            actionId = trigger.action.id;
+            trigger.action.traverse(a => actionList.Add(new SerializableActionNode(a)));
+        }
+        #endregion
+        public TriggerGraph toTrigger()
+        {
+            Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
+            return new TriggerGraph(eventName,
+                condition.toActionValueRef(actionList, actionNodeDict),
+                targetCheckerList.ConvertAll(t => t.toTargetChecker(actionList, actionNodeDict)).ToArray(),
+                SerializableActionNode.toActionNodeGraph(actionId, actionList, actionNodeDict));
+        }
+        #endregion
+        #region 属性字段
+        public string eventName;
+        public SerializableActionValueRef condition;
+        public List<SerializableTargetChecker> targetCheckerList = new List<SerializableTargetChecker>();
+        public int actionId;
+        public List<SerializableActionNode> actionList = new List<SerializableActionNode>();
+        #endregion
+    }
 }

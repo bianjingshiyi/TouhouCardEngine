@@ -45,4 +45,27 @@ namespace TouhouCardEngine
         public List<GeneratedEffect> effectList = new List<GeneratedEffect>();
         #endregion
     }
+    [Serializable]
+    public class SerializableBuffDefine
+    {
+        #region 公有方法
+        #region 构造方法
+        public SerializableBuffDefine(GeneratedBuffDefine buffDefine)
+        {
+            id = buffDefine.id;
+            propModifierList = buffDefine.propModifierList;
+            effectList = buffDefine.effectList.ConvertAll(e => new SerializableEffect(e));
+        }
+        #endregion
+        public GeneratedBuffDefine toGeneratedBuffDefine()
+        {
+            return new GeneratedBuffDefine(id, propModifierList, effectList.ConvertAll(e => e.toGeneratedEffect()));
+        }
+        #endregion
+        #region 属性字段
+        public int id;
+        public List<PropModifier> propModifierList;
+        public List<SerializableEffect> effectList;
+        #endregion
+    }
 }

@@ -48,8 +48,8 @@ namespace TouhouCardEngine
         }
         public virtual T getProp<T>(string propName)
         {
-            if (_propDict.ContainsKey(propName) && _propDict[propName] is T)
-                return (T)_propDict[propName];
+            if (_propDict.ContainsKey(propName) && _propDict[propName] is T t)
+                return t;
             else
                 return default;
         }
@@ -115,6 +115,7 @@ namespace TouhouCardEngine
             throw new NotImplementedException();
         }
         #endregion
+        #region 属性字段
         /// <summary>
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
@@ -140,6 +141,35 @@ namespace TouhouCardEngine
         List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
         IEffect[] _runtimeEffects = new IEffect[0];
+        #endregion
+    }
+    [Serializable]
+    public class SerializableCardDefine
+    {
+        #region 公有方法
+        #region 构造方法
+        public SerializableCardDefine(CardDefine cardDefine)
+        {
+            id = cardDefine.id;
+            type = cardDefine.type;
+            foreach (string propName in cardDefine.getPropNames())
+            {
+                propDict.Add(propName, cardDefine.getProp<object>(propName));
+            }
+            effectList.AddRange(Array.ConvertAll(cardDefine.getGeneratedEffects(), e => new SerializableEffect(e)));
+        }
+        #endregion
+        public CardDefine toCardDefine()
+        {
+            return new CardDefine(id, type, propDict, effectList.ConvertAll(e => e.toGeneratedEffect()).ToArray());
+        }
+        #endregion
+        #region 属性字段
+        public int id;
+        public string type;
+        public Dictionary<string, object> propDict = new Dictionary<string, object>();
+        public List<SerializableEffect> effectList = new List<SerializableEffect>();
+        #endregion
     }
     /// <summary>
     /// 忽略这张卡

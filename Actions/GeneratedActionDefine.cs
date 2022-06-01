@@ -11,35 +11,6 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public GeneratedActionDefine(SerializableActionDefine data, Func<string, Type> typeFinder = null) : base(data.name, null)
-        {
-            id = data.id;
-            category = data.category;
-            if (data.inputList != null)
-            {
-                for (int i = 0; i < data.inputList.Count; i++)
-                {
-                    inputList.Add(data.inputList[i].toValueDefine(typeFinder));
-                }
-            }
-            if (data.constList != null)
-            {
-                for (int i = 0; i < data.constList.Count; i++)
-                {
-                    constList.Add(data.constList[i].toValueDefine(typeFinder));
-                }
-            }
-            if (data.outputList != null)
-            {
-                for (int i = 0; i < data.outputList.Count; i++)
-                {
-                    outputList.Add(data.outputList[i].toValueDefine(typeFinder));
-                }
-            }
-            action = data.action;
-            if (data.returnList != null)
-                returnValueRefList.AddRange(data.returnList);
-        }
         public GeneratedActionDefine(int id, string category, string defineName, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ReturnValueRef[] returnValueRefs, ActionNode action) : base(defineName, null)
         {
             this.id = id;
@@ -75,29 +46,6 @@ namespace TouhouCardEngine
         #endregion
     }
     [Serializable]
-    public class ReturnValueRef
-    {
-        #region 公有方法
-        #region 构造方法
-        public ReturnValueRef(int actionNodeId, int index, int returnIndex)
-        {
-            valueRef = new ActionValueRef(actionNodeId, index);
-            this.returnIndex = returnIndex;
-        }
-        public ReturnValueRef(int argIndex, int returnIndex)
-        {
-            valueRef = new ActionValueRef(argIndex);
-            this.returnIndex = returnIndex;
-        }
-        public ReturnValueRef() : this(0, 0, 0)
-        {
-        }
-        #endregion
-        #endregion
-        public ActionValueRef valueRef;
-        public int returnIndex;
-    }
-    [Serializable]
     public class SerializableActionDefine
     {
         #region 公有方法
@@ -109,10 +57,30 @@ namespace TouhouCardEngine
             inputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => new SerializableValueDefine(v)));
             constList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.consts, v => new SerializableValueDefine(v)));
             outputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.outputs, v => new SerializableValueDefine(v)));
-            returnList = new List<ReturnValueRef>(generatedActionDefine.returnValueRefList);
-            action = generatedActionDefine.action;
+            //returnList = new List<ReturnValueRef>(generatedActionDefine.returnValueRefList);
+            seriReturnList = generatedActionDefine.returnValueRefList.ConvertAll(r => new SerializableReturnValueRef(r));
+            //action = generatedActionDefine.action;
+            rootActionId = generatedActionDefine.action.id;
+            generatedActionDefine.action.traverse(a => actionNodeList.Add(new SerializableActionNode(a)));
         }
         #endregion
+        public GeneratedActionDefine toGeneratedActionDefine(Func<string, Type> typeFinder)
+        {
+            //action
+            Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
+            ActionNode rootActionNode = SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
+            //return
+            ReturnValueRef[] returnValueRefs = new ReturnValueRef[seriReturnList.Count];
+            for (int i = 0; i < returnValueRefs.Length; i++)
+            {
+                returnValueRefs[i] = seriReturnList[i].toReturnValueRef(actionNodeList, actionNodeDict);
+            }
+            return new GeneratedActionDefine(id, category, name,
+                inputList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
+                constList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
+                outputList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
+                returnValueRefs, rootActionNode);
+        }
         #endregion
         #region 属性字段
         public int id;
@@ -121,50 +89,11 @@ namespace TouhouCardEngine
         public List<SerializableValueDefine> inputList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> constList = new List<SerializableValueDefine>();
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
-        public List<ReturnValueRef> returnList = new List<ReturnValueRef>();
-        public ActionNode action;
-        #endregion
-    }
-    [Serializable]
-    public class SerializableValueDefine
-    {
-        #region 公有方法
-        #region 构造函数
-        public SerializableValueDefine(ValueDefine valueDefine)
-        {
-            typeName = valueDefine.type.IsArray ? valueDefine.type.GetElementType().FullName : valueDefine.type.FullName;
-            name = valueDefine.name;
-            isParams = valueDefine.isParams;
-            isArray = valueDefine.type.IsArray;
-        }
-        #endregion
-        public ValueDefine toValueDefine(Func<string, Type> typeFinder = null)
-        {
-            Type type;
-            if (typeFinder != null)
-            {
-                type = typeFinder(typeName.EndsWith("[]") ? typeName.Substring(0, typeName.Length - 2) : typeName);
-            }
-            else
-            {
-                type = null;
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    type = assembly.GetType(typeName);
-                    if (type != null)
-                        break;
-                }
-            }
-            if (isArray)
-                type = type.MakeArrayType();
-            return new ValueDefine(type, name, isParams, false);
-        }
-        #endregion
-        #region 属性字段
-        public string typeName;
-        public string name;
-        public bool isParams;
-        public bool isArray;
+        public List<ReturnValueRef> returnList = null;
+        public List<SerializableReturnValueRef> seriReturnList = new List<SerializableReturnValueRef>();
+        public ActionNode action = null;
+        public int rootActionId;
+        public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
         #endregion
     }
 }

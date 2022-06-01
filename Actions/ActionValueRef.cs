@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -93,5 +95,39 @@ namespace TouhouCardEngine
         /// 参数索引
         /// </summary>
         public int argIndex;
+    }
+    public class SerializableActionValueRef
+    {
+        #region 公有方法
+        #region 构造函数
+        public SerializableActionValueRef(ActionValueRef actionValueRef)
+        {
+            actionNodeId = actionValueRef.action != null ? actionValueRef.action.id : actionValueRef.actionNodeId;
+            index = actionValueRef.index;
+            eventVarName = actionValueRef.eventVarName;
+            argIndex = actionValueRef.argIndex;
+        }
+        #endregion
+        public ActionValueRef toActionValueRef(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
+        {
+            if (actionNodeId != 0)
+            {
+                if (actionNodeDict.TryGetValue(actionNodeId, out ActionNode actionNode))
+                    return new ActionValueRef(actionNode, index);
+                else
+                    return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList, actionNodeDict));
+            }
+            else if (!string.IsNullOrEmpty(eventVarName))
+                return new ActionValueRef(eventVarName);
+            else
+                return new ActionValueRef(argIndex, index);
+        }
+        #endregion
+        #region 属性字段
+        public int actionNodeId;
+        public int index;
+        public string eventVarName;
+        public int argIndex;
+        #endregion
     }
 }

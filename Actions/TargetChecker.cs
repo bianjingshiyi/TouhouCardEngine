@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
@@ -58,5 +59,28 @@ namespace TouhouCardEngine
         public string targetType;
         public ActionValueRef condition;
         public string errorTip;
+    }
+    [Serializable]
+    public class SerializableTargetChecker
+    {
+        #region 公有方法
+        #region 构造方法
+        public SerializableTargetChecker(TargetChecker targetChecker)
+        {
+            targetType = targetChecker.targetType;
+            condition = new SerializableActionValueRef(targetChecker.condition);
+            errorTip = targetChecker.errorTip;
+        }
+        #endregion
+        public TargetChecker toTargetChecker(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
+        {
+            return new TargetChecker(targetType, condition.toActionValueRef(actionNodeList, actionNodeDict), errorTip);
+        }
+        #endregion
+        #region 属性字段
+        public string targetType;
+        public SerializableActionValueRef condition;
+        public string errorTip;
+        #endregion
     }
 }

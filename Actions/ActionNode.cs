@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 namespace TouhouCardEngine
@@ -35,6 +36,9 @@ namespace TouhouCardEngine
         {
         }
         public ActionNode(string defineName) : this(0, defineName, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
+        {
+        }
+        public ActionNode(int id) : this(id, null, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
         {
         }
         public ActionNode() : this(0, string.Empty, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
@@ -95,33 +99,77 @@ namespace TouhouCardEngine
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(defineName);
-            if (consts != null && consts.Length > 0)
+            if (defineName == "BooleanConst")
+                sb.Append((bool)consts[0]);
+            else if (defineName == "IntegerConst")
+                sb.Append((int)consts[0]);
+            else if (defineName == "StringConst")
+                sb.Append((string)consts[0]);
+            else
             {
-                sb.Append('<');
-                for (int i = 0; i < consts.Length; i++)
+                if (defineName == "Compare")
                 {
-                    if (i != 0)
-                    {
-                        sb.Append(',');
-                    }
-                    sb.Append(consts[i] != null ? consts[i].ToString() : "null");
+                    sb.Append(inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null");
+                    if ((CompareOperator)consts[0] == CompareOperator.equals)
+                        sb.Append(" == ");
+                    else
+                        sb.Append(" != ");
+                    sb.Append(inputs.Length > 1 && inputs[1] != null ? inputs[1].ToString() : "null");
                 }
-                sb.Append('>');
-            }
-            sb.Append('(');
-            if (inputs != null && inputs.Length > 0)
-            {
-                for (int i = 0; i < inputs.Length; i++)
+                else if (defineName == "LogicOperation")
                 {
-                    if (i != 0)
+                    if ((LogicOperator)consts[0] == LogicOperator.not)
+                        sb.Append("!" + (inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null"));
+                    else if ((LogicOperator)consts[0] == LogicOperator.and)
                     {
-                        sb.Append(',');
+                        for (int i = 0; i < inputs.Length; i++)
+                        {
+                            if (i != 0)
+                                sb.Append(" && ");
+                            sb.Append(inputs[i].ToString());
+                        }
                     }
-                    sb.Append(inputs[i] != null ? inputs[i].ToString() : "null");
+                    else if ((LogicOperator)consts[0] == LogicOperator.or)
+                    {
+                        for (int i = 0; i < inputs.Length; i++)
+                        {
+                            if (i != 0)
+                                sb.Append(" || ");
+                            sb.Append(inputs[i].ToString());
+                        }
+                    }
+                }
+                else
+                {
+                    sb.Append(defineName);
+                    if (consts != null && consts.Length > 0)
+                    {
+                        sb.Append('<');
+                        for (int i = 0; i < consts.Length; i++)
+                        {
+                            if (i != 0)
+                            {
+                                sb.Append(',');
+                            }
+                            sb.Append(consts[i] != null ? consts[i].ToString() : "null");
+                        }
+                        sb.Append('>');
+                    }
+                    sb.Append('(');
+                    if (inputs != null && inputs.Length > 0)
+                    {
+                        for (int i = 0; i < inputs.Length; i++)
+                        {
+                            if (i != 0)
+                            {
+                                sb.Append(',');
+                            }
+                            sb.Append(inputs[i] != null ? inputs[i].ToString() : "null");
+                        }
+                    }
+                    sb.Append("); ");
                 }
             }
-            sb.Append("); ");
             return string.Intern(sb.ToString());
         }
         #endregion
@@ -144,5 +192,57 @@ namespace TouhouCardEngine
         /// 用于标识返回值是否需要保存为局部变量
         /// </summary>
         public bool[] regVar;
+    }
+    [Serializable]
+    public sealed class SerializableActionNode
+    {
+        #region 公有方法
+        #region 构造函数
+        public SerializableActionNode(ActionNode actionNode)
+        {
+            id = actionNode.id;
+            defineName = actionNode.defineName;
+            branches = Array.ConvertAll(actionNode.branches, a => a.id);
+            inputs = Array.ConvertAll(actionNode.inputs, i => new SerializableActionValueRef(i));
+            consts = actionNode.consts;
+            regVar = actionNode.regVar;
+        }
+        #endregion
+        public static ActionNode toActionNodeGraph(int actionNodeId, List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict = null)
+        {
+            if (actionNodeDict == null)
+                actionNodeDict = new Dictionary<int, ActionNode>();
+            SerializableActionNode seriActionNode = actionNodeList.Find(s => s.id == actionNodeId);
+            ActionNode actionNode = new ActionNode(actionNodeId);
+            actionNodeDict.Add(actionNodeId, actionNode);
+            actionNode.defineName = seriActionNode.defineName;
+            actionNode.consts = seriActionNode.consts;
+            actionNode.regVar = seriActionNode.regVar;
+            //inputs
+            actionNode.inputs = new ActionValueRef[seriActionNode.inputs.Length];
+            for (int i = 0; i < actionNode.inputs.Length; i++)
+            {
+                actionNode.inputs[i] = seriActionNode.inputs[i].toActionValueRef(actionNodeList, actionNodeDict);
+            }
+            //branches
+            actionNode.branches = new ActionNode[seriActionNode.branches.Length];
+            for (int i = 0; i < actionNode.branches.Length; i++)
+            {
+                if (actionNodeDict.TryGetValue(seriActionNode.branches[i], out ActionNode childNode))
+                    actionNode.branches[i] = childNode;
+                else
+                    actionNode.branches[i] = toActionNodeGraph(seriActionNode.branches[i], actionNodeList, actionNodeDict);
+            }
+            return actionNode;
+        }
+        #endregion
+        #region 属性字段
+        public int id;
+        public string defineName;
+        public int[] branches;
+        public SerializableActionValueRef[] inputs;
+        public object[] consts;
+        public bool[] regVar;
+        #endregion
     }
 }

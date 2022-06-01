@@ -19,4 +19,46 @@ namespace TouhouCardEngine
         public bool isOut { get; set; }
         #endregion
     }
+    [Serializable]
+    public class SerializableValueDefine
+    {
+        #region 公有方法
+        #region 构造函数
+        public SerializableValueDefine(ValueDefine valueDefine)
+        {
+            typeName = valueDefine.type.IsArray ? valueDefine.type.GetElementType().FullName : valueDefine.type.FullName;
+            name = valueDefine.name;
+            isParams = valueDefine.isParams;
+            isArray = valueDefine.type.IsArray;
+        }
+        #endregion
+        public ValueDefine toValueDefine(Func<string, Type> typeFinder = null)
+        {
+            Type type;
+            if (typeFinder != null)
+            {
+                type = typeFinder(typeName.EndsWith("[]") ? typeName.Substring(0, typeName.Length - 2) : typeName);
+            }
+            else
+            {
+                type = null;
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    type = assembly.GetType(typeName);
+                    if (type != null)
+                        break;
+                }
+            }
+            if (isArray)
+                type = type.MakeArrayType();
+            return new ValueDefine(type, name, isParams, false);
+        }
+        #endregion
+        #region 属性字段
+        public string typeName;
+        public string name;
+        public bool isParams;
+        public bool isArray;
+        #endregion
+    }
 }
