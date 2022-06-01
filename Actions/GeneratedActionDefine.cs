@@ -68,12 +68,19 @@ namespace TouhouCardEngine
         {
             //action
             Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
-            ActionNode rootActionNode = SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
+            ActionNode rootActionNode = action != null ? action :
+                SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
             //return
-            ReturnValueRef[] returnValueRefs = new ReturnValueRef[seriReturnList.Count];
-            for (int i = 0; i < returnValueRefs.Length; i++)
+            ReturnValueRef[] returnValueRefs;
+            if (returnList != null)
+                returnValueRefs = returnList.ToArray();
+            else
             {
-                returnValueRefs[i] = seriReturnList[i].toReturnValueRef(actionNodeList, actionNodeDict);
+                returnValueRefs = new ReturnValueRef[seriReturnList.Count];
+                for (int i = 0; i < returnValueRefs.Length; i++)
+                {
+                    returnValueRefs[i] = seriReturnList[i].toReturnValueRef(actionNodeList, actionNodeDict);
+                }
             }
             return new GeneratedActionDefine(id, category, name,
                 inputList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
@@ -91,7 +98,7 @@ namespace TouhouCardEngine
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
         public List<ReturnValueRef> returnList = null;
         public List<SerializableReturnValueRef> seriReturnList = new List<SerializableReturnValueRef>();
-        public ActionNode action = null;
+        public ActionNode action;
         public int rootActionId;
         public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
         #endregion

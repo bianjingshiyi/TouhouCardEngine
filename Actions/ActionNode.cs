@@ -210,6 +210,8 @@ namespace TouhouCardEngine
         #endregion
         public static ActionNode toActionNodeGraph(int actionNodeId, List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict = null)
         {
+            if (actionNodeList == null)
+                return null;
             if (actionNodeDict == null)
                 actionNodeDict = new Dictionary<int, ActionNode>();
             SerializableActionNode seriActionNode = actionNodeList.Find(s => s.id == actionNodeId);
