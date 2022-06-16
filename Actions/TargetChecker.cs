@@ -67,14 +67,19 @@ namespace TouhouCardEngine
         #region 构造方法
         public SerializableTargetChecker(TargetChecker targetChecker)
         {
+            if (targetChecker == null)
+                throw new ArgumentNullException(nameof(targetChecker));
             targetType = targetChecker.targetType;
-            condition = new SerializableActionValueRef(targetChecker.condition);
+            condition = targetChecker.condition != null ? new SerializableActionValueRef(targetChecker.condition) : null;
             errorTip = targetChecker.errorTip;
         }
         #endregion
         public TargetChecker toTargetChecker(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
         {
-            return new TargetChecker(targetType, condition.toActionValueRef(actionNodeList, actionNodeDict), errorTip);
+            return new TargetChecker(
+                targetType,
+                condition != null ? condition.toActionValueRef(actionNodeList, actionNodeDict) : null,
+                errorTip);
         }
         #endregion
         #region 属性字段

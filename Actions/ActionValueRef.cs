@@ -18,11 +18,6 @@ namespace TouhouCardEngine
             this.action = action;
             this.index = index;
         }
-        public ActionValueRef(int actionNodeId, int index)
-        {
-            this.actionNodeId = actionNodeId;
-            this.index = index;
-        }
         public ActionValueRef(string eventVarName)
         {
             this.eventVarName = eventVarName;
@@ -102,6 +97,8 @@ namespace TouhouCardEngine
         #region 构造函数
         public SerializableActionValueRef(ActionValueRef actionValueRef)
         {
+            if (actionValueRef == null)
+                throw new ArgumentNullException(nameof(actionValueRef));
             actionNodeId = actionValueRef.action != null ? actionValueRef.action.id : actionValueRef.actionNodeId;
             index = actionValueRef.index;
             eventVarName = actionValueRef.eventVarName;
@@ -120,7 +117,7 @@ namespace TouhouCardEngine
             else if (!string.IsNullOrEmpty(eventVarName))
                 return new ActionValueRef(eventVarName);
             else
-                return new ActionValueRef(argIndex, index);
+                return new ActionValueRef(argIndex);
         }
         #endregion
         #region 属性字段

@@ -52,16 +52,43 @@ namespace TouhouCardEngine
         #region 构造函数
         public SerializableActionDefine(GeneratedActionDefine generatedActionDefine)
         {
+            if (generatedActionDefine == null)
+                throw new ArgumentNullException(nameof(generatedActionDefine));
             id = generatedActionDefine.id;
             name = generatedActionDefine.defineName;
-            inputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => new SerializableValueDefine(v)));
-            constList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.consts, v => new SerializableValueDefine(v)));
-            outputList = new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.outputs, v => new SerializableValueDefine(v)));
+            inputList = generatedActionDefine.inputs != null ?
+                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => v != null ?
+                    new SerializableValueDefine(v) :
+                    null)) :
+                new List<SerializableValueDefine>();
+            constList = generatedActionDefine.consts != null ?
+                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.consts, v => v != null ?
+                    new SerializableValueDefine(v) :
+                    null)) :
+                new List<SerializableValueDefine>();
+            outputList = generatedActionDefine.outputs != null ?
+                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.outputs, v => v != null ?
+                    new SerializableValueDefine(v) :
+                    null)) :
+                new List<SerializableValueDefine>();
             //returnList = new List<ReturnValueRef>(generatedActionDefine.returnValueRefList);
-            seriReturnList = generatedActionDefine.returnValueRefList.ConvertAll(r => new SerializableReturnValueRef(r));
+            seriReturnList = generatedActionDefine.returnValueRefList != null ?
+                generatedActionDefine.returnValueRefList.ConvertAll(r => r != null ?
+                    new SerializableReturnValueRef(r) :
+                    null) :
+                new List<SerializableReturnValueRef>();
             //action = generatedActionDefine.action;
-            rootActionId = generatedActionDefine.action.id;
-            generatedActionDefine.action.traverse(a => actionNodeList.Add(new SerializableActionNode(a)));
+            if (generatedActionDefine.action != null)
+            {
+                rootActionId = generatedActionDefine.action.id;
+                generatedActionDefine.action.traverse(a =>
+                {
+                    if (a != null)
+                        actionNodeList.Add(new SerializableActionNode(a));
+                });
+            }
+            else
+                rootActionId = 0;
         }
         #endregion
         public GeneratedActionDefine toGeneratedActionDefine(Func<string, Type> typeFinder)

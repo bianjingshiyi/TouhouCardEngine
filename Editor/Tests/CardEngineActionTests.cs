@@ -13,6 +13,17 @@ namespace Tests
             CardEngine game = new CardEngine();
             game.addActionDefine("IntegerBinaryOperation", new IntegerOperationActionDefine());
             game.addActionDefine("IntegerConst", new IntegerConstActionDefine());
+            ActionNode actionNode1 = new ActionNode(1, "IntegerBinaryOperation", new ActionValueRef[]
+            {
+                new ActionValueRef(0),
+                new ActionValueRef(1)
+            }, new object[] { IntegerOperator.add }, new bool[] { true });
+            ActionNode actionNode2 = new ActionNode(2, "IntegerBinaryOperation", new ActionValueRef[]
+            {
+                new ActionValueRef(actionNode1,0),
+                new ActionValueRef(2)
+            }, new object[] { IntegerOperator.mul }, null, null);
+            actionNode1.branches = new ActionNode[] { actionNode2 };
             game.addActionDefine("GeneratedActionDefine", new GeneratedActionDefine(1, null, "GeneratedActionDefine",
                 new ValueDefine[]
                 {
@@ -27,19 +38,8 @@ namespace Tests
                 {
                     new ValueDefine(typeof(int),"Result",false,false)
                 },
-                new ReturnValueRef[] { new ReturnValueRef(2, 0, 0) },
-                new ActionNode(1, "IntegerBinaryOperation", new ActionValueRef[]
-                {
-                    new ActionValueRef(0),
-                    new ActionValueRef(1)
-                }, new object[] { IntegerOperator.add }, new bool[] { true }, new ActionNode[]
-                {
-                    new ActionNode(2, "IntegerBinaryOperation", new ActionValueRef[]
-                    {
-                        new ActionValueRef(1,0),
-                        new ActionValueRef(2)
-                    }, new object[] { IntegerOperator.mul }, null, null)
-                })));
+                new ReturnValueRef[] { new ReturnValueRef(actionNode2, 0, 0) },
+                actionNode1));
             ActionNode action = new ActionNode(1, "GeneratedActionDefine", new ActionValueRef[]
             {
                 new ActionValueRef(new ActionNode(2, "IntegerConst", new ActionValueRef[0], new object[] { 2 }, null, null)),

@@ -84,7 +84,7 @@ namespace TouhouCardEngine
                     {
                         if (returnValueRefs[i] == null ||
                             returnValueRefs[i].valueRef == null ||
-                            curAction.id != returnValueRefs[i].valueRef.actionNodeId)
+                            curAction != returnValueRefs[i].valueRef.action)
                             continue;
                         if (returnValues.Length <= returnValueRefs[i].returnIndex)
                         {

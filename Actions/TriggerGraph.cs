@@ -50,20 +50,98 @@ namespace TouhouCardEngine
         #region 构造方法
         public SerializableTrigger(TriggerGraph trigger)
         {
+            if (trigger == null)
+                throw new ArgumentNullException(nameof(trigger));
             eventName = trigger.eventName;
-            condition = new SerializableActionValueRef(trigger.condition);
-            targetCheckerList = trigger.targetCheckerList.ConvertAll(t => new SerializableTargetChecker(t));
-            actionId = trigger.action.id;
-            trigger.action.traverse(a => actionList.Add(new SerializableActionNode(a)));
+            if (trigger.condition != null)
+            {
+                condition = new SerializableActionValueRef(trigger.condition);
+                if (trigger.condition.action != null)
+                {
+                    trigger.condition.action.traverse(a =>
+                    {
+                        if (a != null)
+                            actionList.Add(new SerializableActionNode(a));
+                    });
+                }
+            }
+            else
+                condition = null;
+            if (trigger.targetCheckerList != null)
+            {
+                for (int i = 0; i < trigger.targetCheckerList.Count; i++)
+                {
+                    if (trigger.targetCheckerList[i] == null)
+                        continue;
+                    targetCheckerList.Add(new SerializableTargetChecker(trigger.targetCheckerList[i]));
+                    if (trigger.targetCheckerList[i].condition != null && trigger.targetCheckerList[i].condition.action != null)
+                    {
+                        trigger.targetCheckerList[i].condition.action.traverse(a =>
+                        {
+                            if (a != null)
+                                actionList.Add(new SerializableActionNode(a));
+                        });
+                    }
+                }
+            }
+            if (trigger.action != null)
+            {
+                actionId = trigger.action.id;
+                trigger.action.traverse(a =>
+                {
+                    if (a != null)
+                        actionList.Add(new SerializableActionNode(a));
+                });
+            }
+            else
+                actionId = 0;
         }
         #endregion
         public TriggerGraph toTrigger()
         {
             Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
-            return new TriggerGraph(eventName,
-                condition.toActionValueRef(actionList, actionNodeDict),
-                targetCheckerList.ConvertAll(t => t.toTargetChecker(actionList, actionNodeDict)).ToArray(),
-                SerializableActionNode.toActionNodeGraph(actionId, actionList, actionNodeDict));
+            TriggerGraph trigger = new TriggerGraph();
+            trigger.eventName = eventName;
+            if (condition != null)
+            {
+                try
+                {
+                    trigger.condition = condition.toActionValueRef(actionList, actionNodeDict);
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化触发器条件失败", e);
+                }
+            }
+            else
+                trigger.condition = null;
+            for (int i = 0; i < targetCheckerList.Count; i++)
+            {
+                if (targetCheckerList[i] == null)
+                    continue;
+                try
+                {
+                    trigger.targetCheckerList.Add(targetCheckerList[i].toTargetChecker(actionList, actionNodeDict));
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化触发器目标条件" + i + "失败", e);
+                }
+            }
+            if (actionId != 0)
+            {
+                try
+                {
+                    trigger.action = SerializableActionNode.toActionNodeGraph(actionId, actionList, actionNodeDict);
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化触发器动作失败", e);
+                }
+            }
+            else
+                trigger.action = null;
+            return trigger;
         }
         #endregion
         #region 属性字段

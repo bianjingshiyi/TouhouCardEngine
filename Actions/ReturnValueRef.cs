@@ -12,17 +12,12 @@ namespace TouhouCardEngine
             valueRef = new ActionValueRef(actionNode, index);
             this.returnIndex = returnIndex;
         }
-        public ReturnValueRef(int actionNodeId, int index, int returnIndex)
-        {
-            valueRef = new ActionValueRef(actionNodeId, index);
-            this.returnIndex = returnIndex;
-        }
         public ReturnValueRef(int argIndex, int returnIndex)
         {
             valueRef = new ActionValueRef(argIndex);
             this.returnIndex = returnIndex;
         }
-        public ReturnValueRef() : this(0, 0, 0)
+        public ReturnValueRef() : this(null, 0, 0)
         {
         }
         #endregion
@@ -37,13 +32,17 @@ namespace TouhouCardEngine
         #region 构造方法
         public SerializableReturnValueRef(ReturnValueRef returnValueRef)
         {
-            valueRef = new SerializableActionValueRef(returnValueRef.valueRef);
+            if (returnValueRef == null)
+                throw new ArgumentNullException(nameof(returnValueRef));
+            valueRef = returnValueRef.valueRef != null ? new SerializableActionValueRef(returnValueRef.valueRef) : null;
             returnIndex = returnValueRef.returnIndex;
         }
         #endregion
         public ReturnValueRef toReturnValueRef(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
         {
-            if (valueRef.actionNodeId != 0)
+            if (valueRef == null)
+                return new ReturnValueRef();
+            else if (valueRef.actionNodeId != 0)
             {
                 if (actionNodeDict.TryGetValue(valueRef.actionNodeId, out ActionNode childNode))
                     return new ReturnValueRef(childNode, valueRef.index, returnIndex);

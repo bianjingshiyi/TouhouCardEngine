@@ -12,7 +12,7 @@ namespace TouhouCardEngine
     public class CardDefine : ICardDefine
     {
         #region 方法
-        public CardDefine(int id, string type, Dictionary<string, object> props, GeneratedEffect[] effects)
+        public CardDefine(int id, string type, Dictionary<string, object> props, GeneratedEffect[] effects = null)
         {
             _id = id;
             _type = type;
@@ -161,7 +161,22 @@ namespace TouhouCardEngine
         #endregion
         public CardDefine toCardDefine()
         {
-            return new CardDefine(id, type, propDict, effectList.ConvertAll(e => e.toGeneratedEffect()).ToArray());
+            CardDefine cardDefine = new CardDefine(id, type, propDict);
+            GeneratedEffect[] effects = new GeneratedEffect[effectList.Count];
+            for (int i = 0; i < effectList.Count; i++)
+            {
+                if (effectList[i] == null)
+                    continue;
+                try
+                {
+                    effects[i] = effectList[i].toGeneratedEffect();
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化卡牌定义" + id + "的效果" + i + "失败", e);
+                }
+            }
+            return cardDefine;
         }
         #endregion
         #region 属性字段

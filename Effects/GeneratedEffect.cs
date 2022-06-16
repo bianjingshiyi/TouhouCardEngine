@@ -57,7 +57,8 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="piles"></param>
         /// <param name="trigger"></param>
-        public GeneratedEffect(IEnumerable<string> piles, TriggerGraph trigger) : this(piles.ToArray(), null, null, new TriggerGraph[] { trigger }, new string[0])
+        public GeneratedEffect(IEnumerable<string> piles, TriggerGraph trigger) :
+            this(piles.ToArray(), null, null, trigger != null ? new TriggerGraph[] { trigger } : new TriggerGraph[0], new string[0])
         {
 
         }
@@ -302,39 +303,100 @@ namespace TouhouCardEngine
         #region 构造方法
         public SerializableEffect(GeneratedEffect generatedEffect)
         {
-            pileList = generatedEffect.pileList;
-            onEnableRootActionNodeId = generatedEffect.onEnableAction.id;
-            onDisableRootActionNodeId = generatedEffect.onDisableAction.id;
-            triggerList = generatedEffect.triggerList.ConvertAll(t => new SerializableTrigger(t));
-            tagList = generatedEffect.tagList;
-            propDict = generatedEffect.propDict;
+            if (generatedEffect == null)
+                throw new ArgumentNullException(nameof(generatedEffect));
+            pileList = generatedEffect.pileList != null ? generatedEffect.pileList : new PileNameCollection();
+            tagList = generatedEffect.tagList != null ? generatedEffect.tagList : new EffectTagCollection();
+            propDict = generatedEffect.propDict != null ? generatedEffect.propDict : new Dictionary<string, object>();
             //onEnable
-            generatedEffect.onEnableAction.traverse(a => actionNodeList.Add(new SerializableActionNode(a)));
+            if (generatedEffect.onEnableAction != null)
+            {
+                onEnableRootActionNodeId = generatedEffect.onEnableAction.id;
+                generatedEffect.onEnableAction.traverse(a =>
+                {
+                    if (a != null)
+                        onEnableActionList.Add(new SerializableActionNode(a));
+                });
+            }
             //onDisable
-            generatedEffect.onDisableAction.traverse(a => actionNodeList.Add(new SerializableActionNode(a)));
+            if (generatedEffect.onDisableAction != null)
+            {
+                onDisableRootActionNodeId = generatedEffect.onDisableAction.id;
+                generatedEffect.onDisableAction.traverse(a =>
+                {
+                    if (a != null)
+                        onDisalbeActionList.Add(new SerializableActionNode(a));
+                });
+            }
+            triggerList = generatedEffect.triggerList != null ?
+                generatedEffect.triggerList.ConvertAll(t => t != null ?
+                    new SerializableTrigger(t) :
+                    null) :
+                new List<SerializableTrigger>();
         }
         #endregion
         public GeneratedEffect toGeneratedEffect()
         {
-            Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
-            return new GeneratedEffect(pileList,
-                SerializableActionNode.toActionNodeGraph(onEnableRootActionNodeId, actionNodeList, actionNodeDict),
-                SerializableActionNode.toActionNodeGraph(onDisableRootActionNodeId, actionNodeList, actionNodeDict),
-                triggerList.ConvertAll(t => t.toTrigger()).ToArray(),
-                tagList.ToArray())
+            GeneratedEffect generatedEffect = new GeneratedEffect(pileList, null);
+            if (onEnableRootActionNodeId != 0)
             {
-                propDict = propDict
-            };
+                try
+                {
+                    generatedEffect.onEnableAction = SerializableActionNode.toActionNodeGraph(
+                        onEnableRootActionNodeId,
+                        onEnableActionList,
+                        new Dictionary<int, ActionNode>());
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化效果的生效效果失败", e);
+                }
+            }
+            else
+                generatedEffect.onEnableAction = null;
+            if (onDisableRootActionNodeId != 0)
+            {
+                try
+                {
+                    generatedEffect.onDisableAction = SerializableActionNode.toActionNodeGraph(
+                        onDisableRootActionNodeId,
+                        onDisalbeActionList,
+                        new Dictionary<int, ActionNode>());
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化效果的失效效果失败", e);
+                }
+            }
+            else
+                generatedEffect.onDisableAction = null;
+            for (int i = 0; i < triggerList.Count; i++)
+            {
+                if (triggerList[i] == null)
+                    continue;
+                try
+                {
+                    generatedEffect.triggerList.Add(triggerList[i].toTrigger());
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化效果触发器" + i + "失败", e);
+                }
+            }
+            generatedEffect.tagList = tagList;
+            generatedEffect.propDict = propDict;
+            return generatedEffect;
         }
         #endregion
         #region 属性字段
-        public PileNameCollection pileList = new PileNameCollection();
+        public PileNameCollection pileList;
         public int onEnableRootActionNodeId;
+        public List<SerializableActionNode> onEnableActionList = new List<SerializableActionNode>();
         public int onDisableRootActionNodeId;
-        public List<SerializableTrigger> triggerList = new List<SerializableTrigger>();
-        public EffectTagCollection tagList = new EffectTagCollection();
-        public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
+        public List<SerializableActionNode> onDisalbeActionList = new List<SerializableActionNode>();
+        public List<SerializableTrigger> triggerList;
+        public EffectTagCollection tagList;
+        public Dictionary<string, object> propDict;
         #endregion
     }
 }

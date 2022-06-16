@@ -14,11 +14,11 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionNode(int id, string defineName, ActionValueRef[] inputs, object[] consts, bool[] regVar, ActionNode[] branches)
+        public ActionNode(int id, string defineName, ActionValueRef[] inputs, object[] consts, bool[] regVar, ActionNode[] branches = null)
         {
             this.id = id;
             this.defineName = defineName;
-            this.branches = branches;
+            this.branches = branches != null ? branches : new ActionNode[0];
             this.inputs = inputs;
             this.consts = consts;
             this.regVar = regVar;
@@ -200,21 +200,31 @@ namespace TouhouCardEngine
         #region 构造函数
         public SerializableActionNode(ActionNode actionNode)
         {
+            if (actionNode == null)
+                throw new ArgumentNullException(nameof(actionNode));
             id = actionNode.id;
             defineName = actionNode.defineName;
-            branches = Array.ConvertAll(actionNode.branches, a => a.id);
-            inputs = Array.ConvertAll(actionNode.inputs, i => new SerializableActionValueRef(i));
-            consts = actionNode.consts;
-            regVar = actionNode.regVar;
+            branches = actionNode.branches != null ?
+                Array.ConvertAll(actionNode.branches, a => a != null ? a.id : 0) :
+                new int[0];
+            inputs = actionNode.inputs != null ?
+                Array.ConvertAll(actionNode.inputs, i => i != null ? new SerializableActionValueRef(i) : null) :
+                new SerializableActionValueRef[0];
+            consts = actionNode.consts != null ? actionNode.consts : new object[0];
+            regVar = actionNode.regVar != null ? actionNode.regVar : new bool[0];
         }
         #endregion
         public static ActionNode toActionNodeGraph(int actionNodeId, List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict = null)
         {
+            if (actionNodeId == 0)
+                return null;
             if (actionNodeList == null)
                 return null;
             if (actionNodeDict == null)
                 actionNodeDict = new Dictionary<int, ActionNode>();
             SerializableActionNode seriActionNode = actionNodeList.Find(s => s.id == actionNodeId);
+            if (seriActionNode == null)
+                throw new KeyNotFoundException("不存在id为" + actionNodeId + "的动作节点");
             ActionNode actionNode = new ActionNode(actionNodeId);
             actionNodeDict.Add(actionNodeId, actionNode);
             actionNode.defineName = seriActionNode.defineName;
@@ -224,13 +234,18 @@ namespace TouhouCardEngine
             actionNode.inputs = new ActionValueRef[seriActionNode.inputs.Length];
             for (int i = 0; i < actionNode.inputs.Length; i++)
             {
-                actionNode.inputs[i] = seriActionNode.inputs[i].toActionValueRef(actionNodeList, actionNodeDict);
+                if (seriActionNode.inputs[i] != null)
+                    actionNode.inputs[i] = seriActionNode.inputs[i].toActionValueRef(actionNodeList, actionNodeDict);
+                else
+                    actionNode.inputs[i] = null;
             }
             //branches
             actionNode.branches = new ActionNode[seriActionNode.branches.Length];
             for (int i = 0; i < actionNode.branches.Length; i++)
             {
-                if (actionNodeDict.TryGetValue(seriActionNode.branches[i], out ActionNode childNode))
+                if (seriActionNode.branches[i] == 0)
+                    actionNode.branches[i] = null;
+                else if (actionNodeDict.TryGetValue(seriActionNode.branches[i], out ActionNode childNode))
                     actionNode.branches[i] = childNode;
                 else
                     actionNode.branches[i] = toActionNodeGraph(seriActionNode.branches[i], actionNodeList, actionNodeDict);

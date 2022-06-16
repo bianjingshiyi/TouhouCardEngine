@@ -7,6 +7,7 @@ namespace TouhouCardEngine
     public class GeneratedBuffDefine : BuffDefine
     {
         #region 公有方法
+        #region 构造方法
         public GeneratedBuffDefine(int id, IEnumerable<PropModifier> propModifiers = null, IEnumerable<GeneratedEffect> effects = null)
         {
             this.id = id;
@@ -15,6 +16,10 @@ namespace TouhouCardEngine
             if (effects != null)
                 effectList.AddRange(effects);
         }
+        public GeneratedBuffDefine()
+        {
+        }
+        #endregion
         public override async Task onEnable(CardEngine game, Card card, Buff buff)
         {
             for (int i = 0; i < effectList.Count; i++)
@@ -52,14 +57,36 @@ namespace TouhouCardEngine
         #region 构造方法
         public SerializableBuffDefine(GeneratedBuffDefine buffDefine)
         {
+            if (buffDefine == null)
+                throw new ArgumentNullException(nameof(buffDefine));
             id = buffDefine.id;
-            propModifierList = buffDefine.propModifierList;
-            effectList = buffDefine.effectList.ConvertAll(e => new SerializableEffect(e));
+            propModifierList = buffDefine.propModifierList != null ? buffDefine.propModifierList : new List<PropModifier>();
+            effectList = buffDefine.effectList != null ?
+                buffDefine.effectList.ConvertAll(e => e != null ?
+                    new SerializableEffect(e) :
+                    null) :
+                new List<SerializableEffect>();
         }
         #endregion
         public GeneratedBuffDefine toGeneratedBuffDefine()
         {
-            return new GeneratedBuffDefine(id, propModifierList, effectList.ConvertAll(e => e.toGeneratedEffect()));
+            GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
+            generatedBuffDefine.id = id;
+            generatedBuffDefine.propModifierList = propModifierList;
+            for (int i = 0; i < effectList.Count; i++)
+            {
+                if (effectList[i] == null)
+                    continue;
+                try
+                {
+                    generatedBuffDefine.effectList.Add(effectList[i].toGeneratedEffect());
+                }
+                catch (Exception e)
+                {
+                    throw new FormatException("反序列化增益定义" + id + "的效果" + i + "失败", e);
+                }
+            }
+            return generatedBuffDefine;
         }
         #endregion
         #region 属性字段
