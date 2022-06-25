@@ -19,23 +19,25 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
-        public void traverse(Action<ActionNode> action)
+        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
+            if (traversedActionNodeSet == null)
+                traversedActionNodeSet = new HashSet<ActionNode>();
             if (condition != null)
-                condition.traverse(action);
+                condition.traverse(action, traversedActionNodeSet);
             if (targetCheckerList != null && targetCheckerList.Count > 0)
             {
                 for (int i = 0; i < targetCheckerList.Count; i++)
                 {
                     if (targetCheckerList[i] == null)
                         continue;
-                    targetCheckerList[i].traverse(action);
+                    targetCheckerList[i].traverse(action, traversedActionNodeSet);
                 }
             }
-            if (this.action != null)
-                this.action.traverse(action);
+            if (this.action != null && !traversedActionNodeSet.Contains(this.action))
+                this.action.traverse(action, traversedActionNodeSet);
         }
         #endregion
         public string eventName;
@@ -99,14 +101,13 @@ namespace TouhouCardEngine
         #endregion
         public TriggerGraph toTrigger()
         {
-            Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
             TriggerGraph trigger = new TriggerGraph();
             trigger.eventName = eventName;
             if (condition != null)
             {
                 try
                 {
-                    trigger.condition = condition.toActionValueRef(actionList, actionNodeDict);
+                    trigger.condition = condition.toActionValueRef(actionList, new Dictionary<int, ActionNode>());
                 }
                 catch (Exception e)
                 {
@@ -121,7 +122,7 @@ namespace TouhouCardEngine
                     continue;
                 try
                 {
-                    trigger.targetCheckerList.Add(targetCheckerList[i].toTargetChecker(actionList, actionNodeDict));
+                    trigger.targetCheckerList.Add(targetCheckerList[i].toTargetChecker(actionList, new Dictionary<int, ActionNode>()));
                 }
                 catch (Exception e)
                 {
@@ -132,7 +133,7 @@ namespace TouhouCardEngine
             {
                 try
                 {
-                    trigger.action = SerializableActionNode.toActionNodeGraph(actionId, actionList, actionNodeDict);
+                    trigger.action = SerializableActionNode.toActionNodeGraph(actionId, actionList, new Dictionary<int, ActionNode>());
                 }
                 catch (Exception e)
                 {

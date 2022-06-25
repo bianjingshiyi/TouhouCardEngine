@@ -307,7 +307,21 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(generatedEffect));
             pileList = generatedEffect.pileList != null ? generatedEffect.pileList : new PileNameCollection();
             tagList = generatedEffect.tagList != null ? generatedEffect.tagList : new EffectTagCollection();
-            propDict = generatedEffect.propDict != null ? generatedEffect.propDict : new Dictionary<string, object>();
+            propDict = new Dictionary<string, object>();
+            if (generatedEffect.propDict != null)
+            {
+                foreach (var pair in generatedEffect.propDict)
+                {
+                    if (pair.Value is ActionNode actionNode)
+                        propDict.Add(pair.Key, new SerializableActionNodeGraph(actionNode));
+                    else if (pair.Value is ActionValueRef actionValueRef)
+                        propDict.Add(pair.Key, new SerializableActionValueRef(actionValueRef, true));
+                    else if (pair.Value is TriggerGraph trigger)
+                        propDict.Add(pair.Key, new SerializableTrigger(trigger));
+                    else
+                        propDict.Add(pair.Key, pair.Value);
+                }
+            }
             //onEnable
             if (generatedEffect.onEnableAction != null)
             {
@@ -384,7 +398,17 @@ namespace TouhouCardEngine
                 }
             }
             generatedEffect.tagList = tagList;
-            generatedEffect.propDict = propDict;
+            foreach (var pair in propDict)
+            {
+                if (pair.Value is SerializableActionNodeGraph actionGraph)
+                    generatedEffect.propDict.Add(pair.Key, actionGraph.toActionNodeGraph());
+                else if (pair.Value is SerializableActionValueRef actionValueRef)
+                    generatedEffect.propDict.Add(pair.Key, actionValueRef.toActionValueRef());
+                else if (pair.Value is SerializableTrigger trigger)
+                    generatedEffect.propDict.Add(pair.Key, trigger.toTrigger());
+                else
+                    generatedEffect.propDict.Add(pair.Key, pair.Value);
+            }
             return generatedEffect;
         }
         #endregion

@@ -16,12 +16,14 @@ namespace TouhouCardEngine
         public TargetChecker() : this(string.Empty, null, string.Empty)
         {
         }
-        public void traverse(Action<ActionNode> action)
+        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
+            if (traversedActionNodeSet == null)
+                traversedActionNodeSet = new HashSet<ActionNode>();
             if (condition != null)
-                condition.traverse(action);
+                condition.traverse(action, traversedActionNodeSet);
         }
         public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {

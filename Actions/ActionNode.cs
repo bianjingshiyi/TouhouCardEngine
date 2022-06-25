@@ -45,10 +45,15 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public void traverse(Action<ActionNode> action)
+        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
+            if (traversedActionNodeSet == null)
+                traversedActionNodeSet = new HashSet<ActionNode>();
+            else if (traversedActionNodeSet.Contains(this))
+                return;
+            traversedActionNodeSet.Add(this);
             action(this);
             //遍历输入
             if (inputs != null && inputs.Length > 0)
@@ -57,7 +62,7 @@ namespace TouhouCardEngine
                 {
                     if (inputs[i] == null)
                         continue;
-                    inputs[i].traverse(action);
+                    inputs[i].traverse(action, traversedActionNodeSet);
                 }
             }
             //遍历常量
@@ -69,19 +74,19 @@ namespace TouhouCardEngine
                         continue;
                     if (consts[i] is ActionNode childActionNode)
                     {
-                        childActionNode.traverse(action);
+                        childActionNode.traverse(action, traversedActionNodeSet);
                     }
                     else if (consts[i] is ActionValueRef valueRef)
                     {
-                        valueRef.traverse(action);
+                        valueRef.traverse(action, traversedActionNodeSet);
                     }
                     else if (consts[i] is TargetChecker targetChecker)
                     {
-                        targetChecker.traverse(action);
+                        targetChecker.traverse(action, traversedActionNodeSet);
                     }
                     else if (consts[i] is TriggerGraph trigger)
                     {
-                        trigger.traverse(action);
+                        trigger.traverse(action, traversedActionNodeSet);
                     }
                 }
             }
@@ -92,7 +97,7 @@ namespace TouhouCardEngine
                 {
                     if (branches[i] == null)
                         continue;
-                    branches[i].traverse(action);
+                    branches[i].traverse(action, traversedActionNodeSet);
                 }
             }
         }
@@ -260,6 +265,31 @@ namespace TouhouCardEngine
         public SerializableActionValueRef[] inputs;
         public object[] consts;
         public bool[] regVar;
+        #endregion
+    }
+    [Serializable]
+    public sealed class SerializableActionNodeGraph
+    {
+        #region 公有方法
+        public SerializableActionNodeGraph(ActionNode actionNode)
+        {
+            if (actionNode == null)
+                throw new ArgumentNullException(nameof(actionNode));
+            rootActionId = actionNode.id;
+            actionNode.traverse(a =>
+            {
+                if (a != null)
+                    actionNodeList.Add(new SerializableActionNode(a));
+            });
+        }
+        public ActionNode toActionNodeGraph(Dictionary<int, ActionNode> actionNodeDict = null)
+        {
+            return SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
+        }
+        #endregion
+        #region 属性字段
+        public int rootActionId;
+        public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
         #endregion
     }
 }

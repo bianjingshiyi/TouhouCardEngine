@@ -40,13 +40,17 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public void traverse(Action<ActionNode> action)
+        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
         {
             if (this.action == null)
                 return;
             if (action == null)
                 return;
-            this.action.traverse(action);
+            if (traversedActionNodeSet == null)
+                traversedActionNodeSet = new HashSet<ActionNode>();
+            else if (traversedActionNodeSet.Contains(this.action))
+                return;
+            this.action.traverse(action, traversedActionNodeSet);
         }
         public override string ToString()
         {
@@ -95,7 +99,7 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造函数
-        public SerializableActionValueRef(ActionValueRef actionValueRef)
+        public SerializableActionValueRef(ActionValueRef actionValueRef, bool isGraph = false)
         {
             if (actionValueRef == null)
                 throw new ArgumentNullException(nameof(actionValueRef));
@@ -103,6 +107,18 @@ namespace TouhouCardEngine
             index = actionValueRef.index;
             eventVarName = actionValueRef.eventVarName;
             argIndex = actionValueRef.argIndex;
+            if (isGraph)
+            {
+                actionNodeList = new List<SerializableActionNode>();
+                if (actionValueRef.action != null)
+                {
+                    actionValueRef.action.traverse(a =>
+                    {
+                        if (a != null)
+                            actionNodeList.Add(new SerializableActionNode(a));
+                    });
+                }
+            }
         }
         #endregion
         public ActionValueRef toActionValueRef(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
@@ -112,12 +128,16 @@ namespace TouhouCardEngine
                 if (actionNodeDict.TryGetValue(actionNodeId, out ActionNode actionNode))
                     return new ActionValueRef(actionNode, index);
                 else
-                    return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList, actionNodeDict));
+                    return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList, actionNodeDict), index);
             }
             else if (!string.IsNullOrEmpty(eventVarName))
                 return new ActionValueRef(eventVarName);
             else
                 return new ActionValueRef(argIndex);
+        }
+        public ActionValueRef toActionValueRef()
+        {
+            return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList), index);
         }
         #endregion
         #region 属性字段
@@ -125,6 +145,7 @@ namespace TouhouCardEngine
         public int index;
         public string eventVarName;
         public int argIndex;
+        public List<SerializableActionNode> actionNodeList;
         #endregion
     }
 }

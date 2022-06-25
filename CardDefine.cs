@@ -176,6 +176,7 @@ namespace TouhouCardEngine
                     throw new FormatException("反序列化卡牌定义" + id + "的效果" + i + "失败", e);
                 }
             }
+            cardDefine.setEffects(effects);
             return cardDefine;
         }
         #endregion
