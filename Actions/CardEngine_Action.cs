@@ -188,18 +188,34 @@ namespace TouhouCardEngine
                         }
                         else if (valueRef.action != null)
                         {
-                            try
+                            ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
+                            if (actionDefine != null &&
+                                valueRef.index < actionDefine.getValueOutputs().Length &&
+                                actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
+                                output.isOut)
                             {
-                                Scope childScope = new Scope() { parentScope = scope };
-                                object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
-                                arg = result[valueRef.index];
+                                if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
+                                {
+                                    string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                    logger.logError(msg);
+                                    throw new KeyNotFoundException(msg);
+                                }
                             }
-                            catch (Exception e)
+                            else
                             {
-                                if (e is TargetInvocationException targetInvocationException)
-                                    e = targetInvocationException.InnerException;
-                                logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
-                                throw e;
+                                try
+                                {
+                                    Scope childScope = new Scope() { parentScope = scope };
+                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
+                                    arg = result[valueRef.index];
+                                }
+                                catch (Exception e)
+                                {
+                                    if (e is TargetInvocationException targetInvocationException)
+                                        e = targetInvocationException.InnerException;
+                                    logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
+                                    throw e;
+                                }
                             }
                         }
                         else if (!string.IsNullOrEmpty(valueRef.eventVarName))
@@ -245,20 +261,36 @@ namespace TouhouCardEngine
                         }
                         else if (valueRef.action != null)
                         {
-                            //logger.log("正在获取" + action + "的参数" + valueInput.name + "，值引用：" + valueRef);
-                            try
+                            ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
+                            if (actionDefine != null &&
+                                valueRef.index < actionDefine.getValueOutputs().Length &&
+                                actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
+                                output.isOut)
                             {
-                                Scope childScope = new Scope() { parentScope = scope };
-                                object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
-                                arg = result[valueRef.index];
-                                //logger.log("成功获取" + action + "的参数" + valueInput.name + "，返回结果：" + string.Join("，", result) + "，索引" + valueRef.index);
+                                if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
+                                {
+                                    string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
+                                    logger.logError(msg);
+                                    throw new KeyNotFoundException(msg);
+                                }
                             }
-                            catch (Exception e)
+                            else
                             {
-                                if (e is TargetInvocationException targetInvocationException)
-                                    e = targetInvocationException.InnerException;
-                                logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
-                                throw e;
+                                //logger.log("正在获取" + action + "的参数" + valueInput.name + "，值引用：" + valueRef);
+                                try
+                                {
+                                    Scope childScope = new Scope() { parentScope = scope };
+                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
+                                    arg = result[valueRef.index];
+                                    //logger.log("成功获取" + action + "的参数" + valueInput.name + "，返回结果：" + string.Join("，", result) + "，索引" + valueRef.index);
+                                }
+                                catch (Exception e)
+                                {
+                                    if (e is TargetInvocationException targetInvocationException)
+                                        e = targetInvocationException.InnerException;
+                                    logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
+                                    throw e;
+                                }
                             }
                         }
                         else if (!string.IsNullOrEmpty(valueRef.eventVarName))
