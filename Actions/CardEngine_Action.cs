@@ -363,6 +363,15 @@ namespace TouhouCardEngine
     public class Scope
     {
         #region 公有方法
+        #region 构造方法
+        public Scope(Scope parentScope)
+        {
+            this.parentScope = parentScope;
+        }
+        public Scope() : this(null)
+        {
+        }
+        #endregion
         public void setOutParamValue(int index, object value)
         {
             localVarDict[getLocalVarName(index)] = value;
@@ -385,11 +394,26 @@ namespace TouhouCardEngine
         }
         public object getLocalVar(string varName)
         {
-            return localVarDict[varName];
+            Scope scope = this;
+            while (scope != null)
+            {
+                if (scope.localVarDict.TryGetValue(varName, out object value))
+                    return value;
+                scope = scope.parentScope;
+            }
+            return null;
         }
         public bool tryGetLoacalVar(int actionNodeId, int index, out object value)
         {
-            return localVarDict.TryGetValue(getLocalVarName(actionNodeId, index), out value);
+            Scope scope = this;
+            while (scope != null)
+            {
+                if (scope.localVarDict.TryGetValue(getLocalVarName(actionNodeId, index), out value))
+                    return true;
+                scope = scope.parentScope;
+            }
+            value = null;
+            return false;
         }
         #endregion
         #region 属性字段
