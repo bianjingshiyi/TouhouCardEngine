@@ -185,16 +185,5 @@ namespace TouhouCardEngine
         {
             return collection.Cast<object>().Where(obj => !elements.Contains(obj));
         }
-        /// <summary>
-        /// 计算集合中元素数量
-        /// </summary>
-        /// <param name="collection"></param>
-        /// <returns></returns>
-        [ActionNodeMethod("GetCount", "CollectionOperation")]
-        [return: ActionNodeParam("Collection")]
-        public static int getCount([ActionNodeParam("Collection")] IEnumerable collection)
-        {
-            return collection.Cast<object>().Count();
-        }
     }
 }
