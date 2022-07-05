@@ -189,10 +189,12 @@ namespace TouhouCardEngine
                         else if (valueRef.action != null)
                         {
                             ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if (actionDefine != null &&
+                            if ((actionDefine != null &&//是输出型参数
                                 valueRef.index < actionDefine.getValueOutputs().Length &&
                                 actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut)
+                                output.isOut) ||
+                                (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
+                                valueRef.action.regVar[valueRef.index]))
                             {
                                 if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
                                 {
@@ -262,10 +264,12 @@ namespace TouhouCardEngine
                         else if (valueRef.action != null)
                         {
                             ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if (actionDefine != null &&
+                            if ((actionDefine != null &&//是输出型参数
                                 valueRef.index < actionDefine.getValueOutputs().Length &&
                                 actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut)
+                                output.isOut) ||
+                                (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
+                                valueRef.action.regVar[valueRef.index]))
                             {
                                 if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
                                 {
