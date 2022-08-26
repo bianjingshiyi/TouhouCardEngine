@@ -160,6 +160,8 @@ namespace TouhouCardEngine
                             constValues[constIndex] = packObjectToArray(constValues[constIndex], paramInfo.ParameterType.GetElementType());
                         else if (isObjectNeedToUnpackForType(constValues[constIndex], paramInfo.ParameterType))
                             constValues[constIndex] = unpackArrayToObject(constValues[constIndex] as Array);
+                        else if (constValues[constIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
+                            constValues[constIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
                         paramters[i] = constValues[constIndex];
                         constIndex++;
                     }
@@ -169,6 +171,8 @@ namespace TouhouCardEngine
                             valueArgs[valueArgIndex] = packObjectToArray(valueArgs[valueArgIndex], paramInfo.ParameterType.GetElementType());
                         else if (isObjectNeedToUnpackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
                             valueArgs[valueArgIndex] = unpackArrayToObject(valueArgs[valueArgIndex] as Array);
+                        else if (valueArgs[valueArgIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
+                            valueArgs[valueArgIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
                         paramters[i] = valueArgs[valueArgIndex];
                         valueArgIndex++;
                     }
@@ -205,6 +209,8 @@ namespace TouhouCardEngine
                             valueArgs[valueArgIndex] = packObjectToArray(valueArgs[valueArgIndex], paramInfo.ParameterType.GetElementType());
                         else if (isObjectNeedToUnpackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
                             valueArgs[valueArgIndex] = unpackArrayToObject(valueArgs[valueArgIndex] as Array);
+                        else if (valueArgs[valueArgIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
+                            valueArgs[valueArgIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
                         paramters[i] = valueArgs[valueArgIndex];
                         valueArgIndex++;
                     }
@@ -241,13 +247,29 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有方法
+        /// <summary>
+        /// is object nessesary to convert to target array type?
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         private bool isObjectNeedToPackForType(object obj, Type type)
         {
-            return type.IsArray && !(obj is Array);
+            return !(obj is Array) && (type == typeof(Array) || type.IsArray);
         }
-        private bool isObjectNeedToUnpackForType(object obj, Type type)
+        private bool isObjectNeedToUnpackForType(object array, Type type)
         {
-            return !type.IsArray && obj is Array;
+            return !(type == typeof(Array) || type.IsArray) && array is Array;
+        }
+        private bool isArrayNeedToCastForType(Array array, Type type)
+        {
+            if (array == null)
+                return false;
+            if (type != typeof(Array) && !type.IsArray)
+                return false;
+            if (type.IsAssignableFrom(array.GetType()))
+                return false;
+            return true;
         }
         private object packObjectToArray(object obj, Type elementType)
         {
@@ -258,6 +280,15 @@ namespace TouhouCardEngine
         private object unpackArrayToObject(Array array)
         {
             return array.GetValue(0);
+        }
+        private object castArrayToTargetTypeArray(Array array, Type elementType)
+        {
+            Array targetArray = Array.CreateInstance(elementType, array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                targetArray.SetValue(array.GetValue(i), i);
+            }
+            return targetArray;
         }
         #endregion
         public string methodName => defineName;
