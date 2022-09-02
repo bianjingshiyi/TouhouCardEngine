@@ -269,7 +269,9 @@ namespace TouhouCardEngine
                 return false;
             if (type.IsAssignableFrom(array.GetType()))
                 return false;
-            return true;
+            return type.HasElementType && type.GetElementType() is Type elementType &&
+                (elementType.IsAssignableFrom(array.GetType().GetElementType()) ||
+                array.GetType().GetElementType().IsAssignableFrom(elementType));
         }
         private object packObjectToArray(object obj, Type elementType)
         {

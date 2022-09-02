@@ -74,10 +74,24 @@ namespace TouhouCardEngine
             {
                 string triggerName = getEffectName(game, card, buff, graph.eventName);
                 game.logger.log("Effect", card + "注册触发器" + triggerName);
-                Trigger trigger = new Trigger(args =>
-                {
-                    return game.doActionsAsync(card, buff, args.OfType<IEventArg>().FirstOrDefault(), graph.action);
-                }, name: triggerName);
+                Trigger trigger = new Trigger(
+                    args =>
+                    {
+                        if (graph.condition == null || graph.condition.action == null)
+                            return true;
+                        Task<bool> task = (game as CardEngine).getActionReturnValueAsync<bool>(
+                            card as Card,
+                            buff as Buff,
+                            args.OfType<EventArg>().FirstOrDefault(), graph.condition.action);
+                        if (task.IsCompleted)
+                            return task.Result;
+                        else
+                            throw new InvalidOperationException("无法在触发器条件中执行需要等待的动作");
+                    },
+                    args =>
+                    {
+                        return game.doActionsAsync(card, buff, args.OfType<IEventArg>().FirstOrDefault(), graph.action);
+                    }, name: triggerName);
                 await card.setProp(game, triggerName, trigger);
                 game.triggers.register(graph.eventName, trigger);
             }

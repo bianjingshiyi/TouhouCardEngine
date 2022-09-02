@@ -33,12 +33,12 @@ namespace Tests
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int a = 0;
             int b = 0;
-            Trigger triggerA = new Trigger(args =>
+            Trigger triggerA = new Trigger(action: args =>
             {
                 a = (int)args[0];
                 return Task.CompletedTask;
             });
-            Trigger triggerB = new Trigger(args =>
+            Trigger triggerB = new Trigger(action: args =>
             {
                 b = (int)args[0];
                 return Task.CompletedTask;
@@ -79,7 +79,7 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int value = 0;
-            Trigger<TestEventArg> trigger = new Trigger<TestEventArg>(arg =>
+            Trigger<TestEventArg> trigger = new Trigger<TestEventArg>(action: arg =>
             {
                 value = arg.intValue;
                 return Task.CompletedTask;
@@ -110,13 +110,13 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int intValue = 0;
-            Trigger<TestEventArg> triggerA = new Trigger<TestEventArg>(arg =>
+            Trigger<TestEventArg> triggerA = new Trigger<TestEventArg>(action: arg =>
             {
                 if (intValue == 0)
                     arg.intValue = 1;
                 return Task.CompletedTask;
             });
-            Trigger<TestEventArg> triggerB = new Trigger<TestEventArg>(arg =>
+            Trigger<TestEventArg> triggerB = new Trigger<TestEventArg>(action: arg =>
             {
                 if (arg.intValue == 2)
                     intValue = 3;
@@ -157,12 +157,12 @@ namespace Tests
             for (int i = 0; i < triggers.Length; i++)
             {
                 int localI = i;
-                triggers[9 - i] = new Trigger((object[] args) =>
+                triggers[9 - i] = new Trigger(action: (object[] args) =>
                 {
                     if (intValue == localI)
                         intValue = localI + 1;
                     return Task.CompletedTask;
-                }, comparsion);
+                }, comparsion: comparsion);
             }
 
             for (int i = 0; i < triggers.Length; i++)
@@ -190,23 +190,23 @@ namespace Tests
             }
             int result = 0;
 
-            triggers[0] = new Trigger((object[] args) =>
+            triggers[0] = new Trigger(action: (object[] args) =>
             {
                 result = 1;
                 return Task.CompletedTask;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.register("ObsolateTestEvent", triggers[0]);
-            triggers[1] = new Trigger<TestEventArg>(arg =>
+            triggers[1] = new Trigger<TestEventArg>(action: arg =>
             {
                 result *= arg.intValue;
                 return Task.CompletedTask;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.register(triggers[1] as Trigger<TestEventArg>);
-            triggers[2] = new Trigger((object[] args) =>
+            triggers[2] = new Trigger(action: (object[] args) =>
             {
                 result += 10;
                 return Task.CompletedTask;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.register("TestEvent", triggers[2]);
 
             Task task = manager.doEvent(new string[] { "ObsolateTestEvent", "TestEvent" }, new TestEventArg() { intValue = 2 }, 1);
@@ -228,29 +228,29 @@ namespace Tests
             }
             int result = 0;
 
-            triggers[0] = new Trigger(async args =>
+            triggers[0] = new Trigger(action: async args =>
             {
                 await Task.Delay(1);
                 result = result * (int)args[0] + 2;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.register("BeforeTestEvent", triggers[0]);
-            triggers[1] = new Trigger<TestEventArg>(async arg =>
+            triggers[1] = new Trigger<TestEventArg>(action: async arg =>
             {
                 await Task.Delay(1);
                 result = result * arg.intValue + 0;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.registerBefore(triggers[1] as Trigger<TestEventArg>);
-            triggers[2] = new Trigger<TestEventArg>(async arg =>
+            triggers[2] = new Trigger<TestEventArg>(action: async arg =>
             {
                 await Task.Delay(1);
                 result = result * arg.intValue + 4;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.registerAfter(triggers[2] as Trigger<TestEventArg>);
-            triggers[3] = new Trigger(async args =>
+            triggers[3] = new Trigger(action: async args =>
             {
                 await Task.Delay(1);
                 result = result * (int)args[0] + 8;
-            }, comparsion);
+            }, comparsion: comparsion);
             manager.register("AfterTestEvent", triggers[3]);
 
             object[] eventArgs = new object[] { 10 };
@@ -272,14 +272,14 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             bool a = false;
-            manager.registerBefore(new Trigger<TestEventArg>(arg =>
+            manager.registerBefore(new Trigger<TestEventArg>(action: arg =>
             {
                 a = true;
                 arg.isCanceled = true;
                 return Task.CompletedTask;
             }));
             bool b = false;
-            manager.registerAfter(new Trigger<TestEventArg>(arg =>
+            manager.registerAfter(new Trigger<TestEventArg>(action: arg =>
             {
                 b = true;
                 return Task.CompletedTask;
@@ -299,7 +299,7 @@ namespace Tests
         public void repeatEventTest()
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
-            manager.registerBefore(new Trigger<TestEventArg>(arg =>
+            manager.registerBefore(new Trigger<TestEventArg>(action: arg =>
             {
                 arg.repeatTime = 3;
                 return Task.CompletedTask;
@@ -318,7 +318,7 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int value = 0;
-            manager.registerBefore(new Trigger<TestEventArg>(arg1 =>
+            manager.registerBefore(new Trigger<TestEventArg>(action: arg1 =>
             {
                 arg1.replaceAction(arg2 =>
                 {
@@ -341,19 +341,19 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int value = 0;
-            manager.register(new Trigger<TestEventArg>(arg1 =>
+            manager.register(new Trigger<TestEventArg>(action: arg1 =>
             {
                 if (value == 0)
                     value = 1;
-                manager.register(new Trigger<TestEventArg>(arg2 =>
+                manager.register(new Trigger<TestEventArg>(action: arg2 =>
                 {
                     if (value == 1)
                         value = 2;
-                    manager.register(new Trigger<TestEventArg>(arg3 =>
+                    manager.register(new Trigger<TestEventArg>(action: arg3 =>
                     {
                         if (value == 2)
                             value = 3;
-                        manager.registerBefore(new Trigger<TestEventArg>(arg4 =>
+                        manager.registerBefore(new Trigger<TestEventArg>(action: arg4 =>
                         {
                             if (value == 3)
                                 value = 4;
@@ -375,19 +375,19 @@ namespace Tests
         {
             TriggerManager manager = new GameObject("TriggerManager").AddComponent<TriggerManager>();
             int value = 0;
-            manager.registerBefore(new Trigger<TestEventArg>(arg1 =>
+            manager.registerBefore(new Trigger<TestEventArg>(action: arg1 =>
             {
                 if (value == 0)
                     value = 1;
-                manager.registerBefore(new Trigger<TestEventArg>(arg2 =>
+                manager.registerBefore(new Trigger<TestEventArg>(action: arg2 =>
                 {
                     if (value == 1)
                         value = 2;
-                    manager.registerAfter(new Trigger<TestEventArg>(arg3 =>
+                    manager.registerAfter(new Trigger<TestEventArg>(action: arg3 =>
                     {
                         if (value == 2)
                             value = 3;
-                        manager.registerAfter(new Trigger<TestEventArg>(arg4 =>
+                        manager.registerAfter(new Trigger<TestEventArg>(action: arg4 =>
                         {
                             if (value == 3)
                                 value = 4;

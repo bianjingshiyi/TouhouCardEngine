@@ -60,7 +60,7 @@ namespace TouhouCardEngine
                 game.triggers.removeAfter(trigger);
                 trigger = null;
             }
-            trigger = new Trigger<IPropChangeEventArg>(arg =>
+            trigger = new Trigger<IPropChangeEventArg>(action: arg =>
             {
                 Card hookedCard = hookCard.getValue(game, null, card, null) ?? card;
                 if (arg.card == hookCard && arg.propName == hookPropName)

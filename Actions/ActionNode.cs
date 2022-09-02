@@ -105,17 +105,17 @@ namespace TouhouCardEngine
         {
             StringBuilder sb = new StringBuilder();
             if (defineName == "BooleanConst")
-                sb.Append((bool)consts[0]);
+                sb.Append(consts != null && consts.Length > 0 && consts[0] is bool b ? b : false);
             else if (defineName == "IntegerConst")
-                sb.Append((int)consts[0]);
+                sb.Append(consts != null && consts.Length > 0 && consts[0] is int i ? i : 0);
             else if (defineName == "StringConst")
-                sb.Append((string)consts[0]);
+                sb.Append(consts != null && consts.Length > 0 && consts[0] is string s ? s : string.Empty);
             else
             {
                 if (defineName == "Compare")
                 {
                     sb.Append(inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null");
-                    if ((CompareOperator)consts[0] == CompareOperator.equals)
+                    if (consts != null && consts.Length > 0 && consts[0] is CompareOperator compareOperator && compareOperator == CompareOperator.equals)
                         sb.Append(" == ");
                     else
                         sb.Append(" != ");
@@ -123,24 +123,27 @@ namespace TouhouCardEngine
                 }
                 else if (defineName == "LogicOperation")
                 {
-                    if ((LogicOperator)consts[0] == LogicOperator.not)
-                        sb.Append("!" + (inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null"));
-                    else if ((LogicOperator)consts[0] == LogicOperator.and)
+                    if (consts != null && consts.Length > 0 && consts[0] is LogicOperator logicOperator)
                     {
-                        for (int i = 0; i < inputs.Length; i++)
+                        if (logicOperator == LogicOperator.not)
+                            sb.Append("!" + (inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null"));
+                        else if (logicOperator == LogicOperator.and)
                         {
-                            if (i != 0)
-                                sb.Append(" && ");
-                            sb.Append(inputs[i].ToString());
+                            for (int i = 0; i < inputs.Length; i++)
+                            {
+                                if (i != 0)
+                                    sb.Append(" && ");
+                                sb.Append(inputs[i].ToString());
+                            }
                         }
-                    }
-                    else if ((LogicOperator)consts[0] == LogicOperator.or)
-                    {
-                        for (int i = 0; i < inputs.Length; i++)
+                        else if (logicOperator == LogicOperator.or)
                         {
-                            if (i != 0)
-                                sb.Append(" || ");
-                            sb.Append(inputs[i].ToString());
+                            for (int i = 0; i < inputs.Length; i++)
+                            {
+                                if (i != 0)
+                                    sb.Append(" || ");
+                                sb.Append(inputs[i].ToString());
+                            }
                         }
                     }
                 }

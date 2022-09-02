@@ -41,7 +41,7 @@ namespace TouhouCardEngine
         }
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
-            IntegerOperator op = (IntegerOperator)constValues[0];
+            IntegerOperator op = constValues != null && constValues.Length > 0 && constValues[0] is IntegerOperator intOp ? intOp : IntegerOperator.add;
             switch (op)
             {
                 case IntegerOperator.add:

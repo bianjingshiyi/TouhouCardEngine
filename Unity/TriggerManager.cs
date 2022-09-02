@@ -337,7 +337,11 @@ namespace TouhouCardEngine
                 if (eventItem == null)
                     continue;
                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                triggerList.AddRange(eventItem.triggerList.Select(ti => ti.trigger));
+                foreach (TriggerListItem item in eventItem.triggerList)
+                {
+                    if (item.trigger.checkCondition(eventArg))
+                        triggerList.Add(item.trigger);
+                }
             }
             triggerList.Sort((a, b) => a.compare(b, eventArg));
             while (triggerList.Count > 0)
@@ -382,7 +386,11 @@ namespace TouhouCardEngine
                             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == beforeName);
                             if (eventItem != null)
                                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                            triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
+                            foreach (TriggerListItem item in eventItem.triggerList)
+                            {
+                                if (item.trigger.checkCondition(eventArg))
+                                    triggerList.Add(item.trigger);
+                            }
                             logger?.log("运行中插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
                             triggerList.Sort((a, b) => a.compare(b, eventArg));
                             _insertEventList.Remove(insertEventItem);
@@ -443,7 +451,11 @@ namespace TouhouCardEngine
                 if (eventItem == null)
                     continue;
                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                triggerList.AddRange(eventItem.triggerList.Select(ti => ti.trigger));
+                foreach (TriggerListItem item in eventItem.triggerList)
+                {
+                    if (item.trigger.checkCondition(eventArg))
+                        triggerList.Add(item.trigger);
+                }
             }
             triggerList.Sort((a, b) => a.compare(b, eventArg));
             while (triggerList.Count > 0)
@@ -489,7 +501,11 @@ namespace TouhouCardEngine
                             if (eventItem != null)
                                 eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
                             logger?.log("Trigger", "插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
-                            triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
+                            foreach (TriggerListItem item in eventItem.triggerList)
+                            {
+                                if (item.trigger.checkCondition(eventArg))
+                                    triggerList.Add(item.trigger);
+                            }
                             triggerList.Sort((a, b) => a.compare(b, eventArg));
                             _insertEventList.Remove(insertEventItem);
                         }
@@ -546,13 +562,21 @@ namespace TouhouCardEngine
     }
     public class Trigger : Trigger<IEventArg>
     {
-        public Trigger(Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(arg =>
-        {
-            if (action != null)
-                return action.Invoke(new[] { arg });
-            else
-                return Task.CompletedTask;
-        }, comparsion, name)
+        public Trigger(Func<object[], bool> condition = null, Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(
+            arg =>
+            {
+                if (condition != null)
+                    return condition.Invoke(new object[] { arg });
+                else
+                    return true;
+            },
+            arg =>
+            {
+                if (action != null)
+                    return action.Invoke(new object[] { arg });
+                else
+                    return Task.CompletedTask;
+            }, comparsion, name)
         {
         }
     }
@@ -562,8 +586,9 @@ namespace TouhouCardEngine
         public Func<T, bool> condition { get; set; }
         public Func<T, Task> action { get; set; }
         string _name;
-        public Trigger(Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null)
+        public Trigger(Func<T, bool> condition = null, Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null)
         {
+            this.condition = condition;
             this.action = action;
             this.comparsion = comparsion;
             _name = name;

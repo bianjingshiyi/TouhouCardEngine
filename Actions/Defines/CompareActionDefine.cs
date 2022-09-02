@@ -23,7 +23,7 @@ namespace TouhouCardEngine
         }
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
-            CompareOperator op = (CompareOperator)constValues[0];
+            CompareOperator op = constValues != null && constValues.Length > 0 && constValues[0] is CompareOperator cmpOp ? cmpOp : CompareOperator.equals;
             switch (op)
             {
                 case CompareOperator.equals:

@@ -136,7 +136,7 @@ namespace TouhouCardEngine
         {
             foreach (TriggerTime time in triggerTimes)
             {
-                Trigger trigger = new Trigger(args =>
+                Trigger trigger = new Trigger(action: args =>
                 {
                     if ((this as ITriggerEffect).checkCondition(game, card, buff, args))
                         return (this as ITriggerEffect).execute(game, card, buff, args, new object[0]);
