@@ -311,6 +311,7 @@ namespace TouhouCardEngine
         };
         #endregion
     }
+    [Serializable]
     public class SerializableEffect
     {
         #region 公有方法
@@ -319,6 +320,7 @@ namespace TouhouCardEngine
         {
             if (generatedEffect == null)
                 throw new ArgumentNullException(nameof(generatedEffect));
+            typeName = generatedEffect.GetType().Name;
             pileList = generatedEffect.pileList != null ? generatedEffect.pileList : new PileNameCollection();
             tagList = generatedEffect.tagList != null ? generatedEffect.tagList : new EffectTagCollection();
             propDict = new Dictionary<string, object>();
@@ -363,9 +365,11 @@ namespace TouhouCardEngine
                 new List<SerializableTrigger>();
         }
         #endregion
-        public GeneratedEffect toGeneratedEffect()
+        public GeneratedEffect toGeneratedEffect(Func<string, Type> typeFinder)
         {
-            GeneratedEffect generatedEffect = new GeneratedEffect(pileList, null);
+            GeneratedEffect generatedEffect = !string.IsNullOrEmpty(typeName) && typeFinder != null && typeFinder(typeName) is Type type ?
+                Activator.CreateInstance(type) as GeneratedEffect : new GeneratedEffect();
+            generatedEffect.pileList.AddRange(pileList);
             if (onEnableRootActionNodeId != 0)
             {
                 try
@@ -427,6 +431,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
+        public string typeName;
         public PileNameCollection pileList;
         public int onEnableRootActionNodeId;
         public List<SerializableActionNode> onEnableActionList = new List<SerializableActionNode>();

@@ -175,6 +175,8 @@ namespace TouhouCardEngine
                     List<object> paramList = new List<object>();
                     foreach (ActionValueRef valueRef in action.inputs.Skip(i))
                     {
+                        if (valueRef == null)
+                            continue;
                         object arg;
                         if (valueInput.isOut)
                         {

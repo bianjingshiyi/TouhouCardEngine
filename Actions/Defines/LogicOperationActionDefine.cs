@@ -27,16 +27,16 @@ namespace TouhouCardEngine
             switch (op)
             {
                 case LogicOperator.not:
-                    return Task.FromResult(new object[] { !(bool)args[0] });
+                    return Task.FromResult(new object[] { args[0] is bool b ? !b : true });
                 case LogicOperator.and:
-                    foreach (var value in args.Cast<bool>())
+                    foreach (var value in args.OfType<bool>())
                     {
                         if (value == false)
                             return Task.FromResult(new object[] { false });
                     }
                     return Task.FromResult(new object[] { true });
                 case LogicOperator.or:
-                    foreach (var value in args.Cast<bool>())
+                    foreach (var value in args.OfType<bool>())
                     {
                         if (value == true)
                             return Task.FromResult(new object[] { true });
