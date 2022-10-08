@@ -367,10 +367,12 @@ namespace TouhouCardEngine
                 value = t;
             else if (define.hasProp(propName) && define[propName] is T dt)
                 value = dt;
-            foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
-                mt.getPropName() == propName &&
-                (game == null || mt.checkCondition(game, this))))
+            foreach (var modifier in modifierList.OfType<PropModifier<T>>())
             {
+                if (modifier.getPropName() != propName)
+                    continue;
+                if (game != null && !modifier.checkCondition(game, this))
+                    continue;
                 value = modifier.calc(game, this, value);
             }
             return (T)(object)value;
@@ -382,10 +384,12 @@ namespace TouhouCardEngine
                 value = propDic[propName];
             else if (define.hasProp(propName))
                 value = define[propName];
-            foreach (var modifier in modifierList.Where(m =>
-                m.getPropName() == propName &&
-                (game == null || m.checkCondition(game, this))))
+            foreach (var modifier in modifierList)
             {
+                if (modifier.getPropName() != propName)
+                    continue;
+                if (game != null && !modifier.checkCondition(game, this))
+                    continue;
                 value = modifier.calc(game, this, value);
             }
             return value;
