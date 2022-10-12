@@ -431,6 +431,10 @@ namespace TouhouCardEngine
             else
                 return "[" + name + "]";
         }
+        public Card[] ToArray()
+        {
+            return cardList.ToArray();
+        }
         public static implicit operator Pile[](Pile pile)
         {
             if (pile != null)
