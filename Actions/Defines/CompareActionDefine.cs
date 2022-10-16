@@ -38,6 +38,42 @@ namespace TouhouCardEngine
                     return Task.FromResult(new object[] { args[0] == args[1] });
                 case CompareOperator.unequals:
                     return Task.FromResult(new object[] { args[0] != args[1] });
+                case CompareOperator.greater:
+                    {
+                        return Task.FromResult(new object[]
+                        {
+                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                                cmp1.CompareTo(cmp2) > 0 :
+                                false
+                        });
+                    }
+                case CompareOperator.greaterEquals:
+                    {
+                        return Task.FromResult(new object[]
+                        {
+                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                                cmp1.CompareTo(cmp2) >= 0 :
+                                false
+                        });
+                    }
+                case CompareOperator.less:
+                    {
+                        return Task.FromResult(new object[]
+                        {
+                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                                cmp1.CompareTo(cmp2) < 0 :
+                                false
+                        });
+                    }
+                case CompareOperator.lessEquals:
+                    {
+                        return Task.FromResult(new object[]
+                        {
+                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                                cmp1.CompareTo(cmp2) <= 0 :
+                                false
+                        });
+                    }
                 default:
                     throw new InvalidOperationException("未知的操作符" + op);
             }
@@ -49,6 +85,10 @@ namespace TouhouCardEngine
     public enum CompareOperator
     {
         equals,
-        unequals
+        unequals,
+        greater,
+        greaterEquals,
+        less,
+        lessEquals
     }
 }
