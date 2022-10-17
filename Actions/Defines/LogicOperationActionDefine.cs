@@ -32,27 +32,32 @@ namespace TouhouCardEngine
                 op = (LogicOperator)enumValue;
             else
                 op = LogicOperator.and;
-            switch (op)
+            if (args != null && args.Length > 0 && args[0] is bool[] values)
             {
-                case LogicOperator.not:
-                    return Task.FromResult(new object[] { args[0] is bool b ? !b : true });
-                case LogicOperator.and:
-                    foreach (var value in args.OfType<bool>())
-                    {
-                        if (value == false)
-                            return Task.FromResult(new object[] { false });
-                    }
-                    return Task.FromResult(new object[] { true });
-                case LogicOperator.or:
-                    foreach (var value in args.OfType<bool>())
-                    {
-                        if (value == true)
-                            return Task.FromResult(new object[] { true });
-                    }
-                    return Task.FromResult(new object[] { false });
-                default:
-                    throw new InvalidOperationException("未知的操作符" + op);
+                switch (op)
+                {
+                    case LogicOperator.not:
+                        return Task.FromResult(new object[] { values.Length > 0 && values[0] is bool b ? !b : true });
+                    case LogicOperator.and:
+                        foreach (var value in values)
+                        {
+                            if (value == false)
+                                return Task.FromResult(new object[] { false });
+                        }
+                        return Task.FromResult(new object[] { true });
+                    case LogicOperator.or:
+                        foreach (var value in values)
+                        {
+                            if (value == true)
+                                return Task.FromResult(new object[] { true });
+                        }
+                        return Task.FromResult(new object[] { false });
+                    default:
+                        throw new InvalidOperationException("未知的操作符" + op);
+                }
             }
+            else
+                throw new ArgumentException("传入参数无法转化为bool[]");
         }
         public override ValueDefine[] inputs { get; }
         public override ValueDefine[] consts { get; }
