@@ -298,10 +298,6 @@ namespace TouhouCardEngine
         /// 就是给玩家返回一个房间信息用的
         /// </summary>
         public event Func<RoomPlayerData, RoomData> onConfirmJoinReq;
-        /// <summary>
-        /// 当玩家确认加入房间的时候，收到房间状况的回应。
-        /// </summary>
-        public event Action<RoomData> onConfirmJoinAck;
 
         public event Action<string, int> onConfirmJoinNtf;
         #endregion
@@ -486,7 +482,7 @@ namespace TouhouCardEngine
         async Task confirmJoin(JoinRoomOperation joinRoomOperation)
         {
             cachedRoomData = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
-            onConfirmJoinAck?.Invoke(cachedRoomData);
+            invokeOnJoinRoom(cachedRoomData);
             completeOperation(joinRoomOperation, cachedRoomData);
         }
 

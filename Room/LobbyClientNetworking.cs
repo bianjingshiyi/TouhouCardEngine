@@ -185,6 +185,7 @@ namespace TouhouCardEngine
 
             var roomInfo = await invoke<RoomData>(nameof(IRoomRPCMethodLobby.requestJoinRoom), GetSelfPlayerData());
             cachedRoomData = roomInfo;
+            invokeOnJoinRoom(cachedRoomData);
             completeOperation(op, roomInfo);
         }
         #endregion

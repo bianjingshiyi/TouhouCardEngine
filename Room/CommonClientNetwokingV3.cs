@@ -40,6 +40,11 @@ namespace TouhouCardEngine
         public event Action OnGameStart;
 
         /// <summary>
+        /// 当玩家确认加入房间的时候，收到房间状况的回应。
+        /// </summary>
+        public event Action<RoomData> onConfirmJoinAck;
+
+        /// <summary>
         /// 触发onGameStart事件
         /// </summary>
         protected void invokeOnGameStart()
@@ -51,6 +56,14 @@ namespace TouhouCardEngine
             log?.logTrace($"接收到来自{clientID}的数据{data}");
             if (onReceive != null)
                 await onReceive.Invoke(clientID, data);
+        }
+        /// <summary>
+        /// 触发 onConfirmJoinAck 事件
+        /// </summary>
+        /// <param name="room"></param>
+        protected void invokeOnJoinRoom(RoomData room)
+        {
+            onConfirmJoinAck?.Invoke(room);
         }
         #endregion
 
