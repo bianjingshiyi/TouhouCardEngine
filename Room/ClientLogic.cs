@@ -72,12 +72,12 @@ namespace TouhouCardEngine
                 curNetwork.onReceive -= roomReceiveEvtHandler;
                 curNetwork.OnRoomDataChange -= roomDataChangeEvtHandler;
                 curNetwork.OnRoomPlayerDataChanged -= roomPlayerDataChangeEvtHandler;
+                curNetwork.onConfirmJoinAck -= onConfirmJoinAck;
 
                 if (curNetwork == LANNetwork)
                 {
                     LANNetwork.onJoinRoomReq -= onJoinRoomReq;
                     LANNetwork.onConfirmJoinReq -= onConfirmJoinReq;
-                    LANNetwork.onConfirmJoinAck -= onConfirmJoinAck;
                 }
             }
 
@@ -118,12 +118,12 @@ namespace TouhouCardEngine
             curNetwork.onReceive += roomReceiveEvtHandler;
             curNetwork.OnRoomDataChange += roomDataChangeEvtHandler;
             curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
+            curNetwork.onConfirmJoinAck += onConfirmJoinAck;
 
             if (curNetwork == LANNetwork)
             {
                 LANNetwork.onJoinRoomReq += onJoinRoomReq;
                 LANNetwork.onConfirmJoinReq += onConfirmJoinReq;
-                LANNetwork.onConfirmJoinAck += onConfirmJoinAck;
             }
         }
         public RoomPlayerData getLocalPlayerData()
