@@ -356,12 +356,12 @@ namespace TouhouCardEngine
             {
                 case PacketType.sendRequest:
                     // 交给上层处理
-                    var result = OperationResultExt.ParseRequest(reader);
-                    await invokeOnReceive(result.clientID, result.obj);
+                    var result = reader.ParseRequest(out int clientID, out int requestID);
+                    await invokeOnReceive(clientID, result);
 
                     // 转发给其他客户端
                     var peers = _playerInfoDict.Select(p => p.Value.peer).ToArray();
-                    this.SendRequest(peers, result.clientID, result.requestID, result.obj);
+                    this.SendRequest(peers, clientID, requestID, result);
                     return;
                 default:
                     break;
@@ -460,7 +460,7 @@ namespace TouhouCardEngine
             catch (Exception e)
             {
                 log?.log(request.RemoteEndPoint + "加入房间的请求被拒绝，原因：" + e);
-                request.Reject(createRPCResponseWriter(PacketType.joinResponse, e));
+                request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(e)));
                 return;
             }
             //接受了加入请求，回复请求并广播房间更新信息。
