@@ -268,6 +268,7 @@ namespace TouhouCardEngine
             }
         }
 
+        [Obsolete]
         protected override Type getType(string typeName)
         {
             return TypeHelper.getType(typeName);
