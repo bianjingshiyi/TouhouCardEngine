@@ -54,9 +54,13 @@ namespace TouhouCardEngine
         /// <param name="eventArg"></param>
         /// <param name="actions"></param>
         /// <returns></returns>
-        public async Task doActionsAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode actions)
+        public Task doActionsAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode actions)
         {
-            Scope scope = new Scope();
+            return doActionsAsync(card, buff, eventArg, actions, new Scope());
+        }
+
+        public async Task doActionsAsync(ICard card, IBuff buff, IEventArg eventArg, ActionNode actions, Scope scope)
+        {
             ActionNode curAction = actions;
             while (curAction != null)
             {
