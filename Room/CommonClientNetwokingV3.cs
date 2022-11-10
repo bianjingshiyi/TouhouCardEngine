@@ -96,7 +96,6 @@ namespace TouhouCardEngine
 
             cachedRoomData = data;
             OnRoomDataChange?.Invoke(cachedRoomData);
-            OnRoomDataChange(cachedRoomData);
         }
 
         void IRoomRPCMethodClient.onRoomPropChange(string name, object val)
@@ -207,22 +206,22 @@ namespace TouhouCardEngine
                 case PacketType.sendResponse:
                     try
                     {
-                        var result = OperationResultExt.ParseRequest(reader);
-                        log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{result.clientID}的数据：（{result.obj}）");
+                        var result = reader.ParseRequest(out int cID, out int requestID);
+                        log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{cID}的数据：（{result}）");
 
-                        await invokeOnReceive(result.clientID, result.obj);
+                        await invokeOnReceive(cID, result);
 
-                        if (result.clientID == clientID)
+                        if (cID == clientID)
                         {
-                            var op = getOperation(result.requestID);
+                            var op = getOperation(requestID);
                             if (op != null)
                             {
-                                completeOperation(op, result.obj);
-                                log?.logTrace($"客户端 {name}:{clientID} 收到客户端{peer.Id}的消息反馈{result.requestID}为{result.obj.ToJson()}");
+                                completeOperation(op, result);
+                                log?.logTrace($"客户端 {name}:{clientID} 收到客户端{peer.Id}的消息反馈{requestID}为{result.ToJson()}");
                             }
                             else
                             {
-                                log?.log($"客户端 {name}:{clientID} 收到客户端{peer.Id}未发送或超时的消息反馈{result.requestID}");
+                                log?.log($"客户端 {name}:{clientID} 收到客户端{peer.Id}未发送或超时的消息反馈{requestID}");
                             }
                         }
                     }
@@ -269,6 +268,7 @@ namespace TouhouCardEngine
             }
         }
 
+        [Obsolete]
         protected override Type getType(string typeName)
         {
             return TypeHelper.getType(typeName);
