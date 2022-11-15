@@ -119,14 +119,24 @@ namespace TouhouCardEngine
         /// <summary>
         /// 卡片定义ID，这个ID应该是独特的并用于区分不同的卡片。
         /// </summary>
+		[Obsolete]
         [BsonIgnore]
         public virtual int id
         {
             get { return _id; }
             set { _id = value; }
         }
+		[Obsolete]
         [BsonElement]
         int _id;
+        [BsonIgnore]
+        public virtual CardReference cardRef
+        {
+            get { return _cardRef; }
+            set { _cardRef = value; }
+        }
+        [BsonElement]
+        CardReference _cardRef;
         [BsonIgnore]
         public virtual string type
         {
