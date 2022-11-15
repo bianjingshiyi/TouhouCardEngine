@@ -4,7 +4,7 @@ namespace TouhouCardEngine
     [Serializable]
     public class CardReference
     {
-        public int cardPoolId;
+        public long cardPoolId;
         public int cardId;
     }
 }
