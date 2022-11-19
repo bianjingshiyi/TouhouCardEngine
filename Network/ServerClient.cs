@@ -12,6 +12,7 @@ using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
 using TouhouCardEngine;
+using TouhouCardEngine.Shared;
 
 namespace NitoriNetwork.Common
 {
@@ -33,10 +34,14 @@ namespace NitoriNetwork.Common
         /// </summary>
         public int UID { get; internal set; } = 0;
 
+        ILogger logger { get; }
+
         #region Basic_Behavior
         RestClient client { get; }
 
         string cookieFilePath { get; }
+
+        string baseUri { get; }
 
         Dictionary<int, PublicBasicUserInfo> userInfoCache = new Dictionary<int, PublicBasicUserInfo>();
 
@@ -44,19 +49,24 @@ namespace NitoriNetwork.Common
         /// 指定一个服务器初始化Client
         /// </summary>
         /// <param name="baseUri"></param>
-        public ServerClient(string baseUri, string gameVersion = "1.0", string cookieFile = "")
+        public ServerClient(string baseUri, string gameVersion = "1.0", string cookieFile = "", ILogger logger = null)
         {
+            this.baseUri = baseUri;
+            this.logger = logger;
+
             client = new RestClient(baseUri);
             client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
             cookieFilePath = cookieFile;
             client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
 
             if (string.IsNullOrEmpty(cookieFile))
+            {
                 client.CookieContainer = new CookieContainer();
+            }
             else
             {
                 client.CookieContainer = CookieContainerExtension.ReadFrom(cookieFile);
-                loadCookie(baseUri);
+                loadCookie();
             }
 
             client.ThrowOnDeserializationError = true;
@@ -70,14 +80,24 @@ namespace NitoriNetwork.Common
         /// </summary>
         void saveCookie()
         {
+#if UNITY_EDITOR
+            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
+            string cookieStr = "";
+            foreach (Cookie item in cookies)
+            {
+                cookieStr += item.ToString() + "; ";
+            }
+            logger?.logTrace($"保存Cookie: {cookieStr}");
+#endif
             if (!string.IsNullOrEmpty(cookieFilePath))
             {
                 try
                 {
                     client.CookieContainer.WriteTo(cookieFilePath);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    logger?.logError("Cookie 保存出现问题: " + e.Message);
                 }
             }
         }
@@ -85,8 +105,7 @@ namespace NitoriNetwork.Common
         /// <summary>
         /// 从Cookie里面加载部分需要的数据
         /// </summary>
-        /// <param name="baseUri"></param>
-        void loadCookie(string baseUri)
+        void loadCookie()
         {
             var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
             foreach (Cookie cookie in cookies)
@@ -95,6 +114,19 @@ namespace NitoriNetwork.Common
                 {
                     UserSession = cookie.Value;
                 } 
+            }
+        }
+
+        /// <summary>
+        /// 清空已有的用户鉴权用Cookie
+        /// </summary>
+        void clearUserCookie()
+        {
+            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
+            foreach (Cookie cookie in cookies)
+            {
+                if (cookie.Name == "Session" || cookie.Name == "Token")
+                    cookie.Expired = true;
             }
         }
 
@@ -177,6 +209,10 @@ namespace NitoriNetwork.Common
         /// <returns></returns>
         public bool Login(string user, string pass, string captcha)
         {
+            // 防止重复登录
+            if (UID != 0)
+                clearUserCookie();
+
             RestRequest request = new RestRequest("/api/User/session", Method.POST);
 
             request.AddHeader("x-captcha", captcha);
@@ -204,11 +240,8 @@ namespace NitoriNetwork.Common
                 return false;
             }
 
-            // 更新暂存的Session
-            // 虽然Cookie里面也能获取到，但是获取比较麻烦
-            UserSession = response.Data.result;
             saveCookie();
-
+            // 登录换取的是Token，我们需要Session
             GetSession();
             return true;
         }
@@ -224,6 +257,10 @@ namespace NitoriNetwork.Common
         /// <returns></returns>
         public async Task<bool> LoginAsync(string user, string pass, string captcha)
         {
+            // 防止重复登录
+            if (UID != 0)
+                clearUserCookie();
+
             RestRequest request = new RestRequest("/api/User/session", Method.POST);
 
             request.AddHeader("x-captcha", captcha);
@@ -251,12 +288,10 @@ namespace NitoriNetwork.Common
                 return false;
             }
 
-            // 更新暂存的Session
-            // 虽然Cookie里面也能获取到，但是获取比较麻烦
-            UserSession = response.Data.result;
             saveCookie();
-
+            // 登录换取的是Token，我们需要Session
             await GetSessionAsync();
+
             return true;
         }
 
@@ -275,6 +310,8 @@ namespace NitoriNetwork.Common
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
             saveCookie();
+
+            logger?.logTrace($"注册用户登录. Session: {UserSession}");
 
             // 更新当前登录用户信息
             GetUserInfo();
@@ -297,6 +334,8 @@ namespace NitoriNetwork.Common
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
             saveCookie();
+
+            logger?.logTrace($"注册用户登录. Session: {UserSession}");
 
             // 更新当前登录用户信息
             await GetUserInfoAsync();
@@ -321,6 +360,8 @@ namespace NitoriNetwork.Common
             UserSession = response.Data.result;
             saveCookie();
 
+            logger?.logTrace($"游客登录. Session: {UserSession}");
+
             GetUserInfo();
 
             return true;
@@ -341,6 +382,8 @@ namespace NitoriNetwork.Common
 
             UserSession = response.Data.result;
             saveCookie();
+
+            logger?.logTrace($"游客登录. Session: {UserSession}");
 
             await GetUserInfoAsync();
 
@@ -831,7 +874,7 @@ namespace NitoriNetwork.Common
             return response.Content;
         }
         #endregion
-        #region
+        #region UserDeck
         /// <summary>
         /// 设置用户卡组
         /// </summary>
