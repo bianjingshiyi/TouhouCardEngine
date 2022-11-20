@@ -171,6 +171,11 @@ namespace TouhouCardEngine
         {
             return sendTo<T>(hostPeer, obj);
         }
+
+        public override Task SendChat(int channel, string message)
+        {
+            return invoke<object>(nameof(IRoomRPCMethodLobby.sendChat), channel, message);
+        }
         #endregion
 
         #region 交互逻辑

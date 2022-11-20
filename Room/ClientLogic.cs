@@ -73,6 +73,7 @@ namespace TouhouCardEngine
                 curNetwork.OnRoomDataChange -= roomDataChangeEvtHandler;
                 curNetwork.OnRoomPlayerDataChanged -= roomPlayerDataChangeEvtHandler;
                 curNetwork.onConfirmJoinAck -= onConfirmJoinAck;
+                curNetwork.OnRecvChat -= onRecvChat;
 
                 if (curNetwork == LANNetwork)
                 {
@@ -119,6 +120,7 @@ namespace TouhouCardEngine
             curNetwork.OnRoomDataChange += roomDataChangeEvtHandler;
             curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
             curNetwork.onConfirmJoinAck += onConfirmJoinAck;
+            curNetwork.OnRecvChat += onRecvChat;
 
             if (curNetwork == LANNetwork)
             {
@@ -147,6 +149,12 @@ namespace TouhouCardEngine
         private Task roomReceiveEvtHandler(int clientID, object obj)
         {
             return OnReceiveData?.Invoke(clientID, obj);
+        }
+
+        public event Action<ChatMsg> OnRecvChat;
+        private void onRecvChat(ChatMsg obj)
+        {
+            OnRecvChat?.Invoke(obj);
         }
 
         /// <summary>
@@ -229,6 +237,14 @@ namespace TouhouCardEngine
             room = null;
             if (curNetwork != null && !isLocalRoom)
                 curNetwork.QuitRoom();
+            return Task.CompletedTask;
+        }
+        public Task sendChat(int channel, string message)
+        {
+            logger?.log($"[{channel}] 玩家: " + message);
+
+            if (curNetwork != null)
+                return curNetwork.SendChat(channel, message);
             return Task.CompletedTask;
         }
         public event Action<LobbyRoomDataList> onRoomListChange;

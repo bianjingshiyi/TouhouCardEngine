@@ -248,9 +248,28 @@ namespace TouhouCardEngine
             if (isHost)
             {
                 invokeOnGameStart();
-                return invokeAll<object>(_playerInfoDict.Values.Select(i=>i.peer), nameof(IRoomRPCMethodClient.onGameStart));
+                return invokeAll<object>(_playerInfoDict.Values.Select(i => i.peer), nameof(IRoomRPCMethodClient.onGameStart));
             }
             return Task.CompletedTask;
+        }
+
+        public override Task SendChat(int channel, string message)
+        {
+            if (isHost)
+            {
+                var playerID = GetSelfPlayerData().id;
+                invokeOnRecvChat(new ChatMsg(channel, playerID, message));
+                foreach (var p in _playerInfoDict.Values)
+                {
+                    if (p.peer != hostPeer)
+                        invoke<object>(p.peer, nameof(IRoomRPCMethodClient.onRecvChat), channel, playerID, message);
+                }
+                return Task.CompletedTask;
+            }
+            else
+            {
+                return invoke<object>(nameof(IRoomRPCMethodHost.sendChat), channel, message);
+            }
         }
 
         public override async Task<T> Send<T>(object obj)
@@ -383,6 +402,8 @@ namespace TouhouCardEngine
         /// 当前RPC请求的Peer
         /// </summary>
         NetPeer currentPeer { get; set; }
+
+        [Obsolete]
         protected override object invokeRPCMethod(NetPeer peer, string methodName, object[] args)
         {
             currentPeer = peer;
@@ -559,6 +580,19 @@ namespace TouhouCardEngine
             _roomInfo.PlayerCount = _hostRoomData.playerDataList.Count;
             _roomInfo.MaxPlayerCount = _hostRoomData.maxPlayerCount;
             _roomInfo.OwnerId = _hostRoomData.ownerId;
+        }
+
+        void IRoomRPCMethodHost.sendChat(int channel, string message)
+        {
+            var playerID = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+            // 通知房主本地客户端
+            invokeOnRecvChat(new ChatMsg(channel, playerID, message));
+            // 转发给其他客户端
+            foreach (var p in _playerInfoDict.Values)
+            {
+                if (p.peer != hostPeer)
+                    invoke<object>(p.peer, nameof(IRoomRPCMethodClient.onRecvChat), channel, playerID, message);
+            }
         }
 
         /// <summary>

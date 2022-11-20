@@ -44,6 +44,8 @@ namespace TouhouCardEngine
         /// </summary>
         public event Action<RoomData> onConfirmJoinAck;
 
+        public event Action<ChatMsg> OnRecvChat;
+
         /// <summary>
         /// 触发onGameStart事件
         /// </summary>
@@ -56,6 +58,14 @@ namespace TouhouCardEngine
             log?.logTrace($"接收到来自{clientID}的数据{data}");
             if (onReceive != null)
                 await onReceive.Invoke(clientID, data);
+        }
+        /// <summary>
+        /// 触发收到聊天消息事件
+        /// </summary>
+        /// <param name="msg"></param>
+        protected void invokeOnRecvChat(ChatMsg msg)
+        {
+            OnRecvChat?.Invoke(msg);
         }
         /// <summary>
         /// 触发 onConfirmJoinAck 事件
@@ -82,6 +92,7 @@ namespace TouhouCardEngine
         public abstract int GetLatency();
         public abstract Task RefreshRoomList();
         public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
+        public abstract Task SendChat(int channel, string message);
         #endregion
 
         #region RPC接口
@@ -165,6 +176,12 @@ namespace TouhouCardEngine
         {
             log?.logTrace("收到了游戏开始事件");
             invokeOnGameStart();
+        }
+
+        void IRoomRPCMethodClient.onRecvChat(int channel, int playerID, string text)
+        {
+            log?.logTrace($"收到了聊天消息。[{channel}] {playerID}: {text}");
+            invokeOnRecvChat(new ChatMsg(channel, playerID, text));
         }
 
         #endregion
@@ -414,6 +431,19 @@ namespace TouhouCardEngine
         /// </summary>
         /// <returns></returns>
         int GetLatency();
+
+        /// <summary>
+        /// 收到聊天消息
+        /// </summary>
+        event Action<ChatMsg> OnRecvChat;
+
+        /// <summary>
+        /// 发送聊天消息
+        /// </summary>
+        /// <param name="channel"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        Task SendChat(int channel, string message);
         #endregion
 
         #region Game
@@ -457,6 +487,23 @@ namespace TouhouCardEngine
     /// <param name="obj">发送的数据</param>
     /// <returns></returns>
     public delegate Task ResponseHandler(int clientID, object obj);
+
+    /// <summary>
+    /// 聊天消息
+    /// </summary>
+    public class ChatMsg
+    {
+        public int Channel { get; set; }
+        public int Sender { get; set; }
+        public string Message { get; set; }
+
+        public ChatMsg(int channel, int playerID, string text)
+        {
+            Channel = channel;
+            Sender = playerID;
+            Message = text;
+        }
+    }
 
     /// <summary>
     /// 滑动窗口平均
