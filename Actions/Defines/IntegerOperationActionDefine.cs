@@ -78,6 +78,14 @@ namespace TouhouCardEngine
                         result /= numbers[i];
                     }
                     return Task.FromResult(new object[] { result });
+                case IntegerOperator.mod:
+                    numbers = (int[])args[0];
+                    result = numbers[0];
+                    for (int i = 1; i < numbers.Length; i++)
+                    {
+                        result %= numbers[i];
+                    }
+                    return Task.FromResult(new object[] { result });
                 default:
                     throw new InvalidOperationException("未知的操作符" + op);
             }
@@ -91,6 +99,7 @@ namespace TouhouCardEngine
         add,
         sub,
         mul,
-        div
+        div,
+        mod
     }
 }
