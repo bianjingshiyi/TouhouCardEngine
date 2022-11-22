@@ -9,16 +9,16 @@ namespace TouhouCardEngine
         #region 公有方法
         public GeneratedBuff(BuffDefine buffDefine) : base()
         {
-            defineId = buffDefine.getId();
+            defineRef = new DefineReference(buffDefine.cardPoolId, buffDefine.id);
         }
         public Task onEnable(CardEngine game, Card card)
         {
-            BuffDefine buffDefine = game.getBuffDefine(defineId);
+            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id);
             return buffDefine.onEnable(game, card, this);
         }
         public Task onDisable(CardEngine game, Card card)
         {
-            BuffDefine buffDefine = game.getBuffDefine(defineId);
+            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id);
             return buffDefine.onDisable(game, card, this);
         }
         public override Buff clone()
@@ -29,12 +29,12 @@ namespace TouhouCardEngine
         #region 私有方法
         private GeneratedBuff(GeneratedBuff originBuff) : base()
         {
-            defineId = originBuff.defineId;
+            defineRef = originBuff.defineRef;
             instanceId = originBuff.instanceId;
         }
         #endregion
         #region 属性字段
-        public override int id => defineId;
+        public override int id => defineRef.id;
 
         public override int instanceID
         {
@@ -44,18 +44,18 @@ namespace TouhouCardEngine
 
         public override PropModifier[] getPropertyModifiers(CardEngine game)
         {
-            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineId) as GeneratedBuffDefine;
+            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id) as GeneratedBuffDefine;
             return buffDefine.propModifierList.ToArray();
         }
         public override IPassiveEffect[] getEffects(CardEngine game)
         {
-            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineId) as GeneratedBuffDefine;
+            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id) as GeneratedBuffDefine;
             return buffDefine.effectList.ToArray();
         }
         /// <summary>
         /// 增益类型Id
         /// </summary>
-        public int defineId = 0;
+        public DefineReference defineRef;
         public int instanceId = 0;
         #endregion
     }

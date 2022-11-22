@@ -6,25 +6,10 @@ namespace TouhouCardEngine
 {
     public abstract partial class Rule
     {
-        public Rule(IEnumerable<CardDefine> cards, IEnumerable<BuffDefine> buffs)
+        public Rule(Dictionary<long, Dictionary<int, CardDefine>> cards, Dictionary<long, Dictionary<int, BuffDefine>> buffs)
         {
-            cardList.AddRange(cards);
-            if (buffs != null)
-            {
-                foreach (var buff in buffs)
-                {
-                    _buffDefineDict.Add(buff.getId(), buff);
-                }
-            }
-        }
-        public CardDefine getCardDefine(int cardDefineId)
-        {
-            for (int i = 0; i < cardList.Count; i++)
-            {
-                if (cardList[i].id == cardDefineId)
-                    return cardList[i];
-            }
-            return null;
+            cardDict = cards;
+            buffDict = buffs;
         }
         public abstract Task onGameInit(CardEngine game, GameOption options, IRoomPlayer[] players);
         public abstract Task onGameRun(CardEngine game);
@@ -32,6 +17,6 @@ namespace TouhouCardEngine
         public abstract Task onPlayerInit(CardEngine game, Player player);
         public abstract Task onPlayerCommand(CardEngine game, Player player, CardEngine.CommandEventArg command);
         public abstract Task onGameClose(CardEngine game);
-        public List<CardDefine> cardList { get; } = new List<CardDefine>();
+        public Dictionary<long, Dictionary<int, CardDefine>> cardDict;
     }
 }

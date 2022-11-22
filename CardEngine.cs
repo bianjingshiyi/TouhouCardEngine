@@ -142,11 +142,6 @@ namespace TouhouCardEngine
             isInited = true;
             //初始化随机
             random = new Random(options.randomSeed);
-            //初始化卡片定义
-            foreach (CardDefine define in rule.cardList)
-            {
-                addDefine(define);
-            }
             //初始化动作定义
             foreach (var pair in ActionDefine.loadDefinesFromAssemblies(assemblies))
             {
@@ -184,46 +179,49 @@ namespace TouhouCardEngine
         {
         }
         #region CardDefine
-        public void addDefine(CardDefine define)
-        {
-            if (cardDefineDic.ContainsKey(define.id))
-                throw new ConflictDefineException(cardDefineDic[define.id], define);
-            cardDefineDic.Add(define.id, define);
-        }
         public T getDefine<T>() where T : CardDefine
         {
-            foreach (var pair in cardDefineDic)
+            foreach (var cardPool in rule.cardDict)
             {
-                if (pair.Value is T t)
-                    return t;
+                foreach (var card in cardPool.Value)
+                {
+                    if (card.Value is T t)
+                        return t;
+                }
             }
-            throw new UnknowDefineException(typeof(T));
+            return null;
         }
-        public CardDefine getDefine(int id)
+        public CardDefine getDefine(long cardPoolId, int id)
         {
-            if (rule.getCardDefine(id) is CardDefine cardDefine)
-                return cardDefine;
-            if (cardDefineDic.ContainsKey(id))
-                return cardDefineDic[id];
-            else
-                throw new UnknowDefineException(id);
-        }
-        public T getDefine<T>(int id) where T : CardDefine
-        {
-            if (cardDefineDic.ContainsKey(id) && cardDefineDic[id] is T t)
-                return t;
-            else
-                throw new UnknowDefineException(id);
+            if (rule.cardDict.TryGetValue(cardPoolId, out var cardDefineDict))
+            {
+                if (cardDefineDict.TryGetValue(id, out var cardDefine))
+                    return cardDefine;
+            }
+            throw new UnknowDefineException(id);
         }
         public CardDefine[] getDefines()
         {
-            return cardDefineDic.Values.ToArray();
+            IEnumerable<CardDefine> cardDefines = Enumerable.Empty<CardDefine>();
+            foreach (var cardPool in rule.cardDict.Values)
+            {
+                cardDefines = cardDefines.Concat(cardPool.Values);
+            }
+            return cardDefines.ToArray();
         }
-        public CardDefine[] getDefines(IEnumerable<int> idCollection)
+        public CardDefine[] getDefines(IEnumerable<DefineReference> cardRefs)
         {
-            return idCollection.Select(id => getDefine(id)).ToArray();
+            return cardRefs.Select(cardRef => getDefine(cardRef.cardPoolId, cardRef.id)).ToArray();
         }
-        Dictionary<int, CardDefine> cardDefineDic { get; } = new Dictionary<int, CardDefine>();
+        public long getCardPoolIdOfDefine(CardDefine cardDefine)
+        {
+            foreach (var cardPool in rule.cardDict)
+            {
+                if (cardPool.Value.ContainsKey(cardDefine.id))
+                    return cardPool.Key;
+            }
+            return 0;
+        }
         #endregion
         #region Card
         /// <summary>
@@ -240,9 +238,9 @@ namespace TouhouCardEngine
             cardDic.Add(id, card);
             return card;
         }
-        public Card createCard(int cardDefineId)
+        public Card createCard(long cardPoolId, int cardDefineId)
         {
-            return createCard(getDefine(cardDefineId));
+            return createCard(getDefine(cardPoolId, cardDefineId));
         }
         public Card getCard(int id)
         {

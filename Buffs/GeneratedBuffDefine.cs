@@ -10,7 +10,7 @@ namespace TouhouCardEngine
         #region 构造方法
         public GeneratedBuffDefine(int id, IEnumerable<PropModifier> propModifiers = null, IEnumerable<GeneratedEffect> effects = null)
         {
-            this.id = id;
+            _id = id;
             if (propModifiers != null)
                 propModifierList.AddRange(propModifiers);
             if (effects != null)
@@ -34,10 +34,11 @@ namespace TouhouCardEngine
                 await effectList[i].onEnable(game, card, buff);
             }
         }
-        public override int getId()
+        public void setId(int id)
         {
-            return id;
+            _id = id;
         }
+        public override int id => _id;
         public override string ToString()
         {
             return string.Intern(string.Format("Buff<{0}>", id));
@@ -45,9 +46,9 @@ namespace TouhouCardEngine
 
         #endregion
         #region 属性字段
-        public int id = 0;
         public List<PropModifier> propModifierList = new List<PropModifier>();
         public List<GeneratedEffect> effectList = new List<GeneratedEffect>();
+        private int _id;
         #endregion
     }
     [Serializable]
@@ -71,7 +72,7 @@ namespace TouhouCardEngine
         public GeneratedBuffDefine toGeneratedBuffDefine(Func<string, Type> typeFinder)
         {
             GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
-            generatedBuffDefine.id = id;
+            generatedBuffDefine.setId(id);
             generatedBuffDefine.propModifierList = propModifierList;
             for (int i = 0; i < effectList.Count; i++)
             {

@@ -133,6 +133,8 @@ namespace TouhouCardEngine
             get { return _type; }
             set { _type = value; }
         }
+        [NonSerialized]
+        public long cardPoolId;
         [BsonElement]
         string _type;
         [BsonElement]
