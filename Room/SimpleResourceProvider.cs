@@ -13,7 +13,7 @@ namespace TouhouCardEngine
         /// <param name="resType"></param>
         /// <param name="resID"></param>
         /// <returns></returns>
-        Stream OpenWriteResource(string resType, string resID);
+        Stream OpenWriteResource(string resType, string resID, long size);
 
         /// <summary>
         /// 打开一个资源，用于读出
@@ -59,7 +59,7 @@ namespace TouhouCardEngine
         /// <param name="resID">资源ID</param>
         /// <param name="file">文件流</param>
         /// <exception cref="FileNotFoundException"></exception>
-        public virtual Stream OpenWriteResource(string resType, string resID)
+        public virtual Stream OpenWriteResource(string resType, string resID, long size)
         {
             // 检查资源类型
             if (!ResourceIsValid(resType))

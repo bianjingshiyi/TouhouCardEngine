@@ -34,11 +34,11 @@ namespace TouhouCardEngine
         /// 局域网络构造器，包括RPC方法注册。
         /// </summary>
         /// <param name="logger"></param>
-        public LANNetworking(string name, ILogger logger) : base("LAN", logger)
+        public LANNetworking(string name, ILogger logger, IResourceProvider resProvider = null) : base("LAN", logger)
         {
             // 初始化资源服务器
             // todo: 替换这一实际逻辑
-            ResProvider = new SimpleResourceProvider(Path.Combine(UnityEngine.Application.persistentDataPath, "cache"));
+            ResProvider = resProvider ?? new SimpleResourceProvider(Path.Combine(UnityEngine.Application.persistentDataPath, "cache"));
             ResServ = new ResourceServerLite(logger, ResProvider);
             // 局域网的玩家应当随机分配玩家名称
             var playerID = Guid.NewGuid().GetHashCode();
@@ -357,7 +357,7 @@ namespace TouhouCardEngine
                 string resType = type.GetString();
                 if (!ResProvider.ResourceInfo(resType, id, out _))
                 {
-                    using (var stream = ResProvider.OpenWriteResource(resType, id))
+                    using (var stream = ResProvider.OpenWriteResource(resType, id, bytes.LongLength))
                     {
                         stream.Write(bytes, 0, bytes.Length);
                     }

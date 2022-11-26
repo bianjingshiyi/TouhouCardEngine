@@ -14,12 +14,12 @@ namespace TouhouCardEngine
         public int[] LANPorts { get; } = { 32900, 32901 };
 
         #region 公共成员
-        public ClientLogic(string name, int[] ports = null, ServerClient sClient = null, ILogger logger = null)
+        public ClientLogic(string name, int[] ports = null, ServerClient sClient = null, ILogger logger = null, IResourceProvider resProvider = null)
         {
             this.logger = logger;
             if (sClient != null)
                 LobbyNetwork = new LobbyClientNetworking(sClient, logger: logger);
-            LANNetwork = new LANNetworking(name, logger);
+            LANNetwork = new LANNetworking(name, logger, resProvider);
 
             if (ports != null)
                 LANPorts = ports;

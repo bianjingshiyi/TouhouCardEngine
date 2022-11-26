@@ -169,7 +169,7 @@ namespace TouhouCardEngine
                         }
 
                         var boundary = GetBoundary(ctx.Request.ContentType);
-                        using (var fs = provider.OpenWriteResource(resType, resID))
+                        using (var fs = provider.OpenWriteResource(resType, resID, ctx.Request.ContentLength64))
                         {
                             SaveFile(ctx.Request.ContentEncoding, boundary, ctx.Request.InputStream, fs);
                         }
