@@ -312,7 +312,7 @@ namespace TouhouCardEngine
             return buffList.Exists(b =>
                 b is GeneratedBuff generatedBuff &&
                 generatedBuff.defineRef.cardPoolId == buffDefine.cardPoolId &&
-                generatedBuff.defineRef.id == buffDefine.id);
+                generatedBuff.defineRef.defineId == buffDefine.id);
         }
         #region 动作定义
         [ActionNodeMethod("AddIntModifier", "Card")]

@@ -191,6 +191,15 @@ namespace TouhouCardEngine
             }
             return null;
         }
+        public T getDefine<T>(long cardPoolId, int cardId) where T : CardDefine
+        {
+            if (rule.cardDict.TryGetValue(cardPoolId, out var cardPool))
+            {
+                if (cardPool.TryGetValue(cardId, out CardDefine cardDefine) && cardDefine is T t)
+                    return t;
+            }
+            return default;
+        }
         public CardDefine getDefine(long cardPoolId, int id)
         {
             if (rule.cardDict.TryGetValue(cardPoolId, out var cardDefineDict))
@@ -199,6 +208,10 @@ namespace TouhouCardEngine
                     return cardDefine;
             }
             throw new UnknowDefineException(id);
+        }
+        public CardDefine getDefine(DefineReference defRef)
+        {
+            return getDefine(defRef.cardPoolId, defRef.defineId);
         }
         public CardDefine[] getDefines()
         {
@@ -211,7 +224,7 @@ namespace TouhouCardEngine
         }
         public CardDefine[] getDefines(IEnumerable<DefineReference> cardRefs)
         {
-            return cardRefs.Select(cardRef => getDefine(cardRef.cardPoolId, cardRef.id)).ToArray();
+            return cardRefs.Select(cardRef => getDefine(cardRef.cardPoolId, cardRef.defineId)).ToArray();
         }
         public long getCardPoolIdOfDefine(CardDefine cardDefine)
         {

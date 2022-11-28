@@ -11,6 +11,7 @@ namespace TouhouCardEngine
         public abstract int id { get; }
         #endregion
         #region 属性字段
+        [NonSerialized]
         public long cardPoolId;
         #endregion
     }

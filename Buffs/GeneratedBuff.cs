@@ -13,12 +13,12 @@ namespace TouhouCardEngine
         }
         public Task onEnable(CardEngine game, Card card)
         {
-            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id);
+            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId);
             return buffDefine.onEnable(game, card, this);
         }
         public Task onDisable(CardEngine game, Card card)
         {
-            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id);
+            BuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId);
             return buffDefine.onDisable(game, card, this);
         }
         public override Buff clone()
@@ -34,7 +34,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public override int id => defineRef.id;
+        public override int id => defineRef.defineId;
 
         public override int instanceID
         {
@@ -44,12 +44,12 @@ namespace TouhouCardEngine
 
         public override PropModifier[] getPropertyModifiers(CardEngine game)
         {
-            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id) as GeneratedBuffDefine;
+            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
             return buffDefine.propModifierList.ToArray();
         }
         public override IPassiveEffect[] getEffects(CardEngine game)
         {
-            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.id) as GeneratedBuffDefine;
+            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
             return buffDefine.effectList.ToArray();
         }
         /// <summary>

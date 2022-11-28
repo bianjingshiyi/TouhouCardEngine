@@ -12,6 +12,10 @@
             }
             return null;
         }
+        public BuffDefine getBuffDefine(DefineReference defRef)
+        {
+            return getBuffDefine(defRef.cardPoolId, defRef.defineId);
+        }
         #endregion
     }
 }
