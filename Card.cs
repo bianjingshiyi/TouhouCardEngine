@@ -363,39 +363,53 @@ namespace TouhouCardEngine
             object IPropChangeEventArg.beforeValue => beforeValue;
             object IPropChangeEventArg.value => value;
         }
-        public T getProp<T>(IGame game, string propName)
+        public T getProp<T>(IGame game, string propName, bool raw)
         {
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
             else if (define.hasProp(propName) && define[propName] is T dt)
                 value = dt;
-            foreach (var modifier in modifierList.OfType<PropModifier<T>>())
+            if (!raw)
             {
-                if (modifier.getPropName() != propName)
-                    continue;
-                if (game != null && !modifier.checkCondition(game, this))
-                    continue;
-                value = modifier.calc(game, this, value);
+                foreach (var modifier in modifierList.OfType<PropModifier<T>>())
+                {
+                    if (modifier.getPropName() != propName)
+                        continue;
+                    if (game != null && !modifier.checkCondition(game, this))
+                        continue;
+                    value = modifier.calc(game, this, value);
+                }
             }
             return (T)(object)value;
         }
-        public object getProp(IGame game, string propName)
+        public object getProp(IGame game, string propName, bool raw)
         {
             object value = default;
             if (propDic.ContainsKey(propName))
                 value = propDic[propName];
             else if (define.hasProp(propName))
                 value = define[propName];
-            foreach (var modifier in modifierList)
+            if (!raw)
             {
-                if (modifier.getPropName() != propName)
-                    continue;
-                if (game != null && !modifier.checkCondition(game, this))
-                    continue;
-                value = modifier.calc(game, this, value);
+                foreach (var modifier in modifierList)
+                {
+                    if (modifier.getPropName() != propName)
+                        continue;
+                    if (game != null && !modifier.checkCondition(game, this))
+                        continue;
+                    value = modifier.calc(game, this, value);
+                }
             }
             return value;
+        }
+        public T getProp<T>(IGame game, string propName)
+        {
+            return getProp<T>(game, propName, false);
+        }
+        public object getProp(IGame game, string propName)
+        {
+            return getProp(game, propName, false);
         }
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
