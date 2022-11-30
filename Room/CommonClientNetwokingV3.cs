@@ -45,6 +45,9 @@ namespace TouhouCardEngine
         public event Action<RoomData> onConfirmJoinAck;
 
         public event Action<ChatMsg> OnRecvChat;
+        public event Action<int, CardPoolSuggestion> OnSuggestCardPools;
+        public event Action<int> OnCardPoolsSuggestionCanceled;
+        public event Action<CardPoolSuggestion, bool> OnCardPoolsSuggestionAnwsered;
 
         /// <summary>
         /// 触发onGameStart事件
@@ -66,6 +69,32 @@ namespace TouhouCardEngine
         protected void invokeOnRecvChat(ChatMsg msg)
         {
             OnRecvChat?.Invoke(msg);
+        }
+        /// <summary>
+        /// 触发收到卡池建议事件
+        /// </summary>
+        /// <param name="playerId">玩家ID。</param>
+        /// <param name="suggestion">建议。</param>
+        protected void invokeOnCardPoolSuggested(int playerId, CardPoolSuggestion suggestion)
+        {
+            OnSuggestCardPools?.Invoke(playerId, suggestion);
+        }
+        /// <summary>
+        /// 触发取消卡池建议事件
+        /// </summary>
+        /// <param name="playerId">玩家ID。</param>
+        protected void invokeOnCardPoolSuggestionCanceled(int playerId)
+        {
+            OnCardPoolsSuggestionCanceled?.Invoke(playerId);
+        }
+        /// <summary>
+        /// 触发收到卡池建议回应事件
+        /// </summary>
+        /// <param name="suggestion">建议。</param>
+        /// <param name="agree">是否同意。</param>
+        protected void invokeOnCardPoolSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
+        {
+            OnCardPoolsSuggestionAnwsered?.Invoke(suggestion, agree);
         }
         /// <summary>
         /// 触发 onConfirmJoinAck 事件
@@ -93,6 +122,9 @@ namespace TouhouCardEngine
         public abstract Task RefreshRoomList();
         public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
         public abstract Task SendChat(int channel, string message);
+        public abstract Task SuggestCardPools(CardPoolSuggestion suggestion);
+        public abstract Task CancelCardPoolsSuggestion();
+        public abstract Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree); 
         #endregion
 
         #region RPC接口
@@ -182,6 +214,21 @@ namespace TouhouCardEngine
         {
             log?.logTrace($"收到了聊天消息。[{channel}] {playerID}: {text}");
             invokeOnRecvChat(new ChatMsg(channel, playerID, text));
+        }
+        void IRoomRPCMethodClient.onCardPoolsSuggested(int playerId, CardPoolSuggestion suggestion)
+        {
+            log?.logTrace($"收到了来自玩家{playerId}的加入卡池的建议：{suggestion}。");
+            invokeOnCardPoolSuggested(playerId, suggestion);
+        }
+        void IRoomRPCMethodClient.onCardPoolsSuggestionCanceled(int playerId)
+        {
+            log?.logTrace($"玩家{playerId}取消了加入卡池的建议。");
+            invokeOnCardPoolSuggestionCanceled(playerId);
+        }
+        void IRoomRPCMethodClient.onCardPoolSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
+        {
+            log?.logTrace($"收到了加入卡池建议的回应：{suggestion}，回应是{agree}。");
+            invokeOnCardPoolSuggestionAnwsered(suggestion, agree);
         }
 
         #endregion

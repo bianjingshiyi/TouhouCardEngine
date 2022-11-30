@@ -176,6 +176,18 @@ namespace TouhouCardEngine
         {
             return invoke<object>(nameof(IRoomRPCMethodLobby.sendChat), channel, message);
         }
+        public override Task SuggestCardPools(CardPoolSuggestion suggestion)
+        {
+            return invoke<object>(nameof(IRoomRPCMethodLobby.suggestCardPools), suggestion);
+        }
+        public override Task CancelCardPoolsSuggestion()
+        {
+            return invoke<object>(nameof(IRoomRPCMethodLobby.cancelCardPoolsSuggestion));
+        }
+        public override Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
+        {
+            return invoke<object>(nameof(IRoomRPCMethodLobby.anwserCardPoolSuggestion), playerId, suggestion, agree);
+        }
         #endregion
 
         #region 交互逻辑

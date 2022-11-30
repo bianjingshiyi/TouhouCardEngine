@@ -121,6 +121,9 @@ namespace TouhouCardEngine
             curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
             curNetwork.onConfirmJoinAck += onConfirmJoinAck;
             curNetwork.OnRecvChat += onRecvChat;
+            curNetwork.OnSuggestCardPools += onSuggestCardPools;
+            curNetwork.OnCardPoolsSuggestionCanceled += onCardPoolsSuggestionCanceled;
+            curNetwork.OnCardPoolsSuggestionAnwsered += onCardPoolsSuggestionAnwsered;
 
             if (curNetwork == LANNetwork)
             {
@@ -155,6 +158,23 @@ namespace TouhouCardEngine
         private void onRecvChat(ChatMsg obj)
         {
             OnRecvChat?.Invoke(obj);
+        }
+
+        public event Action<int, CardPoolSuggestion> OnSuggestCardPools;
+        private void onSuggestCardPools(int playerId, CardPoolSuggestion suggestion)
+        {
+            OnSuggestCardPools?.Invoke(playerId, suggestion);
+        }
+        
+        public event Action<CardPoolSuggestion, bool> OnCardPoolsSuggestionAnwsered;
+        private void onCardPoolsSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
+        {
+            OnCardPoolsSuggestionAnwsered?.Invoke(suggestion, agree);
+        }
+        public event Action<int> OnCardPoolsSuggestionCanceled;
+        private void onCardPoolsSuggestionCanceled(int playerId)
+        {
+            OnCardPoolsSuggestionCanceled?.Invoke(playerId);
         }
 
         /// <summary>
@@ -245,6 +265,30 @@ namespace TouhouCardEngine
 
             if (curNetwork != null)
                 return curNetwork.SendChat(channel, message);
+            return Task.CompletedTask;
+        }
+        public Task SuggestCardPools(CardPoolSuggestion cardPools)
+        {
+            logger?.log($"玩家提议加入卡池: " + cardPools.ToString());
+
+            if (curNetwork != null)
+                return curNetwork.SuggestCardPools(cardPools);
+            return Task.CompletedTask;
+        }
+        public Task CancelCardPoolsSuggestion()
+        {
+            logger?.log($"玩家取消提议加入卡池。");
+
+            if (curNetwork != null)
+                return curNetwork.CancelCardPoolsSuggestion();
+            return Task.CompletedTask;
+        }
+        public Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
+        {
+            logger?.log($"回应来自玩家{playerId}的加入卡池提议:{agree}。");
+
+            if (curNetwork != null)
+                return curNetwork.AnwserCardPoolsSuggestion(playerId, suggestion, agree);
             return Task.CompletedTask;
         }
         public event Action<LobbyRoomDataList> onRoomListChange;

@@ -271,7 +271,39 @@ namespace TouhouCardEngine
                 return invoke<object>(nameof(IRoomRPCMethodHost.sendChat), channel, message);
             }
         }
-
+        public override Task SuggestCardPools(CardPoolSuggestion suggestion)
+        {
+            if (isHost)
+            {
+                int playerId = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+                invokeOnCardPoolSuggested(playerId, suggestion);
+                return Task.CompletedTask;
+            }
+            else
+            {
+                return invoke<object>(nameof(IRoomRPCMethodHost.suggestCardPools), suggestion);
+            }
+        }
+        public override Task CancelCardPoolsSuggestion()
+        {
+            if (isHost)
+            {
+                return Task.CompletedTask;
+            }
+            else
+            {
+                return invoke<object>(nameof(IRoomRPCMethodHost.cancelCardPoolsSuggestion));
+            }
+        }
+        public override Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
+        {
+            if (isHost)
+            {
+                var suggesterPeer = _playerInfoDict.Where(p => p.Key == playerId).Select(p => p.Value.peer).FirstOrDefault();
+                return invoke<object>(suggesterPeer, nameof(IRoomRPCMethodClient.onCardPoolSuggestionAnwsered), suggestion, agree);
+            }
+            return Task.CompletedTask;
+        }
         public override async Task<T> Send<T>(object obj)
         {
             if (isHost)
@@ -410,6 +442,18 @@ namespace TouhouCardEngine
             try
             {
                 return base.invokeRPCMethod(peer, methodName, args);
+            }
+            finally
+            {
+                currentPeer = null;
+            }
+        }
+        protected override RPCResponseV3 invokeRPCMethod(NetPeer peer, RPCRequestV3 request)
+        {
+            currentPeer = peer;
+            try
+            {
+                return base.invokeRPCMethod(peer, request);
             }
             finally
             {
@@ -593,6 +637,18 @@ namespace TouhouCardEngine
                 if (p.peer != hostPeer)
                     invoke<object>(p.peer, nameof(IRoomRPCMethodClient.onRecvChat), channel, playerID, message);
             }
+        }
+        void IRoomRPCMethodHost.suggestCardPools(CardPoolSuggestion suggestion)
+        {
+            int playerId = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+            // 通知房主本地客户端
+            invokeOnCardPoolSuggested(playerId, suggestion);
+        }
+        void IRoomRPCMethodHost.cancelCardPoolsSuggestion()
+        {
+            int playerId = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+            // 通知房主本地客户端
+            invokeOnCardPoolSuggestionCanceled(playerId);
         }
 
         /// <summary>
