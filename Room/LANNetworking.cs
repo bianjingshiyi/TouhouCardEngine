@@ -284,17 +284,6 @@ namespace TouhouCardEngine
                 return invoke<object>(nameof(IRoomRPCMethodHost.suggestCardPools), suggestion);
             }
         }
-        public override Task CancelCardPoolsSuggestion()
-        {
-            if (isHost)
-            {
-                return Task.CompletedTask;
-            }
-            else
-            {
-                return invoke<object>(nameof(IRoomRPCMethodHost.cancelCardPoolsSuggestion));
-            }
-        }
         public override Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
         {
             if (isHost)
@@ -643,12 +632,6 @@ namespace TouhouCardEngine
             int playerId = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
             // 通知房主本地客户端
             invokeOnCardPoolSuggested(playerId, suggestion);
-        }
-        void IRoomRPCMethodHost.cancelCardPoolsSuggestion()
-        {
-            int playerId = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
-            // 通知房主本地客户端
-            invokeOnCardPoolSuggestionCanceled(playerId);
         }
 
         /// <summary>

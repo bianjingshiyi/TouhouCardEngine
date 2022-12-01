@@ -122,7 +122,6 @@ namespace TouhouCardEngine
             curNetwork.onConfirmJoinAck += onConfirmJoinAck;
             curNetwork.OnRecvChat += onRecvChat;
             curNetwork.OnSuggestCardPools += onSuggestCardPools;
-            curNetwork.OnCardPoolsSuggestionCanceled += onCardPoolsSuggestionCanceled;
             curNetwork.OnCardPoolsSuggestionAnwsered += onCardPoolsSuggestionAnwsered;
 
             if (curNetwork == LANNetwork)
@@ -170,11 +169,6 @@ namespace TouhouCardEngine
         private void onCardPoolsSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
         {
             OnCardPoolsSuggestionAnwsered?.Invoke(suggestion, agree);
-        }
-        public event Action<int> OnCardPoolsSuggestionCanceled;
-        private void onCardPoolsSuggestionCanceled(int playerId)
-        {
-            OnCardPoolsSuggestionCanceled?.Invoke(playerId);
         }
 
         /// <summary>
@@ -273,14 +267,6 @@ namespace TouhouCardEngine
 
             if (curNetwork != null)
                 return curNetwork.SuggestCardPools(cardPools);
-            return Task.CompletedTask;
-        }
-        public Task CancelCardPoolsSuggestion()
-        {
-            logger?.log($"玩家取消提议加入卡池。");
-
-            if (curNetwork != null)
-                return curNetwork.CancelCardPoolsSuggestion();
             return Task.CompletedTask;
         }
         public Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
