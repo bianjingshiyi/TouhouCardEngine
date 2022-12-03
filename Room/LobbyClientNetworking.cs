@@ -200,6 +200,13 @@ namespace TouhouCardEngine
             cachedRoomData = roomInfo;
             invokeOnJoinRoom(cachedRoomData);
             completeOperation(op, roomInfo);
+
+            // 从房间属性中读取对应的资源服务器，并初始化资源客户端
+            if (!roomInfo.tryGetProp(RoomData.PROP_RES_SERVER, out string baseUri))
+            {
+                baseUri = $"http://{hostPeer.EndPoint.Address}:{hostPeer.EndPoint.Port}";
+            }
+            ResClient = new ResourceClient(baseUri, serverClient.UserSession);
         }
         #endregion
         #region 底层实现

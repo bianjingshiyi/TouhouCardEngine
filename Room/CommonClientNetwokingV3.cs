@@ -11,6 +11,8 @@ namespace TouhouCardEngine
 {
     public abstract class CommonClientNetwokingV3 : Networking, INetworkingV3Client, IRoomRPCMethodClient
     {
+        public ResourceClient ResClient { get; protected set; } = null;
+
         public CommonClientNetwokingV3(string name, Shared.ILogger logger) : base(name, logger)
         {
             addRPCMethod(this, typeof(IRoomRPCMethodClient));

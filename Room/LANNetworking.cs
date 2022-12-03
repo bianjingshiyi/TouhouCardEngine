@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using TouhouCardEngine.Shared;
+using System.IO;
 
 namespace TouhouCardEngine
 {
@@ -19,6 +20,14 @@ namespace TouhouCardEngine
     /// </summary>
     public class LANNetworking : CommonClientNetwokingV3, IRoomRPCMethodHost, ILANRPCMethodHost, ILANRPCMethodClient, INetworkingV3LANHost
     {
+        ResourceServerLite ResServ { get; }
+
+        IResourceProvider ResProvider { get; }
+
+        Task pollTask { get; set; }
+
+        CancellationTokenSource pollCancelToken { get; set; }
+
         #region 公共成员
         /// <summary>
         /// 局域网络构造器，包括RPC方法注册。
@@ -26,6 +35,11 @@ namespace TouhouCardEngine
         /// <param name="logger"></param>
         public LANNetworking(string name, ILogger logger) : base("LAN", logger)
         {
+            // 初始化资源服务器
+            // todo: 替换这一实际逻辑
+            ResProvider = new SimpleResourceProvider(Path.Combine(UnityEngine.Application.persistentDataPath, "cache"));
+            ResServ = new ResourceServerLite(logger, ResProvider);
+
             // todo: 局域网的玩家应当随机分配玩家名称
             _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), name, RoomPlayerType.human);
 
@@ -56,6 +70,18 @@ namespace TouhouCardEngine
             _hostRoomData.ownerId = _playerData.id;
             _roomInfo = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id);
             invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+
+            // 创建资源服务器
+            pollCancelToken = new CancellationTokenSource();
+            var token = pollCancelToken.Token;
+            pollTask = Task.Run(() => { 
+                while (!token.IsCancellationRequested)
+                {
+                    token.ThrowIfCancellationRequested();
+                    ResServ.Routine();
+                }
+            });
+
             return Task.FromResult(_hostRoomData);
         }
         /// <summary>
@@ -178,6 +204,12 @@ namespace TouhouCardEngine
                 {
                     log?.logWarn("尝试退出一个不存在的房间");
                     return;
+                }
+
+                // 取消资源服务器
+                if (pollTask != null && !pollTask.IsCompleted)
+                {
+                    pollCancelToken.Cancel();
                 }
 
                 // 主机退出了，和所有其他玩家断开连接，然后广播房间没了
@@ -342,6 +374,18 @@ namespace TouhouCardEngine
         public event Action<string, int> onConfirmJoinNtf;
         #endregion
         #region 方法重写
+
+        public override bool start(int port = 0)
+        {
+            bool success = base.start(port);
+            if (!success) return success;
+
+            success = ResServ.Start(net.LocalPort);
+            if (!success) net.Stop();
+
+            return success;
+        }
+
         protected override void OnConnectionRequest(ConnectionRequest request)
         {
             PacketType packetType = (PacketType)request.Data.GetInt();
@@ -388,6 +432,9 @@ namespace TouhouCardEngine
             }
             // 底层处理了一点点加入时候Disconnect的异常，最好看一眼。
             base.OnPeerDisconnected(peer, disconnectInfo);
+
+            // 更新当前允许的IP列表
+            updateResServAllowedIPs();
         }
 
         protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
@@ -499,6 +546,15 @@ namespace TouhouCardEngine
         }
 
         /// <summary>
+        /// 更新资源服务器的允许连接列表
+        /// </summary>
+        void updateResServAllowedIPs()
+        {
+            var addrs = _playerInfoDict.Select(p => p.Value.peer.EndPoint.Address).ToArray();
+            ResServ.SetAllowedIPs(addrs);
+        }
+
+        /// <summary>
         /// 收到玩家加入房间的请求，玩家能否加入房间取决于客户端逻辑（比如房间是否已满）
         /// </summary>
         /// <param name="request"></param>
@@ -526,6 +582,8 @@ namespace TouhouCardEngine
             };
             // invokeBroadcast(nameof(ntfRoomAddPlayer), roomData.ID, player);
             // invokeBroadcast(nameof(ntfUpdateRoom), roomData);
+
+            updateResServAllowedIPs();
         }
 
         /// <summary>
@@ -538,6 +596,9 @@ namespace TouhouCardEngine
             cachedRoomData = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
             invokeOnJoinRoom(cachedRoomData);
             completeOperation(joinRoomOperation, cachedRoomData);
+
+            // 更新资源客户端的信息
+            ResClient = new ResourceClient($"http://{hostPeer.EndPoint.Address}:{hostPeer.EndPoint.Port}");
         }
 
         RoomData IRoomRPCMethodHost.requestJoinRoom(RoomPlayerData player)
