@@ -254,7 +254,7 @@ namespace TouhouCardEngine
         Uri resourceUri(ResourceType type, string id)
         {
             if (BaseUrl == null) throw new Exception("Resource base URL is not set.");
-            return new Uri(new Uri(BaseUrl, type.GetString()), id);
+            return new Uri($"{BaseUrl}/{type.GetString()}/{id}");
         }
 
         /// <summary>

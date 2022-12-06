@@ -47,6 +47,7 @@ namespace TouhouCardEngine
             }
 
             http.Prefixes.Add($"http://localhost:{port}/");
+            http.Prefixes.Add($"http://127.0.0.1:{port}/");
             foreach (var addr in addrs)
             {
                 http.Prefixes.Add($"http://{addr}:{port}/");
@@ -102,20 +103,20 @@ namespace TouhouCardEngine
             // 1. 当前玩家是否存在
             // 2. 玩家上传的资源是否在房间允许的卡组列表内
 
-            var ep = ctx.Request.RemoteEndPoint;
-            if (allowedAddresses.Count != 0)
-            {
-                if (!allowedAddresses.Contains(ep.Address))
-                {
-                    Response(ctx.Response, HttpStatusCode.Forbidden);
-                    logger.log($"{ep.Address} is not in allow list, connection reject.");
-                    return;
-                }
-            }
-            else
-            {
-                logger.logWarn("IP allow list is empty, filter disabled.");
-            }
+            //var ep = ctx.Request.RemoteEndPoint;
+            //if (allowedAddresses.Count != 0)
+            //{
+            //    if (!allowedAddresses.Contains(ep.Address))
+            //    {
+            //        Response(ctx.Response, HttpStatusCode.Forbidden);
+            //        logger.log($"{ep.Address} is not in allow list, connection reject.");
+            //        return;
+            //    }
+            //}
+            //else
+            //{
+            //    logger.logWarn("IP allow list is empty, filter disabled.");
+            //}
 
             // 解析URL
             var regex = new Regex("/([0-9a-zA-Z-_]+)/([0-9a-zA-Z-_]+)");
