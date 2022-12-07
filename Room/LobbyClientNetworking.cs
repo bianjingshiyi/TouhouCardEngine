@@ -184,6 +184,18 @@ namespace TouhouCardEngine
         {
             return invoke<object>(nameof(IRoomRPCMethodLobby.anwserCardPoolSuggestion), playerId, suggestion, agree);
         }
+        public override Task UploadResourceAsync(ResourceType type, string id, byte[] bytes)
+        {
+            return ResClient.UploadResourceAsync(type, id, bytes);
+        }
+        public override Task<byte[]> GetResourceAsync(ResourceType type, string id)
+        {
+            return ResClient.GetResourceAsync(type, id);
+        }
+        public override Task<bool> ResourceExistsAsync(ResourceType type, string id)
+        {
+            return ResClient.ResourceExistsAsync(type, id);
+        }
         #endregion
 
         #region 交互逻辑

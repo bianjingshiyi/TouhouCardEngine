@@ -277,6 +277,30 @@ namespace TouhouCardEngine
                 return curNetwork.AnwserCardPoolsSuggestion(playerId, suggestion, agree);
             return Task.CompletedTask;
         }
+        public Task<byte[]> GetResourceAsync(ResourceType type, string id)
+        {
+            logger?.log($"获取类型为{type.GetString()}，id为{id}的资源。");
+
+            if (curNetwork != null)
+                return curNetwork.GetResourceAsync(type, id);
+            return Task.FromResult<byte[]>(null);
+        }
+        public Task UploadResourceAsync(ResourceType type, string id, byte[] bytes)
+        {
+            logger?.log($"上传类型为{type.GetString()}，id为{id}的资源。");
+
+            if (curNetwork != null)
+                return curNetwork.UploadResourceAsync(type, id, bytes);
+            return Task.CompletedTask;
+        }
+        public Task<bool> ResourceExistsAsync(ResourceType type, string id)
+        {
+            logger?.log($"检查类型为{type.GetString()}，id为{id}的资源是否存在。");
+
+            if (curNetwork != null)
+                return curNetwork.ResourceExistsAsync(type, id);
+            return Task.FromResult(false);
+        }
         public event Action<LobbyRoomDataList> onRoomListChange;
         public event Action onGameStart;
         public RoomPlayerData localPlayer { get; private set; } = null;

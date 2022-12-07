@@ -38,6 +38,7 @@ namespace TouhouCardEngine
         }
 
         public event Action<RoomData> OnRoomDataChange;
+        public event Action<string, object> OnRoomPropChange;
 
         public event Action OnGameStart;
 
@@ -116,7 +117,10 @@ namespace TouhouCardEngine
         public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
         public abstract Task SendChat(int channel, string message);
         public abstract Task SuggestCardPools(CardPoolSuggestion suggestion);
-        public abstract Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree); 
+        public abstract Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree);
+        public abstract Task<byte[]> GetResourceAsync(ResourceType type, string id);
+        public abstract Task UploadResourceAsync(ResourceType type, string id, byte[] bytes);
+        public abstract Task<bool> ResourceExistsAsync(ResourceType type, string id);
         #endregion
 
         #region RPC接口

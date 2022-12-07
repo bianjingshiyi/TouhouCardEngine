@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TouhouCardEngine.Shared;
 using System.IO;
+using UnityEngine.Networking;
 
 namespace TouhouCardEngine
 {
@@ -324,6 +325,59 @@ namespace TouhouCardEngine
                 return invoke<object>(suggesterPeer, nameof(IRoomRPCMethodClient.onCardPoolSuggestionAnwsered), suggestion, agree);
             }
             return Task.CompletedTask;
+        }
+        public override Task<byte[]> GetResourceAsync(ResourceType type, string id)
+        {
+            if (isHost)
+            {
+                // 局域网房主直接复制资源。
+                string resType = type.GetString();
+                if (ResProvider.ResourceInfo(resType, id, out long length))
+                {
+                    using (var stream = ResProvider.OpenReadResource(resType, id))
+                    {
+                        byte[] buffer = new byte[length];
+                        stream.Read(buffer, 0, (int)length);
+                        return Task.FromResult(buffer);
+                    }
+                }
+                return Task.FromResult<byte[]>(null);
+            }
+            else
+            {
+                return ResClient.GetResourceAsync(type, id);
+            }
+        }
+        public override Task UploadResourceAsync(ResourceType type, string id, byte[] bytes)
+        {
+            if (isHost)
+            {
+                // 局域网房主直接复制资源。
+                string resType = type.GetString();
+                if (!ResProvider.ResourceInfo(resType, id, out _))
+                {
+                    using (var stream = ResProvider.OpenWriteResource(resType, id))
+                    {
+                        stream.Write(bytes, 0, bytes.Length);
+                    }
+                }
+                return Task.CompletedTask;
+            }
+            else
+            {
+                return ResClient.UploadResourceAsync(type, id, bytes);
+            }
+        }
+        public override Task<bool> ResourceExistsAsync(ResourceType type, string id)
+        {
+            if (isHost)
+            {
+                return Task.FromResult(ResProvider.ResourceInfo(type.GetString(), id, out _));
+            }
+            else
+            {
+                return ResClient.ResourceExistsAsync(type, id);
+            }
         }
         public override async Task<T> Send<T>(object obj)
         {
