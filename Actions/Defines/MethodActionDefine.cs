@@ -121,6 +121,11 @@ namespace TouhouCardEngine
             inputs = inputList.ToArray();
             consts = constList.ToArray();
             outputs = outputList.ToArray();
+
+            // 设置过期提示
+            var obsolete = methodInfo.GetCustomAttribute<ObsoleteAttribute>();
+            if (obsolete != null) 
+                setObsoleteMessage(obsolete.Message);
         }
         public override async Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {

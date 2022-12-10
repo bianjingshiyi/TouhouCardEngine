@@ -87,10 +87,21 @@ namespace TouhouCardEngine
         {
             return Array.FindAll(outputs, output => output.type == typeof(ActionNode));
         }
+        public void setObsoleteMessage(string message)
+        {
+            if (message == null)
+                message = "";
+            obsoleteMsg = message;
+        }
         #endregion
         #region 属性字段
         public string defineName;
         public string[] obsoleteNames;
+        /// <summary>
+        /// 节点过期提示。不为null则说明过期
+        /// </summary>
+        public string obsoleteMsg;
+
         public abstract ValueDefine[] inputs { get; }
         public abstract ValueDefine[] consts { get; }
         public abstract ValueDefine[] outputs { get; }
