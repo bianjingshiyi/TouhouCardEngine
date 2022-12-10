@@ -40,9 +40,10 @@ namespace TouhouCardEngine
             // todo: 替换这一实际逻辑
             ResProvider = new SimpleResourceProvider(Path.Combine(UnityEngine.Application.persistentDataPath, "cache"));
             ResServ = new ResourceServerLite(logger, ResProvider);
-
-            // todo: 局域网的玩家应当随机分配玩家名称
-            _playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), name, RoomPlayerType.human);
+            // 局域网的玩家应当随机分配玩家名称
+            var playerID = Guid.NewGuid().GetHashCode();
+            var playerName = $"Player#{((uint)playerID) % 10000}";
+            _playerData = new RoomPlayerData(playerID, playerName, RoomPlayerType.human);
 
             addRPCMethod(this, typeof(IRoomRPCMethodHost));
             addRPCMethod(this, typeof(ILANRPCMethodHost));
