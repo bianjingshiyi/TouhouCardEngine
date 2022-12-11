@@ -6,7 +6,10 @@ namespace TouhouCardEngine
     {
         public DefineReference(long cardPoolId, int defineId)
         {
-            this.cardPoolId = cardPoolId;
+            if (cardPoolId == 0 && defineId < 0)
+                this.cardPoolId = defineId << 1 >> 17;
+            else
+                this.cardPoolId = cardPoolId;
             this.defineId = defineId;
         }
         public DefineReference(CardDefine cardDefine) :
@@ -40,11 +43,11 @@ namespace TouhouCardEngine
         {
             return string.Format("({0}, {1})", cardPoolId, defineId);
         }
-        public static bool operator==(DefineReference r1, DefineReference r2)
+        public static bool operator ==(DefineReference r1, DefineReference r2)
         {
             return r1.Equals(r2);
         }
-        public static bool operator!=(DefineReference r1, DefineReference r2)
+        public static bool operator !=(DefineReference r1, DefineReference r2)
         {
             return !r1.Equals(r2);
         }
