@@ -18,6 +18,10 @@ namespace TouhouCardEngine
         }
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
+            if (constValues.Length > 0 && constValues[0] == null)
+            {
+                constValues[0] = false;
+            }
             return Task.FromResult(constValues);
         }
         public override ValueDefine[] inputs { get; }
