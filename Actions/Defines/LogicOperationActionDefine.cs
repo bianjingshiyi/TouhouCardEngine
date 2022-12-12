@@ -25,6 +25,7 @@ namespace TouhouCardEngine
         {
             LogicOperator op;
             if (constValues == null || constValues.Length < 1 || constValues[0] == null)
+                // 因为LogicOperator的默认值是not（为0），所以在常量值为null时，将操作符默认值设置为not。
                 op = LogicOperator.not;
             else if (constValues[0] is LogicOperator lgcOp)
                 op = lgcOp;
