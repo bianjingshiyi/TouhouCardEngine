@@ -24,8 +24,8 @@ namespace TouhouCardEngine
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
             LogicOperator op;
-            if (constValues == null || constValues.Length < 1)
-                op = LogicOperator.and;
+            if (constValues == null || constValues.Length < 1 || constValues[0] == null)
+                op = LogicOperator.not;
             else if (constValues[0] is LogicOperator lgcOp)
                 op = lgcOp;
             else if (constValues[0] is int enumValue)
