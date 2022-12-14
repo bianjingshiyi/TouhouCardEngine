@@ -129,7 +129,7 @@ namespace TouhouCardEngine
         /// <returns></returns>
         private UnityWebRequestAsyncOperation requestPost(ResourceType type, string id, byte[] data)
         {
-            var form = new MultipartFormFileSection(data);
+            var form = new MultipartFormFileSection("file", data, id, "application/octet-stream");
             var list = new List<IMultipartFormSection>() { form };
             var req = UnityWebRequest.Post(resourceUri(type, id), list);
             req.SetRequestHeader("Cookie", $"Session={Session}");
