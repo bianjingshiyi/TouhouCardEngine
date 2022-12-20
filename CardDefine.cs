@@ -106,6 +106,10 @@ namespace TouhouCardEngine
         {
             return _effectList.ToArray();
         }
+        public DefineReference getDefineRef()
+        {
+            return new DefineReference(cardPoolId, id);
+        }
         /// <summary>
         /// 将读取到的更新的卡牌数据合并到这个卡牌上来。
         /// </summary>

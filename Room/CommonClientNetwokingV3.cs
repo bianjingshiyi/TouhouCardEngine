@@ -1,11 +1,12 @@
-﻿using NitoriNetwork.Common;
-using System;
-using System.Threading.Tasks;
-using LiteNetLib;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using MongoDB.Bson;
+using System.Threading.Tasks;
+using LiteNetLib;
 using LiteNetLib.Utils;
+using MongoDB.Bson;
+using NitoriNetwork.Common;
+using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
@@ -234,7 +235,7 @@ namespace TouhouCardEngine
 
         protected class SendOperation : Operation<object>
         {
-            public SendOperation(): base(nameof(INetworkingV3Client.Send))
+            public SendOperation() : base(nameof(INetworkingV3Client.Send))
             {
             }
         }
@@ -348,7 +349,8 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(peer));
 
             SendOperation<T> op = new SendOperation<T>();
-            startOperation(op, () => {
+            startOperation(op, () =>
+            {
                 log?.logWarn($"客户端{name}发送请求超时。");
             });
 
@@ -503,7 +505,7 @@ namespace TouhouCardEngine
         event Action OnGameStart;
         #endregion
     }
-    
+
     /// <summary>
     /// 本地Host扩展的一些方法
     /// </summary>

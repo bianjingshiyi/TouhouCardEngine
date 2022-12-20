@@ -1,4 +1,6 @@
 ﻿using System;
+using TouhouCardEngine.Shared;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -11,14 +13,6 @@ namespace TouhouCardEngine
             else
                 this.cardPoolId = cardPoolId;
             this.defineId = defineId;
-        }
-        public DefineReference(CardDefine cardDefine) :
-            this(cardDefine.cardPoolId, cardDefine.id)
-        {
-        }
-        public DefineReference(BuffDefine buffDefine) :
-            this(buffDefine.cardPoolId, buffDefine.id)
-        {
         }
         public DefineReference() : this(0, 0)
         {
@@ -50,6 +44,14 @@ namespace TouhouCardEngine
         public static bool operator !=(DefineReference r1, DefineReference r2)
         {
             return !r1.Equals(r2);
+        }
+        public static DefineReference FromDeckItem(DeckPackItem item)
+        {
+            return new DefineReference(item.cardPoolId, item.cardId);
+        }
+        public DeckPackItem ToDeckItem()
+        {
+            return new DeckPackItem(cardPoolId, defineId);
         }
 
         public long cardPoolId;

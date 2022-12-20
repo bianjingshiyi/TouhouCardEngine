@@ -6,6 +6,7 @@ using MongoDB.Bson.Serialization;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using MongoDB.Bson;
+using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
