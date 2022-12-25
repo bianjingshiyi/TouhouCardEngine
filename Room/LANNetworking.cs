@@ -177,7 +177,7 @@ namespace TouhouCardEngine
         public override Task SetRoomProp(string key, object value)
         {
             // 向房间中的其他玩家发送属性变化通知
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, value)));
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, ObjectProxy.TryProxy(value))));
         }
 
         /// <summary>
@@ -195,7 +195,7 @@ namespace TouhouCardEngine
             else
             {
                 //其他玩家，向房主请求
-                await invoke<object>(nameof(IRoomRPCMethodHost.setPlayerProp), key, value);
+                await invoke<object>(nameof(IRoomRPCMethodHost.setPlayerProp), key, ObjectProxy.TryProxy(value));
             }
         }
         public override void QuitRoom()
@@ -677,6 +677,10 @@ namespace TouhouCardEngine
         void IRoomRPCMethodHost.setPlayerProp(string name, object value)
         {
             var playerID = _playerInfoDict.Where(p => p.Value.peer == currentPeer).Select(p => p.Key).FirstOrDefault();
+            if (value is ObjectProxy proxy)
+            {
+                value = proxy.ConvertBack();
+            }
             log?.logTrace(name + "收到远程调用玩家" + playerID + "想要将属性" + name + "变成为" + value);
             setPlayerProp(name, value, playerID);
         }

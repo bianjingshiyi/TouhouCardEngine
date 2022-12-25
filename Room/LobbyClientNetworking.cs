@@ -155,12 +155,12 @@ namespace TouhouCardEngine
 
         public override Task SetRoomProp(string key, object value)
         {
-            return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomProp), key, value);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomProp), key, ObjectProxy.TryProxy(value));
         }
 
-        public override Task SetPlayerProp(string name, object val)
+        public override Task SetPlayerProp(string key, object value)
         {
-            return invoke<object>(nameof(IRoomRPCMethodLobby.setPlayerProp), name, val);
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setPlayerProp), key, ObjectProxy.TryProxy(value));
         }
 
         public override Task GameStart()

@@ -132,6 +132,7 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.updateRoomData(RoomData data)
         {
+            data.ProxyConvertBack();
             log?.logTrace($"{name} 收到房间数据改变事件。房间数据：{data}");
 
             cachedRoomData = data;
@@ -140,6 +141,9 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onRoomPropChange(string name, object val)
         {
+            if (val is ObjectProxy proxy)
+                val = proxy.ConvertBack();
+
             log?.logTrace($"{this.name} 收到房间属性改变事件。Key: {name}, Value: {val}");
             cachedRoomData.setProp(name, val);
             OnRoomDataChange?.Invoke(cachedRoomData);
@@ -147,6 +151,7 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
         {
+            data.ProxyConvertBack();
             log?.logTrace($"{name} 收到玩家信息改变事件。玩家信息: {data}");
 
             for (int i = 0; i < cachedRoomData.playerDataList.Count; i++)
@@ -161,6 +166,7 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onPlayerAdd(RoomPlayerData data)
         {
+            data.ProxyConvertBack();
             log?.logTrace($"{name} 收到新增玩家事件。玩家信息：{data}");
             if (cachedRoomData.containsPlayer(data.id))
             {
@@ -195,6 +201,11 @@ namespace TouhouCardEngine
 
         void IRoomRPCMethodClient.onPlayerPropChange(int playerID, string name, object val)
         {
+            if (val is ObjectProxy proxy)
+            {
+                // log?.logTrace($"{this.name} 收到了一个 ObjectProxy. type: {proxy.Type}, value: {proxy.Content}");
+                val = proxy.ConvertBack();
+            }
             log?.logTrace($"{this.name} 收到玩家属性改变事件。玩家ID：{playerID}, Key: {name}, Value: {val}");
 
             cachedRoomData.setPlayerProp(playerID, name, val);

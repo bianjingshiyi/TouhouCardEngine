@@ -45,14 +45,6 @@ namespace TouhouCardEngine
         {
             return !r1.Equals(r2);
         }
-        public static DefineReference FromDeckItem(DeckItem item)
-        {
-            return new DefineReference(item.cardPoolId, item.cardId);
-        }
-        public DeckItem ToDeckItem()
-        {
-            return new DeckItem(cardPoolId, defineId);
-        }
 
         public long cardPoolId;
         public int defineId;
