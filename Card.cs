@@ -422,7 +422,7 @@ namespace TouhouCardEngine
         }
         public string getFormatString()
         {
-            return "{card:" + define.id + "}";
+            return $"{{card:{define.cardPoolId},{define.id}}}";
         }
         public static implicit operator Card[](Card card)
         {
