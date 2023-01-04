@@ -45,7 +45,7 @@ namespace TouhouCardEngine
 
         public void Dispose()
         {
-
+            Destroy(gameObject);
         }
     }
     [Serializable]
