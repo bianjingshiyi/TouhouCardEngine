@@ -95,6 +95,9 @@ namespace TouhouCardEngine
                 await card.setProp(game, triggerName, trigger);
                 game.triggers.register(graph.eventName, trigger);
             }
+            // 设置该Effect已被启用。
+            string disableName = getEffectName(game, card, buff, "Disabled");
+            await card.setProp(game, disableName, false);
         }
         public virtual async Task onDisable(IGame game, ICard card, IBuff buff)
         {
@@ -106,6 +109,10 @@ namespace TouhouCardEngine
                 await card.setProp(game, triggerName, null);
                 game.triggers.remove(graph.eventName, trigger);
             }
+            // 设置该Effect已被禁用。
+            string disableName = getEffectName(game, card, buff, "Disabled");
+            await card.setProp(game, disableName, true);
+
             if (onDisableAction != null)
                 await game.doActionsAsync(card, buff, null, onDisableAction);
         }
@@ -217,6 +224,11 @@ namespace TouhouCardEngine
                 tagList = value as EffectTagCollection;
             else
                 propDict[name] = value;
+        }
+        public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
+        {
+            string disableName = getEffectName(game, card, buff, "Disabled");
+            return card.getProp<bool>(game, disableName);
         }
         /// <summary>
         /// 遍历效果中的动作节点
