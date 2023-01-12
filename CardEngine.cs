@@ -16,7 +16,8 @@ namespace TouhouCardEngine
     [Serializable]
     public partial class CardEngine : IGame
     {
-        #region 公共成员
+        #region 公共方法
+        #region 构造器
         public CardEngine(Rule rule)
         {
             //trigger = new SyncTriggerSystem(this);
@@ -27,27 +28,25 @@ namespace TouhouCardEngine
         {
 
         }
-
-        public ITimeManager time { get; set; } = null;
-        public ITriggerManager triggers { get; set; } = null;
-        //public SyncTriggerSystem trigger { get; }
-        IAnswerManager _answers;
-        public IAnswerManager answers
-        {
-            get { return _answers; }
-            set
-            {
-                if (_answers != null)
-                    _answers.onResponse -= onAnswer;
-                _answers = value;
-                if (_answers != null)
-                    _answers.onResponse += onAnswer;
-            }
-        }
-        public ILogger logger { get; set; }
         #endregion
-        #region 状态
-        public Rule rule { get; set; }
+        public Task command(CommandEventArg command)
+        {
+            return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
+        }
+        public virtual void Dispose()
+        {
+            close();
+            if (answers != null)
+                answers.Dispose();
+            if (triggers != null)
+                triggers.Dispose();
+            if (time != null)
+                time.Dispose();
+        }
+        public virtual void onAnswer(IResponse response)
+        {
+        }
+        #region 牌堆
         public Pile this[string pileName]
         {
             get { return getPile(pileName); }
@@ -69,68 +68,8 @@ namespace TouhouCardEngine
         {
             return pileList.ToArray();
         }
-        private List<Pile> pileList { get; } = new List<Pile>();
-        //public Task<ISetPropEventArg> setProp<T>(IGame game, string propName, T value)
-        //{
-        //    if (game != null && game.triggers != null)
-        //        return game.triggers.doEvent<ISetPropEventArg>(new SetPropEventArg() { card = this, propName = propName, beforeValue = getProp<T>(game, propName), value = value }, arg =>
-        //        {
-        //            Card card = arg.card as Card;
-        //            propName = arg.propName;
-        //            var v = arg.value;
-        //            propDic[propName] = v;
-        //            game.logger?.log("Game", card + "的" + propName + "=>" + propToString(v));
-        //            return Task.CompletedTask;
-        //        });
-        //    else
-        //    {
-        //        propDic[propName] = value;
-        //        return Task.FromResult<ISetPropEventArg>(default);
-        //    }
-        //}
-        //public class SetPropEventArg : EventArg, ISetPropEventArg
-        //{
-        //    public Card card;
-        //    public string propName;
-        //    public object beforeValue;
-        //    public object value;
-        //    ICard ISetPropEventArg.card => card;
-        //    string ISetPropEventArg.propName => propName;
-        //    object ISetPropEventArg.beforeValue => beforeValue;
-        //    object ISetPropEventArg.value => value;
-        //}
-        //public T getProp<T>(IGame game, string propName)
-        //{
-        //    T value = default;
-        //    if (propDic.ContainsKey(propName) && propDic[propName] is T t)
-        //        value = t;
-        //    foreach (var modifier in modifierList.OfType<PropModifier<T>>().Where(mt =>
-        //        mt.propName == propName &&
-        //        (game == null || mt.checkCondition(game, this))))
-        //    {
-        //        value = modifier.calc(game, this, value);
-        //    }
-        //    return (T)(object)value;
-        //}
-        //public object getProp(IGame game, string propName)
-        //{
-        //    object value = default;
-        //    if (propDic.ContainsKey(propName))
-        //        value = propDic[propName];
-        //    foreach (var modifier in modifierList.Where(m =>
-        //        m.propName == propName &&
-        //        (game == null || m.checkCondition(game, this))))
-        //    {
-        //        value = modifier.calc(game, this, value);
-        //    }
-        //    return value;
-        //}
-        //internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         #region 游戏流程
-        public bool isRunning { get; set; } = false;
-        public bool isInited { get; set; } = false;
-        public GameOption option;
         public Task init(Assembly[] assemblies, Rule rule, GameOption options, IRoomPlayer[] players)
         {
             this.rule = rule;
@@ -173,11 +112,20 @@ namespace TouhouCardEngine
             isRunning = true;
             rule.onGameRun(this);
         }
-
-        #endregion
-        public virtual void onAnswer(IResponse response)
+        /// <summary>
+        /// 开始游戏
+        /// </summary>
+        /// <returns></returns>
+        public async Task startGame()
         {
+            await rule.onGameStart(this);
         }
+
+        public void close()
+        {
+            rule.onGameClose(this);
+        }
+        #endregion
         #region CardDefine
         public T getDefine<T>() where T : CardDefine
         {
@@ -244,11 +192,11 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public Card createCard(CardDefine define)
         {
-            int id = cardDic.Count + 1;
-            while (cardDic.ContainsKey(id))
+            int id = cardIdDic.Count + 1;
+            while (cardIdDic.ContainsKey(id))
                 id++;
             Card card = new Card(id, define);
-            cardDic.Add(id, card);
+            cardIdDic.Add(id, card);
             return card;
         }
         public Card createCard(long cardPoolId, int cardDefineId)
@@ -257,7 +205,7 @@ namespace TouhouCardEngine
         }
         public Card getCard(int id)
         {
-            if (cardDic.TryGetValue(id, out var card))
+            if (cardIdDic.TryGetValue(id, out var card))
                 return card;
             else
                 return null;
@@ -266,8 +214,8 @@ namespace TouhouCardEngine
         {
             return ids.Select(id => getCard(id)).ToArray();
         }
-        Dictionary<int, Card> cardDic { get; } = new Dictionary<int, Card>();
         #endregion
+        #region Props
         public T getProp<T>(string varName)
         {
             if (dicVar.ContainsKey(varName) && dicVar[varName] is T)
@@ -299,18 +247,8 @@ namespace TouhouCardEngine
             else if (changeType == PropertyChangeType.add)
                 dicVar[propName] = getProp<string>(propName) + propName;
         }
-        internal Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
-        public int registerCard(Card card)
-        {
-            dicCard.Add(dicCard.Count + 1, card);
-            card.id = dicCard.Count;
-            return card.id;
-        }
-        public int[] registerCards(Card[] cards)
-        {
-            return cards.Select(c => { return registerCard(c); }).ToArray();
-        }
-        Dictionary<int, Card> dicCard { get; } = new Dictionary<int, Card>();
+        #endregion
+        #region 玩家
         public Player getPlayer(int playerId)
         {
             return playerList.FirstOrDefault(p => p.id == playerId);
@@ -328,41 +266,16 @@ namespace TouhouCardEngine
             }
             return -1;
         }
-
-        /// <summary>
-        /// 获取所有玩家，玩家在数组中的顺序与玩家被添加的顺序相同。
-        /// </summary>
-        /// <remarks>为什么不用属性是因为每次都会生成一个数组。</remarks>
-        public Player[] players
-        {
-            get { return playerList.ToArray(); }
-        }
-
-        public int playerCount
-        {
-            get { return playerList.Count; }
-        }
         public void addPlayer(Player player)
         {
             playerList.Add(player);
         }
-        protected int getNewPlayerId()
+        public async Task initPlayer(Player player)
         {
-            int id = playerList.Count;
-            if (playerList.Any(p => p.id == id))
-                id++;
-            return id;
+            await rule.onPlayerInit(this, player);
         }
-        public Task command(CommandEventArg command)
-        {
-            return rule.onPlayerCommand(this, getPlayer(command.playerId), command);
-        }
-        public class CommandEventArg : EventArg
-        {
-            public int playerId;
-            public string commandName;
-            public object[] commandArgs;
-        }
+        #endregion
+        #region 随机数
         //public delegate void EventAction(Event @event);
         //public event EventAction beforeEvent;
         //public event EventAction afterEvent;
@@ -408,24 +321,74 @@ namespace TouhouCardEngine
             nextRandomIntList.Clear();
             nextRandomIntList.AddRange(results);
         }
+        #endregion
+        #endregion
+        #region 私有方法
+        protected int getNewPlayerId()
+        {
+            int id = playerList.Count;
+            if (playerList.Any(p => p.id == id))
+                id++;
+            return id;
+        }
+        #endregion
+        #region 属性字段
+        public Rule rule { get; set; }
+        #region 管理器
+        public ITimeManager time { get; set; } = null;
+        public ITriggerManager triggers { get; set; } = null;
+        //public SyncTriggerSystem trigger { get; }
+        IAnswerManager _answers;
+        public IAnswerManager answers
+        {
+            get { return _answers; }
+            set
+            {
+                if (_answers != null)
+                    _answers.onResponse -= onAnswer;
+                _answers = value;
+                if (_answers != null)
+                    _answers.onResponse += onAnswer;
+            }
+        }
+        public ILogger logger { get; set; }
+        #endregion
+        #region 游戏流程
+        public bool isRunning { get; set; } = false;
+        public bool isInited { get; set; } = false;
+        public GameOption option;
+        #endregion
+        #region 玩家
+
+        /// <summary>
+        /// 获取所有玩家，玩家在数组中的顺序与玩家被添加的顺序相同。
+        /// </summary>
+        /// <remarks>为什么不用属性是因为每次都会生成一个数组。</remarks>
+        private List<Player> playerList = new List<Player>();
+        public Player[] players
+        {
+            get { return playerList.ToArray(); }
+        }
+        public int playerCount
+        {
+            get { return playerList.Count; }
+        }
+        #endregion
+
+        internal Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
+        Dictionary<int, Card> cardIdDic { get; } = new Dictionary<int, Card>();
+        private List<Pile> pileList { get; } = new List<Pile>();
         List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
-
-        public void close()
+        #endregion
+        #region 内部类
+        public class CommandEventArg : EventArg
         {
-            rule.onGameClose(this);
+            public int playerId;
+            public string commandName;
+            public object[] commandArgs;
         }
-
-        public virtual void Dispose()
-        {
-            close();
-            if (answers != null)
-                answers.Dispose();
-            if (triggers != null)
-                triggers.Dispose();
-            if (time != null)
-                time.Dispose();
-        }
+        #endregion
     }
     public enum EventPhase
     {
