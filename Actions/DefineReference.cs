@@ -39,10 +39,18 @@ namespace TouhouCardEngine
         }
         public static bool operator ==(DefineReference r1, DefineReference r2)
         {
+            if (r1 is null)
+            {
+                return r2 is null;
+            }
             return r1.Equals(r2);
         }
         public static bool operator !=(DefineReference r1, DefineReference r2)
         {
+            if (r1 is null)
+            {
+                return !(r2 is null);
+            }
             return !r1.Equals(r2);
         }
 
