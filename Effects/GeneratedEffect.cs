@@ -414,6 +414,9 @@ namespace TouhouCardEngine
             }
             else
                 generatedEffect.onDisableAction = null;
+
+
+            generatedEffect.triggerList.Clear();
             for (int i = 0; i < triggerList.Count; i++)
             {
                 if (triggerList[i] == null)
