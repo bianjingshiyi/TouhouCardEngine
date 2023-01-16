@@ -135,6 +135,7 @@ namespace TouhouCardEngine
         #region 私有方法
         private async Task<object[]> doActionAsyncImp(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, Scope scope)
         {
+            //作用域记录当前正在执行的动作节点，这样就不必将节点传递给某些将输出值写入局部变量的方法中
             scope.actionNode = action;
             //获取动作定义
             ActionDefine define = getActionDefine(action.defineName);
@@ -190,8 +191,9 @@ namespace TouhouCardEngine
                             {
                                 try
                                 {
-                                    Scope childScope = new Scope() { parentScope = scope };
-                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
+                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
+                                    //执行其他动作节点来获取返回值会改变作用域当前正在执行的节点，将它恢复回来
+                                    scope.actionNode = action;
                                     arg = result[valueRef.index];
                                 }
                                 catch (Exception e)
@@ -247,12 +249,10 @@ namespace TouhouCardEngine
                         else if (valueRef.action != null)
                         {
                             ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if ((actionDefine != null &&//是输出型参数
+                            if (actionDefine != null &&//是输出型参数
                                 valueRef.index < actionDefine.getValueOutputs().Length &&
                                 actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut) ||
-                                (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
-                                valueRef.action.regVar[valueRef.index]))
+                                output.isOut)
                             {
                                 if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
                                 {
@@ -261,13 +261,20 @@ namespace TouhouCardEngine
                                     throw new KeyNotFoundException(msg);
                                 }
                             }
+                            else if (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
+                                valueRef.action.regVar[valueRef.index] &&
+                                scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
+                            {
+                                //已经在条件中获取到了参数
+                            }
                             else
                             {
                                 //logger.log("正在获取" + action + "的参数" + valueInput.name + "，值引用：" + valueRef);
                                 try
                                 {
-                                    Scope childScope = new Scope() { parentScope = scope };
-                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, childScope);
+                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
+                                    //执行其他动作节点来获取返回值会改变作用域当前正在执行的节点，将它恢复回来
+                                    scope.actionNode = action;
                                     arg = result[valueRef.index];
                                     //logger.log("成功获取" + action + "的参数" + valueInput.name + "，返回结果：" + string.Join("，", result) + "，索引" + valueRef.index);
                                 }

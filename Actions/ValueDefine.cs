@@ -11,6 +11,9 @@ namespace TouhouCardEngine
             this.isParams = isParams;
             this.isOut = isOut;
         }
+        public ValueDefine(Type type, bool isParams = false, bool isOut = false) : this(type, string.Empty, isParams, isOut)
+        {
+        }
         #endregion
         #region 属性字段
         public Type type { get; set; }

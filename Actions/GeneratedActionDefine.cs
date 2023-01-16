@@ -25,10 +25,15 @@ namespace TouhouCardEngine
             if (returnValueRefs != null)
                 returnValueRefList.AddRange(returnValueRefs);
         }
+        public GeneratedActionDefine(int id, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ActionNode action) :
+            this(id, string.Empty, string.Empty, inputs, consts, outputs, null, action)
+        {
+
+        }
         #endregion
         public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
         {
-            Scope invokeScope = new Scope() { parentScope = scope, args = args, consts = constValues };
+            Scope invokeScope = new Scope() { args = args, consts = constValues };
             return (game as CardEngine).getActionsReturnValueAsync(card as Card, buff as Buff, eventArg as EventArg, action, invokeScope, returnValueRefList.ToArray());
         }
         #endregion

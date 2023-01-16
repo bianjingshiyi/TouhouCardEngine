@@ -14,14 +14,14 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionNode(int id, string defineName, ActionValueRef[] inputs, object[] consts, bool[] regVar, ActionNode[] branches = null)
+        public ActionNode(int id, string defineName, ActionValueRef[] inputs = null, object[] consts = null, bool[] regVar = null, ActionNode[] branches = null)
         {
             this.id = id;
             this.defineName = defineName;
             this.branches = branches != null ? branches : new ActionNode[0];
-            this.inputs = inputs;
-            this.consts = consts;
-            this.regVar = regVar;
+            this.inputs = inputs != null ? inputs : new ActionValueRef[0];
+            this.consts = consts != null ? consts : new object[0];
+            this.regVar = regVar != null ? regVar : new bool[0];
         }
         public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(0, defineName, inputs, consts, new bool[0], new ActionNode[0])
         {
