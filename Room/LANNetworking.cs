@@ -649,11 +649,12 @@ namespace TouhouCardEngine
         async Task confirmJoin(JoinRoomOperation joinRoomOperation)
         {
             cachedRoomData = await invoke<RoomData>(nameof(IRoomRPCMethodHost.requestJoinRoom), GetSelfPlayerData());
-            invokeOnJoinRoom(cachedRoomData);
-            completeOperation(joinRoomOperation, cachedRoomData);
-
+            cachedRoomData.ProxyConvertBack();
             // 更新资源客户端的信息
             ResClient = new ResourceClient($"http://{hostPeer.EndPoint.Address}:{hostPeer.EndPoint.Port}");
+
+            invokeOnJoinRoom(cachedRoomData);
+            completeOperation(joinRoomOperation, cachedRoomData);
         }
 
         RoomData IRoomRPCMethodHost.requestJoinRoom(RoomPlayerData player)
