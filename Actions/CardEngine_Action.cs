@@ -173,12 +173,10 @@ namespace TouhouCardEngine
                         else if (valueRef.action != null)
                         {
                             ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if ((actionDefine != null &&//是输出型参数
+                            if (actionDefine != null &&//是输出型参数
                                 valueRef.index < actionDefine.getValueOutputs().Length &&
                                 actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut) ||
-                                (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
-                                valueRef.action.regVar[valueRef.index]))
+                                output.isOut)
                             {
                                 if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
                                 {
@@ -186,6 +184,12 @@ namespace TouhouCardEngine
                                     logger.logError(msg);
                                     throw new KeyNotFoundException(msg);
                                 }
+                            }
+                            else if (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
+                                valueRef.action.regVar[valueRef.index] &&
+                                scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
+                            {
+                                //已经在条件中获取到了参数
                             }
                             else
                             {
