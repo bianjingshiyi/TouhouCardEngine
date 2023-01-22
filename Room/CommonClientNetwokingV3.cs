@@ -39,7 +39,7 @@ namespace TouhouCardEngine
         }
 
         public event Action<RoomData> OnRoomDataChange;
-        public event Action<string, object> OnRoomPropChange;
+        public event Action<string, object> PostRoomPropChange;
 
         public event Action OnGameStart;
 
@@ -146,8 +146,8 @@ namespace TouhouCardEngine
 
             log?.logTrace($"{this.name} 收到房间属性改变事件。Key: {name}, Value: {val}");
             cachedRoomData.setProp(name, val);
+            PostRoomPropChange?.Invoke(name, val);
             OnRoomDataChange?.Invoke(cachedRoomData);
-            OnRoomPropChange?.Invoke(name, val);
         }
 
         void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)
