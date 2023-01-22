@@ -147,6 +147,7 @@ namespace TouhouCardEngine
             log?.logTrace($"{this.name} 收到房间属性改变事件。Key: {name}, Value: {val}");
             cachedRoomData.setProp(name, val);
             OnRoomDataChange?.Invoke(cachedRoomData);
+            OnRoomPropChange?.Invoke(name, val);
         }
 
         void IRoomRPCMethodClient.updatePlayerData(RoomPlayerData data)

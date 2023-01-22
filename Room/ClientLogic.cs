@@ -118,6 +118,7 @@ namespace TouhouCardEngine
             curNetwork.OnGameStart += roomGameStartEvtHandler;
             curNetwork.onReceive += roomReceiveEvtHandler;
             curNetwork.OnRoomDataChange += roomDataChangeEvtHandler;
+            curNetwork.OnRoomPropChange += roomPropChangeEvtHandler;
             curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
             curNetwork.onConfirmJoinAck += onConfirmJoinAck;
             curNetwork.OnRecvChat += onRecvChat;
@@ -145,6 +146,12 @@ namespace TouhouCardEngine
         private void roomDataChangeEvtHandler(RoomData obj)
         {
             OnRoomDataChange?.Invoke(obj);
+        }
+
+        public event Action<string, object> OnRoomPropChange;
+        private void roomPropChangeEvtHandler(string key, object value)
+        {
+            OnRoomPropChange?.Invoke(key, value);
         }
 
         public event ResponseHandler OnReceiveData;
