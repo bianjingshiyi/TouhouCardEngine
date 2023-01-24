@@ -157,7 +157,7 @@ namespace TouhouCardEngine
                         arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                         return Task.CompletedTask;
                     });
-                });
+                }); 
             }
             else
             {
@@ -235,16 +235,21 @@ namespace TouhouCardEngine
             buffList.Add(buff);
             _lastBuffId++;
             buff.instanceID = _lastBuffId;
-            if (buff.getPropertyModifiers(game as CardEngine) != null)
+
+            CardEngine engine = game as CardEngine;
+            buff.updateModifierProps(engine);
+            var propModis = buff.getPropertyModifiers(engine);
+            var effects = buff.getEffects(engine);
+            if (propModis != null)
             {
-                foreach (var modifier in buff.getPropertyModifiers(game as CardEngine))
+                foreach (var modifier in propModis)
                 {
                     await addModifier(game, modifier);
                 }
             }
-            if (buff.getEffects(game as CardEngine) != null)
+            if (effects != null)
             {
-                foreach (var efffect in buff.getEffects(game as CardEngine))
+                foreach (var efffect in effects)
                 {
                     await efffect.onEnable(game, this, buff);
                 }

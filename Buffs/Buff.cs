@@ -32,19 +32,13 @@ namespace TouhouCardEngine
             {
                 return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(game, propName)), arg =>
                 {
-                    arg.getVar<Buff>(PropertyChangeEventArg.VAR_BUFF).propDict[arg.getVar<string>(PropertyChangeEventArg.VAR_PROPERTY_NAME)] = arg.getVar(PropertyChangeEventArg.VAR_VALUE);
+                    arg.buff.propDict[arg.propName] = arg.value;
                     //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
-                    foreach (PropModifier propModifier in getPropertyModifiers(game))
-                    {
-                        if (propModifier.relatedPropName == arg.propName)
-                        {
-                            propModifier.setValue(game, card, arg.value);
-                        }
-                    }
+                    updateModifierProps(game);
                     game.logger?.logTrace("Game", string.Format("{0}的属性{1}=>{2}",
-                        arg.getVar<Buff>(PropertyChangeEventArg.VAR_BUFF),
-                        arg.getVar<string>(PropertyChangeEventArg.VAR_PROPERTY_NAME),
-                        StringHelper.propToString(arg.getVar(PropertyChangeEventArg.VAR_VALUE))));
+                        arg.buff,
+                        arg.propName,
+                        StringHelper.propToString(arg.value)));
                     return Task.CompletedTask;
                 });
             }
@@ -52,6 +46,27 @@ namespace TouhouCardEngine
             {
                 propDict[propName] = value;
                 return Task.FromResult<PropertyChangeEventArg>(default);
+            }
+        }
+        /// <summary>
+        /// 更新所有与BUFF属性关联的修正器的值。
+        /// </summary>
+        public void updateModifierProps(CardEngine game)
+        {
+            //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
+            foreach (PropModifier propModifier in getPropertyModifiers(game))
+            {
+                if (propModifier.relatedPropName != null)
+                {
+                    if (propDict.TryGetValue(propModifier.relatedPropName, out object value))
+                    {
+                        propModifier.setValue(game, card, value);
+                    }
+                    else
+                    {
+                        propModifier.setValue(game, card, 0);
+                    }
+                }
             }
         }
         public abstract PropModifier[] getPropertyModifiers(CardEngine game);
