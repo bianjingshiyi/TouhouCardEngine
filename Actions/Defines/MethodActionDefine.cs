@@ -55,10 +55,19 @@ namespace TouhouCardEngine
             {
                 var paramInfo = _paramsInfo[i];
                 paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                bool isParams = paramAttr != null ? paramAttr.isParams : false;
+                Type paramType = paramInfo.ParameterType;
+                if (isParams)
+                {
+                    if (paramType.IsArray)
+                    {
+                        paramType = paramType.GetElementType();
+                    }
+                }
                 ValueDefine valueDefine = new ValueDefine(
-                    paramInfo.ParameterType,
+                    paramType,
                     paramAttr != null && !string.IsNullOrEmpty(paramAttr.paramName) ? paramAttr.paramName : "Value",
-                    paramAttr != null ? paramAttr.isParams : false,
+                    isParams,
                     paramAttr != null ? paramAttr.isOut : false);
                 if (paramInfo.IsOut || valueDefine.isOut)
                 {
