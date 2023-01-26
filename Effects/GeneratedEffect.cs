@@ -342,6 +342,8 @@ namespace TouhouCardEngine
                 {
                     if (pair.Value is ActionNode actionNode)
                         propDict.Add(pair.Key, new SerializableActionNodeGraph(actionNode));
+                    else if (pair.Value is FunctionNode functionNode)
+                        propDict.Add(pair.Key, new SerializableFunctionNode(functionNode, true));
                     else if (pair.Value is ActionValueRef actionValueRef)
                         propDict.Add(pair.Key, new SerializableActionValueRef(actionValueRef, true));
                     else if (pair.Value is TriggerGraph trigger)
@@ -435,6 +437,8 @@ namespace TouhouCardEngine
             {
                 if (pair.Value is SerializableActionNodeGraph actionGraph)
                     generatedEffect.propDict.Add(pair.Key, actionGraph.toActionNodeGraph());
+                else if (pair.Value is SerializableFunctionNode functionNode)
+                    generatedEffect.propDict.Add(pair.Key, functionNode.toFunctionNodeNodeGraph());
                 else if (pair.Value is SerializableActionValueRef actionValueRef)
                     generatedEffect.propDict.Add(pair.Key, actionValueRef.toActionValueRef());
                 else if (pair.Value is SerializableTrigger trigger)
