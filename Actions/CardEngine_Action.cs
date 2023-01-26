@@ -137,6 +137,46 @@ namespace TouhouCardEngine
         {
             //作用域记录当前正在执行的动作节点，这样就不必将节点传递给某些将输出值写入局部变量的方法中
             scope.actionNode = action;
+            ActionDefine define = getActionDefine(action.defineName);
+            // 获取所有输入值作为参数。
+            object[] args = await getActionArgs(card, buff, eventArg, action, scope);
+            try
+            {
+                //执行动作
+                var result = await define.execute(this, card, buff, eventArg, scope, args, action.consts.ToArray());
+                //输出变量
+                if (action.regVar != null && action.regVar.Length > 0)
+                {
+                    for (int i = 0; i < action.regVar.Length; i++)
+                    {
+                        if (action.regVar[i] && i < result.Length)
+                        {
+                            scope.localVarDict[scope.getLocalVarName(i)] = result[i];
+                        }
+                    }
+                }
+                return result;
+            }
+            catch (Exception e)
+            {
+                if (e is TargetInvocationException targetInvocationException)
+                    e = targetInvocationException.InnerException;
+                logger.logError("Game", "执行动作" + action + "发生异常：" + e);
+                throw e;
+            }
+        }
+        #endregion
+        /// <summary>
+        /// 获取要执行的一个动作节点的所有需要的参数。
+        /// </summary>
+        /// <param name="card">这张卡牌。</param>
+        /// <param name="buff">该增益。</param>
+        /// <param name="eventArg">当前事件。</param>
+        /// <param name="action">要执行的动作节点。</param>
+        /// <param name="scope">当前作用域。</param>
+        /// <returns>所有的参数。</returns>
+        private async Task<object[]> getActionArgs(ICard card, IBuff buff, IEventArg eventArg, ActionNode action, Scope scope)
+        {
             //获取动作定义
             ActionDefine define = getActionDefine(action.defineName);
             //从环境中取参数值
@@ -159,76 +199,7 @@ namespace TouhouCardEngine
                     {
                         if (valueRef == null)
                             continue;
-                        object arg;
-                        if (valueInput.isOut)
-                        {
-                            //输入参数不要求执行就可以从环境中获得
-                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
-                            {
-                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                logger.logError(msg);
-                                throw new KeyNotFoundException(msg);
-                            }
-                        }
-                        else if (valueRef.action != null)
-                        {
-                            ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if (actionDefine != null &&//是输出型参数
-                                valueRef.index < actionDefine.getValueOutputs().Length &&
-                                actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut)
-                            {
-                                if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
-                                {
-                                    string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                    logger.logError(msg);
-                                    throw new KeyNotFoundException(msg);
-                                }
-                            }
-                            else if (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
-                                valueRef.action.regVar[valueRef.index] &&
-                                scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
-                            {
-                                //已经在条件中获取到了参数
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
-                                    //执行其他动作节点来获取返回值会改变作用域当前正在执行的节点，将它恢复回来
-                                    scope.actionNode = action;
-                                    arg = result[valueRef.index];
-                                }
-                                catch (Exception e)
-                                {
-                                    if (e is TargetInvocationException targetInvocationException)
-                                        e = targetInvocationException.InnerException;
-                                    logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
-                                    throw e;
-                                }
-                            }
-                        }
-                        else if (!string.IsNullOrEmpty(valueRef.eventVarName))
-                        {
-                            arg = eventArg != null ? eventArg.getVar(valueRef.eventVarName) : scope.getLocalVar(valueRef.eventVarName);
-                        }
-                        else if (valueRef.actionNodeId != 0)
-                        {
-                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
-                            {
-                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                logger.logError(msg);
-                                throw new KeyNotFoundException(msg);
-                            }
-                        }
-                        else
-                        {
-                            if (valueRef.argIndex < scope.args.Length)
-                                arg = scope.args[valueRef.argIndex];
-                            else
-                                arg = scope.consts[valueRef.argIndex - scope.args.Length];
-                        }
+                        object arg = await getActionArg(card, buff, eventArg, action, valueRef, scope, valueInput);
                         paramList.Add(arg);
                     }
                     Array argArray = Array.CreateInstance(valueInput.type, paramList.Count);
@@ -237,124 +208,130 @@ namespace TouhouCardEngine
                 }
                 else
                 {
+                    object arg = null;
                     if (action.inputs[i] is ActionValueRef valueRef)
                     {
-                        object arg;
-                        if (valueInput.isOut)
-                        {
-                            //输入参数不要求执行就可以从环境中获得
-                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
-                            {
-                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                logger.logError(msg);
-                                throw new KeyNotFoundException(msg);
-                            }
-                        }
-                        else if (valueRef.action != null)
-                        {
-                            ActionDefine actionDefine = getActionDefine(valueRef.action.defineName);
-                            if (actionDefine != null &&//是输出型参数
-                                valueRef.index < actionDefine.getValueOutputs().Length &&
-                                actionDefine.getValueOutputAt(valueRef.index) is ValueDefine output &&
-                                output.isOut)
-                            {
-                                if (!scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
-                                {
-                                    string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                    logger.logError(msg);
-                                    throw new KeyNotFoundException(msg);
-                                }
-                            }
-                            else if (valueRef.index < valueRef.action.regVar.Length &&//或者已经将结果注册局部变量
-                                valueRef.action.regVar[valueRef.index] &&
-                                scope.tryGetLoacalVar(valueRef.action.id, valueRef.index, out arg))
-                            {
-                                //已经在条件中获取到了参数
-                            }
-                            else
-                            {
-                                //logger.log("正在获取" + action + "的参数" + valueInput.name + "，值引用：" + valueRef);
-                                try
-                                {
-                                    object[] result = await doActionAsyncImp(card, buff, eventArg, valueRef.action, scope);
-                                    //执行其他动作节点来获取返回值会改变作用域当前正在执行的节点，将它恢复回来
-                                    scope.actionNode = action;
-                                    arg = result[valueRef.index];
-                                    //logger.log("成功获取" + action + "的参数" + valueInput.name + "，返回结果：" + string.Join("，", result) + "，索引" + valueRef.index);
-                                }
-                                catch (Exception e)
-                                {
-                                    if (e is TargetInvocationException targetInvocationException)
-                                        e = targetInvocationException.InnerException;
-                                    logger.logError("获取" + action + "的参数" + valueInput.name + "失败：" + e);
-                                    throw e;
-                                }
-                            }
-                        }
-                        else if (!string.IsNullOrEmpty(valueRef.eventVarName))
-                        {
-                            arg = eventArg != null ? eventArg.getVar(valueRef.eventVarName) : scope.getLocalVar(valueRef.eventVarName);
-                        }
-                        else if (valueRef.actionNodeId != 0)
-                        {
-                            if (!scope.tryGetLoacalVar(valueRef.actionNodeId, valueRef.index, out arg))
-                            {
-                                string msg = "从局部变量中获取" + action + "的参数" + valueInput.name + "失败";
-                                logger.logError(msg);
-                                throw new KeyNotFoundException(msg);
-                            }
-                        }
-                        else
-                        {
-                            if (valueRef.argIndex < scope.args.Length)
-                                arg = scope.args[valueRef.argIndex];
-                            else
-                                arg = scope.consts[valueRef.argIndex - scope.args.Length];
-                        }
-                        args[actionOutputs.Length + i] = arg;
+                        arg = await getActionArg(card, buff, eventArg, action, valueRef, scope, valueInput);
                     }
-                    else
-                        args[actionOutputs.Length + i] = null;
+                    args[actionOutputs.Length + i] = arg;
                 }
             }
-            try
-            {
-                //执行动作
-                var result = await define.execute(this, card, buff, eventArg, scope, args, action.consts.ToArray());
-                //输出变量
-                if (action.regVar != null && action.regVar.Length > 0)
-                {
-                    for (int i = 0; i < action.regVar.Length; i++)
-                    {
-                        if (action.regVar[i] && i < result.Length)
-                        {
-                            scope.localVarDict[scope.getLocalVarName(i)] = result[i];
-                        }
-                    }
-                }
-                //#region 日志
-                //string msg = "执行动作" + action + "成功";
-                //if (args != null && args.Length > 0)
-                //{
-                //    msg += "，参数：" + string.Join(",", args);
-                //}
-                //if (result != null && result.Length > 0)
-                //{
-                //    msg += "，返回值：" + string.Join(",", result);
-                //}
-                //logger.log(msg);
-                //#endregion
-                return result;
-            }
-            catch (Exception e)
-            {
-                if (e is TargetInvocationException targetInvocationException)
-                    e = targetInvocationException.InnerException;
-                logger.logError("Game", "执行动作" + action + "发生异常：" + e);
-                throw e;
-            }
+            return args;
         }
-        #endregion
+        /// <summary>
+        /// 获取动作参数。
+        /// </summary>
+        /// <param name="card">这张卡牌。</param>
+        /// <param name="buff">该增益。</param>
+        /// <param name="eventArg">当前事件。</param>
+        /// <param name="curAction">当前正在执行的动作。</param>
+        /// <param name="valueRef">动作参数的引用对象。</param>
+        /// <param name="scope">当前作用域。</param>
+        /// <param name="define">值定义。</param>
+        /// <returns>获取到的动作参数。</returns>
+        private async Task<object> getActionArg(ICard card, IBuff buff, IEventArg eventArg, ActionNode curAction, ActionValueRef valueRef, Scope scope, ValueDefine define)
+        {
+            object arg;
+            if (define.isOut)
+            {
+                //输入参数不要求执行就可以从环境中获得
+                arg = getArgFromLocal(valueRef.actionNodeId, valueRef.index, scope, curAction, define);
+            }
+            else if (valueRef.action != null)
+            {
+                arg = await getArgFromActionNode(card, buff, eventArg, curAction, valueRef.action, valueRef.index, scope, define);
+            }
+            else if (!string.IsNullOrEmpty(valueRef.eventVarName))
+            {
+                arg = eventArg != null ? eventArg.getVar(valueRef.eventVarName) : scope.getLocalVar(valueRef.eventVarName);
+            }
+            else if (valueRef.actionNodeId != 0)
+            {
+                arg = getArgFromLocal(valueRef.actionNodeId, valueRef.index, scope, curAction, define);
+            }
+            else
+            {
+                if (valueRef.argIndex < scope.args.Length)
+                    arg = scope.args[valueRef.argIndex];
+                else
+                    arg = scope.consts[valueRef.argIndex - scope.args.Length];
+            }
+            return arg;
+        }
+        /// <summary>
+        /// 从作用域的局部变量处获取参数。
+        /// </summary>
+        /// <param name="targetActionId">目标动作节点ID。</param>
+        /// <param name="outputIndex">目标动作节点的输出值位置。</param>
+        /// <param name="scope">当前作用域。</param>
+        /// <param name="curAction">当前正在执行的动作。（仅用于输出日志）</param>
+        /// <param name="define">值定义。（仅用于输出日志）</param>
+        /// <returns>获取到的参数。</returns>
+        /// <exception cref="KeyNotFoundException"></exception>
+        private object getArgFromLocal(int targetActionId, int outputIndex, Scope scope, ActionNode curAction, ValueDefine define)
+        {
+            if (!scope.tryGetLoacalVar(targetActionId, outputIndex, out object arg))
+            {
+                string msg = "从局部变量中获取" + curAction + "的参数" + define.name + "失败";
+                logger.logError(msg);
+                throw new KeyNotFoundException(msg);
+            }
+            return arg;
+        }
+        /// <summary>
+        /// 从输入端的动作节点中获取参数。
+        /// </summary>
+        /// <param name="card">这张卡牌。</param>
+        /// <param name="buff">该增益。</param>
+        /// <param name="eventArg">当前事件。</param>
+        /// <param name="curAction">当前正在执行的动作节点。</param>
+        /// <param name="action">要获取输入值的动作节点。</param>
+        /// <param name="outputIndex">要获取输入值的动作节点的输出位置。</param>
+        /// <param name="scope">作用域对象。</param>
+        /// <param name="define">值定义。（仅用于输出日志）</param>
+        /// <returns>获取到的参数。</returns>
+        /// <exception cref="KeyNotFoundException"></exception>
+        private async Task<object> getArgFromActionNode(ICard card, IBuff buff, IEventArg eventArg, ActionNode curAction, ActionNode action, int outputIndex, Scope scope, ValueDefine define = null)
+        {
+            object arg;
+            ActionDefine actionDefine = getActionDefine(action.defineName);
+            if (actionDefine != null &&//是输出型参数
+                outputIndex < actionDefine.getValueOutputs().Length &&
+                actionDefine.getValueOutputAt(outputIndex) is ValueDefine output &&
+                output.isOut)
+            {
+                if (!scope.tryGetLoacalVar(action.id, outputIndex, out arg))
+                {
+                    string msg = "从局部变量中获取" + curAction + "的参数" + (define != null ? define.name : outputIndex.ToString()) + "失败";
+                    logger.logError(msg);
+                    throw new KeyNotFoundException(msg);
+                }
+            }
+            else if (outputIndex < action.regVar.Length &&//或者已经将结果注册局部变量
+                action.regVar[outputIndex] &&
+                scope.tryGetLoacalVar(action.id, outputIndex, out arg))
+            {
+                //已经在条件中获取到了参数
+            }
+            else
+            {
+                try
+                {
+                    object[] result = await doActionAsyncImp(card, buff, eventArg, action, scope);
+                    //执行其他动作节点来获取返回值会改变作用域当前正在执行的节点，将它恢复回来
+                    scope.actionNode = curAction;
+                    arg = result[outputIndex];
+                }
+                catch (Exception e)
+                {
+                    if (e is TargetInvocationException targetInvocationException)
+                        e = targetInvocationException.InnerException;
+                    logger.logError("获取" + curAction + "的参数" + (define != null ? define.name : outputIndex.ToString()) + "失败：" + e);
+                    throw e;
+                }
+            }
+            return arg;
+        }
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
     }
     [Serializable]
