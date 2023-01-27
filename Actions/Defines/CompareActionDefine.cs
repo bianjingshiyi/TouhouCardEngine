@@ -35,9 +35,9 @@ namespace TouhouCardEngine
             switch (op)
             {
                 case CompareOperator.equals:
-                    return Task.FromResult(new object[] { args[0] == args[1] });
+                    return Task.FromResult(new object[] { args[0] != null ? args[0].Equals(args[1]) : args[1] == null });
                 case CompareOperator.unequals:
-                    return Task.FromResult(new object[] { args[0] != args[1] });
+                    return Task.FromResult(new object[] { args[0] != null ? !args[0].Equals(args[1]) : args[1] != null });
                 case CompareOperator.greater:
                     {
                         return Task.FromResult(new object[]
