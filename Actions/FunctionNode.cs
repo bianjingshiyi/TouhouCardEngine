@@ -65,7 +65,8 @@ namespace TouhouCardEngine
                 }
             }
             //遍历后续
-            this.action.traverse(action, traversedActionNodeSet);
+            if (this.action != null)
+                this.action.traverse(action, traversedActionNodeSet);
         }
         public override string ToString()
         {
@@ -182,14 +183,11 @@ namespace TouhouCardEngine
             if (isGraph)
             {
                 actionNodeList = new List<SerializableActionNode>();
-                if (functionNode.action != null)
+                functionNode.traverse(a =>
                 {
-                    functionNode.action.traverse(a =>
-                    {
-                        if (a != null)
-                            actionNodeList.Add(new SerializableActionNode(a));
-                    });
-                }
+                    if (a != null)
+                        actionNodeList.Add(new SerializableActionNode(a));
+                });
             }
         }
         #endregion
