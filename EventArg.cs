@@ -46,19 +46,6 @@ namespace TouhouCardEngine
             return null;
         }
         public abstract void Record(IGame game, EventRecord record);
-        #region 动作定义
-        [ActionNodeMethod("GetVariable", "Event")]
-        [return: ActionNodeParam("Value")]
-        public static object getVariable(EventArg eventArg, [ActionNodeParam("VariableName", true)] string varName)
-        {
-            return eventArg.getVar(varName);
-        }
-        [ActionNodeMethod("SetVariable", "Event")]
-        public static void setVariable(EventArg eventArg, [ActionNodeParam("VariableName")] string varName, [ActionNodeParam("Value")] object value)
-        {
-            eventArg.setVar(varName, value);
-        }
-        #endregion
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
         public object[] args { get; set; }
