@@ -36,6 +36,24 @@ namespace TouhouCardEngine
             Scope invokeScope = new Scope() { args = args, consts = constValues };
             return (game as CardEngine).getActionsReturnValueAsync(card as Card, buff as Buff, eventArg as EventArg, action, invokeScope, returnValueRefList.ToArray());
         }
+
+        public void traverse(Action<ActionNode> act, HashSet<ActionNode> traversedActionNodeSet = null)
+        {
+            if (act == null)
+                return;
+            if (traversedActionNodeSet == null)
+                traversedActionNodeSet = new HashSet<ActionNode>();
+            if (action != null)
+            {
+                action.traverse(act, traversedActionNodeSet);
+            }
+            foreach (var returnRef in returnValueRefList)
+            {
+                if (returnRef == null || returnRef.valueRef == null)
+                    continue;
+                returnRef.valueRef.traverse(act, traversedActionNodeSet);
+            }
+        }
         #endregion
         #region 属性字段
         public int id { get; }
@@ -86,7 +104,7 @@ namespace TouhouCardEngine
             if (generatedActionDefine.action != null)
             {
                 rootActionId = generatedActionDefine.action.id;
-                generatedActionDefine.action.traverse(a =>
+                generatedActionDefine.traverse(a =>
                 {
                     if (a != null)
                         actionNodeList.Add(new SerializableActionNode(a));
