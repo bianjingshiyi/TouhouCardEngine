@@ -352,10 +352,10 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
             var response = client.Execute<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-
-            if (response.Data.code != ResultCode.Success)
+            if (response.Data?.code == ResultCode.Fail)
                 return false;
+
+            errorHandler(response, response.Data, request);
 
             UserSession = response.Data.result;
             saveCookie();
@@ -375,10 +375,10 @@ namespace NitoriNetwork.Common
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-
-            if (response.Data.code != ResultCode.Success)
+            if (response.Data?.code == ResultCode.Fail)
                 return false;
+
+            errorHandler(response, response.Data, request);
 
             UserSession = response.Data.result;
             saveCookie();
