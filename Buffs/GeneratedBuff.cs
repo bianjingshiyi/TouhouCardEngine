@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -44,8 +45,12 @@ namespace TouhouCardEngine
 
         public override PropModifier[] getPropertyModifiers(CardEngine game)
         {
-            GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
-            return buffDefine.propModifierList.ToArray();
+            if (_propertyModifiers == null)
+            {
+                GeneratedBuffDefine define = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
+                _propertyModifiers = define.propModifierList.Select(m => m.clone()).ToArray();
+            }
+            return _propertyModifiers;
         }
         public override IPassiveEffect[] getEffects(CardEngine game)
         {
@@ -57,6 +62,7 @@ namespace TouhouCardEngine
         /// </summary>
         public DefineReference defineRef;
         public int instanceId = 0;
+        private PropModifier[] _propertyModifiers;
         #endregion
     }
 }
