@@ -75,6 +75,18 @@ namespace TouhouCardEngine
             }
             throw new IndexOutOfRangeException("索引" + index + "超出动作" + defineName + "的值输出数量上限或下限");
         }
+        public ValueDefine getValueInputAt(int index)
+        {
+            if (inputs.Length <= 0)
+                return null;
+            var lastInput = inputs[inputs.Length - 1];
+            if (lastInput != null && lastInput.isParams && index >= inputs.Length)
+            {
+                //多参数，获取最后一个参数类型
+                return lastInput;
+            }
+            return inputs[index];
+        }
         public ValueDefine[] getValueInputs()
         {
             return inputs;
