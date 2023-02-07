@@ -101,17 +101,12 @@ namespace TouhouCardEngine
                     null) :
                 new List<SerializableReturnValueRef>();
             //action = generatedActionDefine.action;
-            if (generatedActionDefine.action != null)
+            generatedActionDefine.traverse(a =>
             {
-                rootActionId = generatedActionDefine.action.id;
-                generatedActionDefine.traverse(a =>
-                {
-                    if (a != null)
-                        actionNodeList.Add(new SerializableActionNode(a));
-                });
-            }
-            else
-                rootActionId = 0;
+                if (a != null)
+                    actionNodeList.Add(new SerializableActionNode(a));
+            });
+            rootActionId = generatedActionDefine.action != null ? generatedActionDefine.action.id : 0;
         }
         #endregion
         public GeneratedActionDefine toGeneratedActionDefine(Func<string, Type> typeFinder)
