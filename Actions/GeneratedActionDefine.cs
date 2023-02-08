@@ -78,6 +78,7 @@ namespace TouhouCardEngine
             if (generatedActionDefine == null)
                 throw new ArgumentNullException(nameof(generatedActionDefine));
             id = generatedActionDefine.id;
+            category = generatedActionDefine.category;
             name = generatedActionDefine.defineName;
             inputList = generatedActionDefine.inputs != null ?
                 new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => v != null ?
