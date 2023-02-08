@@ -121,7 +121,7 @@ namespace TouhouCardEngine
             TriggerGraph trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
             {
-                if (trigger.condition == null)
+                if (trigger.condition == null || trigger.condition.action == null)
                     return true;
                 var task = game.doActionAsync(card, buff, eventArg, trigger.condition.action);
                 if (task.IsCompleted)
