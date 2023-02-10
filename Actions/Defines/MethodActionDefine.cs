@@ -273,7 +273,7 @@ namespace TouhouCardEngine
         }
         private bool isObjectNeedToUnpackForType(object array, Type type)
         {
-            return !(type == typeof(Array) || type.IsArray) && array is Array;
+            return !(type.IsAssignableFrom(array.GetType()) || type == typeof(Array) || type.IsArray) && array is Array;
         }
         private bool isArrayNeedToCastForType(Array array, Type type)
         {
