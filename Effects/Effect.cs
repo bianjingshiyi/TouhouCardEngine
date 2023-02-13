@@ -171,19 +171,4 @@ namespace TouhouCardEngine
         public string name;
         public Type type;
     }
-    public class CollectionHelper
-    {
-        /// <summary>
-        /// 除了...以外
-        /// </summary>
-        /// <param name="collection"></param>
-        /// <param name="elements"></param>
-        /// <returns></returns>
-        [ActionNodeMethod("Except", "CollectionOperation")]
-        [return: ActionNodeParam("Collection")]
-        public static IEnumerable except([ActionNodeParam("Collection")] IEnumerable collection, [ActionNodeParam("Element", isParams: true)] object[] elements)
-        {
-            return collection.Cast<object>().Where(obj => !elements.Contains(obj));
-        }
-    }
 }
