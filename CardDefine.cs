@@ -33,12 +33,16 @@ namespace TouhouCardEngine
         public override bool Equals(object obj)
         {
             if (obj is CardDefine other)
-                return id == other.id;
+                return cardPoolId == other.cardPoolId && id == other.id;
             return base.Equals(obj);
         }
         public override int GetHashCode()
         {
-            return id;
+            // 同DefineReference.GetHashCode()。
+            int hashCode = 17;
+            hashCode = hashCode * 31 + cardPoolId.GetHashCode();
+            hashCode = hashCode * 31 + id.GetHashCode();
+            return hashCode;
         }
         public virtual void setProp<T>(string propName, T value)
         {
