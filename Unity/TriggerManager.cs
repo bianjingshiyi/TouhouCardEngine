@@ -215,7 +215,7 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
-            if (_eventChainList.Count() >= MAX_EVENT_TIMES)
+            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
             {
                 string eventName = getName<T>();
                 Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
@@ -322,7 +322,7 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
-            if (_eventChainList.Count() >= MAX_EVENT_TIMES)
+            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
             {
                 string eventName = getName<T>();
                 Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
@@ -558,7 +558,7 @@ namespace TouhouCardEngine
 #endif
             }
         }
-        private const int MAX_EVENT_TIMES = 100;
+        private const int MAX_EVENT_TIMES = 30;
         [SerializeField]
         List<EventArgItem> _eventChainList = new List<EventArgItem>();
         public IEventArg currentEvent => _eventChainList.Count > 0 ? _eventChainList[_eventChainList.Count - 1].eventArg : null;
