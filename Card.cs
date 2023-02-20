@@ -92,9 +92,11 @@ namespace TouhouCardEngine
                 //更换define
                 card.define = define;
                 //激活被动
+                Pile pile = card.getPile(game as CardEngine);
                 foreach (var effect in card.define.getEffects().OfType<IPassiveEffect>())
                 {
-                    await effect.onEnable(game, card, null);
+                    if (effect.piles.Contains(pile?.name))
+                        await effect.onEnable(game, card, null);
                 }
             });
         }
