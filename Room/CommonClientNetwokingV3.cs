@@ -122,6 +122,7 @@ namespace TouhouCardEngine
         public abstract Task<byte[]> GetResourceAsync(ResourceType type, string id);
         public abstract Task UploadResourceAsync(ResourceType type, string id, byte[] bytes);
         public abstract Task<bool> ResourceExistsAsync(ResourceType type, string id);
+        public abstract Task<bool[]> ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res);
         #endregion
 
         #region RPC接口

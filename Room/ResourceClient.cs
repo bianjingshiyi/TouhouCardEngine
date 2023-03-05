@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace TouhouCardEngine
 {
@@ -138,6 +140,24 @@ namespace TouhouCardEngine
         }
 
         /// <summary>
+        /// Post 一个 Json
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        private UnityWebRequestAsyncOperation postJson(Uri uri, string data)
+        {
+            var request = new UnityWebRequest(uri, "POST");
+
+            request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(data));
+            request.uploadHandler.contentType = "application/json";
+            request.downloadHandler = new DownloadHandlerBuffer();
+
+            request.SetRequestHeader("Cookie", $"Session={Session}");
+            return request.SendWebRequest();
+        }
+
+        /// <summary>
         /// 上传资源
         /// </summary>
         /// <param name="type"></param>
@@ -232,6 +252,65 @@ namespace TouhouCardEngine
         }
 
         /// <summary>
+        /// 批量检查资源是否存在
+        /// </summary>
+        /// <param name="res"></param>
+        /// <returns></returns>
+        public bool[] ResourceExistsBatch(Tuple<ResourceType, string>[] res)
+        {
+            var obj = new object[res.Length];
+            for (int i = 0; i < res.Length; i++)
+            {
+                obj[i] = new {
+                    Type = res[i].Item1.GetString(),
+                    ID = res[i].Item2
+                };
+            }
+            var op = postJson(getUri("exists"), obj.ToJson());
+            while (!op.isDone) ;
+
+            var bytes = parseResponse(op);
+            var json = System.Text.Encoding.UTF8.GetString(bytes);
+            return BsonSerializer.Deserialize<bool[]>(json);
+        }
+
+        /// <summary>
+        /// 批量检查资源是否存在
+        /// </summary>
+        /// <param name="res"></param>
+        /// <returns></returns>
+        public Task<bool[]> ResourceExistsBatchAsync(Tuple<ResourceType, string>[] res)
+        {
+            var completeSource = new TaskCompletionSource<bool[]>();
+
+            var obj = new object[res.Length];
+            for (int i = 0; i < res.Length; i++)
+            {
+                obj[i] = new
+                {
+                    Type = res[i].Item1.GetString(),
+                    ID = res[i].Item2
+                };
+            }
+            var op = postJson(getUri("exists"), obj.ToJson());
+            op.completed += (_) =>
+            {
+                try
+                {
+                    var bytes = parseResponse(op);
+                    var json = System.Text.Encoding.UTF8.GetString(bytes);
+                    completeSource.SetResult(BsonSerializer.Deserialize<bool[]>(json));
+                }
+                catch (Exception e)
+                {
+                    completeSource.SetException(e);
+                }
+            };
+
+            return completeSource.Task;
+        }
+
+        /// <summary>
         /// 解析资源是否存在
         /// </summary>
         /// <param name="op"></param>
@@ -251,10 +330,15 @@ namespace TouhouCardEngine
             return true;
         }
 
-        Uri resourceUri(ResourceType type, string id)
+        Uri getUri(string uri)
         {
             if (BaseUrl == null) throw new Exception("Resource base URL is not set.");
-            return new Uri($"{BaseUrl}/{type.GetString()}/{id}");
+            return new Uri(BaseUrl + "/" + uri);
+        }
+
+        Uri resourceUri(ResourceType type, string id)
+        {
+            return getUri($"{type.GetString()}/{id}");
         }
 
         /// <summary>

@@ -8,6 +8,8 @@ using System.IO;
 using System;
 using System.Linq;
 using System.Net.Sockets;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 
 namespace TouhouCardEngine
 {
@@ -121,6 +123,28 @@ namespace TouhouCardEngine
             // 解析URL
             var regex = new Regex("/([0-9a-zA-Z-_]+)/([0-9a-zA-Z-_]+)");
             var uri = ctx.Request.Url.LocalPath;
+            // 批量获取资源存在性
+            if (uri.EndsWith("/exists") && ctx.Request.HttpMethod == "POST")
+            {
+                try
+                {
+                    var resItems = BsonSerializer.Deserialize<ResourceItem[]>(ctx.Request.InputStream);
+                    var results = new bool[resItems.Length];
+
+                    for (int i = 0; i < resItems.Length; i++)
+                    {
+                        results[i] = provider.ResourceInfo(resItems[i].Type, resItems[i].ID, out _);
+                    }
+                    Response(ctx.Response, results.ToJson(), "application/json");
+                }
+                catch (Exception e)
+                {
+                    logger.logError(e.ToString());
+                    Response(ctx.Response, HttpStatusCode.InternalServerError);
+                }
+                return;
+            }
+
             var matches = regex.Match(uri);
             if (!matches.Success)
             {
@@ -332,5 +356,20 @@ namespace TouhouCardEngine
 
             return -1;
         }
+    }
+
+    /// <summary>
+    /// 资源服务器的项目
+    /// </summary>
+    struct ResourceItem
+    {
+        /// <summary>
+        /// 资源类型
+        /// </summary>
+        public string Type;
+        /// <summary>
+        /// 资源ID
+        /// </summary>
+        public string ID;
     }
 }

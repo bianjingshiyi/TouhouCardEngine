@@ -308,6 +308,15 @@ namespace TouhouCardEngine
                 return curNetwork.ResourceExistsAsync(type, id);
             return Task.FromResult(false);
         }
+        public Task<bool[]> ResourceExistsBatchAsync(Tuple<ResourceType, string>[] res)
+        {
+            logger?.log($"批量检查{res.Length}个资源是否存在");
+
+            if (curNetwork == null)
+                return Task.FromResult(new bool[res.Length]);
+            return curNetwork.ResourceBatchExistsAsync(res);
+        }
+
         public event Action<LobbyRoomDataList> onRoomListChange;
         public event Action onGameStart;
         public RoomPlayerData localPlayer { get; private set; } = null;

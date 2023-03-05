@@ -202,6 +202,24 @@ namespace Tests
         }
 
         /// <summary>
+        /// 资源批量存在性测试
+        /// </summary>
+        [Test]
+        public void TestResourceExistsBatch()
+        {
+            string session = PrepareSession();
+            var client = new ResourceClient("http://localhost:50112/api/UserRes", session);
+
+            var exists = client.ResourceExistsBatch(new Tuple<ResourceType, string>[] {
+                new Tuple<ResourceType, string>(ResourceType.CardDefine, "test_fake_card"),
+                new Tuple<ResourceType, string>(ResourceType.CardDefine, "test_fake_card2"),
+            });
+            Assert.AreEqual(2, exists.Length);
+            Assert.False(exists[0]);
+            Assert.False(exists[1]);
+        }
+
+        /// <summary>
         /// 资源下载测试
         /// </summary>
         [Test]

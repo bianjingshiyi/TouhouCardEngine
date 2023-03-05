@@ -380,6 +380,21 @@ namespace TouhouCardEngine
                 return ResClient.ResourceExistsAsync(type, id);
             }
         }
+        public override Task<bool[]> ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res)
+        {
+            if (isHost)
+            {
+                bool[] results = new bool[res.Length];
+                for (int i = 0; i < res.Length; i++)
+                {
+                    results[i] = ResProvider.ResourceInfo(res[i].Item1.GetString(), res[i].Item2, out _);
+                }
+                return Task.FromResult(results);
+            }
+
+            return ResClient.ResourceExistsBatchAsync(res);
+        }
+
         public override async Task<T> Send<T>(object obj)
         {
             if (isHost)

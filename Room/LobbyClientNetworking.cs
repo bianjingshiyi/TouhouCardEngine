@@ -197,6 +197,10 @@ namespace TouhouCardEngine
         {
             return ResClient.ResourceExistsAsync(type, id);
         }
+        public override Task<bool[]> ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res)
+        {
+            return ResClient.ResourceExistsBatchAsync(res);
+        }
         #endregion
 
         #region 交互逻辑
