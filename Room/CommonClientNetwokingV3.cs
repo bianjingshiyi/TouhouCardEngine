@@ -104,12 +104,12 @@ namespace TouhouCardEngine
         #region 待实现的接口
         public abstract event Action<LobbyRoomDataList> OnRoomListUpdate;
 
-        public abstract Task<RoomData> CreateRoom();
+        public abstract Task<RoomData> CreateRoom(string name = "", string password = "");
         public abstract Task DestroyRoom();
         public abstract Task GameStart();
         public abstract T GetRoomProp<T>(string name);
         public abstract RoomPlayerData GetSelfPlayerData();
-        public abstract Task<RoomData> JoinRoom(string roomID);
+        public abstract Task<RoomData> JoinRoom(string roomID, string password = "");
         public abstract void QuitRoom();
         public abstract Task SetPlayerProp(string name, object val);
         public abstract Task SetRoomProp(string name, object val);
@@ -396,8 +396,10 @@ namespace TouhouCardEngine
         /// <summary>
         /// 以当前玩家为房主创建一个房间
         /// </summary>
+        /// <param name="name">房间名称</param>
+        /// <param name="password">房间密码</param>
         /// <returns></returns>
-        Task<RoomData> CreateRoom();
+        Task<RoomData> CreateRoom(string name = "", string password = "");
 
         /// <summary>
         /// 关闭当前已经创建的房间（部分情况下用不上）
@@ -429,9 +431,10 @@ namespace TouhouCardEngine
         /// <summary>
         /// 使用当前用户加入一个房间
         /// </summary>
-        /// <param name="room"></param>
+        /// <param name="roomID"></param>
+        /// <param name="password"></param>
         /// <returns></returns>
-        Task<RoomData> JoinRoom(string roomID);
+        Task<RoomData> JoinRoom(string roomID, string password);
 
         /// <summary>
         /// 退出当前加入的房间

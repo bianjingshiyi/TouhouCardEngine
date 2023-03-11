@@ -184,11 +184,11 @@ namespace TouhouCardEngine
         /// <param name="port">发送或广播创建房间信息的端口</param>
         /// <returns></returns>
         /// <remarks>port主要是在局域网测试下有用</remarks>
-        public async Task createOnlineRoom()
+        public async Task createOnlineRoom(string name = "", string password = "")
         {
             logger?.log("客户端创建在线房间");
             localPlayer = curNetwork.GetSelfPlayerData();
-            room = await curNetwork.CreateRoom();
+            room = await curNetwork.CreateRoom(name, password);
             room.maxPlayerCount = MAX_PLAYER_COUNT;
             isLocalRoom = false;
 
@@ -205,18 +205,18 @@ namespace TouhouCardEngine
             curNetwork?.RefreshRoomList();
         }
 
-        public async Task<bool> joinRoom(string roomId)
+        public async Task<bool> joinRoom(string roomId, string password = "")
         {
             logger?.log("客户端请求加入房间" + roomId);
-            room = await curNetwork.JoinRoom(roomId);
+            room = await curNetwork.JoinRoom(roomId, password);
             return room != null;
         }
 
-        public async Task<bool> joinRoom(string addr, int port)
+        public async Task<bool> joinRoom(string addr, int port, string password = "")
         {
             if (curNetwork != LANNetwork) return false; 
             logger?.log("客户端请求加入房间" + addr + ":" + port);
-            room = await LANNetwork.JoinRoom(addr, port);
+            room = await LANNetwork.JoinRoom(addr, port, password);
             return room != null;
         }
 

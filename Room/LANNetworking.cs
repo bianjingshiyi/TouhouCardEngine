@@ -64,14 +64,17 @@ namespace TouhouCardEngine
             return _playerData;
         }
 
-        public override Task<RoomData> CreateRoom()
+        public override Task<RoomData> CreateRoom(string name, string password)
         {
             log?.log(name + "创建房间");
             _hostRoomData = new RoomData(Guid.NewGuid().ToString());
             _hostRoomData.playerDataList.Add(_playerData);
             _hostRoomData.ownerId = _playerData.id;
-            _roomInfo = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id);
-            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+            _hostRoomData.setProp(RoomData.PROP_ROOM_NAME, name);
+            _hostRoomData.setProp(RoomData.PROP_ROOM_PASSWORD, password);
+
+            _roomInfo = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id, name, password);
+            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo.ToMaskedData());
 
             // 创建资源服务器
             pollCancelToken = new CancellationTokenSource();
@@ -108,27 +111,28 @@ namespace TouhouCardEngine
         /// 收到连接请求，要客户端来检查是否可以加入，不能加入就拒绝并返回一个异常
         /// 能加入的话，接受，然后等待玩家连接上来。
         /// </remarks>
-        public override Task<RoomData> JoinRoom(string roomId)
+        public override Task<RoomData> JoinRoom(string roomId, string password)
         {
             //获取缓存的IP地址
             if (!_lanRooms.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException($"无法找到ID为{roomId}的房间");
 
             var roomInfo = _lanRooms[roomId];
-            return JoinRoom(roomInfo.IP, roomInfo.Port);
+            return JoinRoom(roomInfo.IP, roomInfo.Port, password);
         }
 
-        public Task<RoomData> JoinRoom(string addr, int port)
+        public Task<RoomData> JoinRoom(string addr, int port, string password)
         {
             if (opList.Any(o => o is JoinRoomOperation))
                 throw new InvalidOperationException("客户端已经在执行连接操作");
 
             string msg = name + "连接" + addr + ":" + port;
             log?.log(msg);
-            //发送链接请求
+            // 发送连接请求
+            RoomJoinRequest request = new RoomJoinRequest("", password, "", _playerData);
             NetDataWriter writer = new NetDataWriter();
             writer.Put((int)PacketType.joinRequest);
-            writer.Put(_playerData.ToJson());
+            request.Write(writer);
             var peer = net.Connect(addr, port, writer);
 
             //peer为null表示已经有一个操作在进行了
@@ -176,6 +180,26 @@ namespace TouhouCardEngine
 
         public override Task SetRoomProp(string key, object value)
         {
+            // 对特殊Property做处理，需要更新外部的房间信息
+            switch (key)
+            {
+                case RoomData.PROP_ROOM_PASSWORD:
+                    _roomInfo.Password = value as string;
+                    // Mask掉，防止泄露
+                    value = string.IsNullOrEmpty(value as string) ? "" : "******";
+                    _hostRoomData.setProp(key, value);
+                    // 通知外部更新
+                    invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo.ToMaskedData());
+                    break;
+                case RoomData.PROP_ROOM_NAME:
+                    // 通知外部更新
+                    _roomInfo.RoomName = value as string;
+                    invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo.ToMaskedData());
+                    break;
+                default:
+                    break;
+            }
+
             // 向房间中的其他玩家发送属性变化通知
             return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, ObjectProxy.TryProxy(value))));
         }
@@ -261,7 +285,7 @@ namespace TouhouCardEngine
             _roomInfo.MaxPlayerCount = newInfo.MaxPlayerCount;
             _hostRoomData.maxPlayerCount = newInfo.MaxPlayerCount;
 
-            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo);
+            invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo.ToMaskedData());
             return Task.CompletedTask;
         }
 
@@ -462,8 +486,8 @@ namespace TouhouCardEngine
             switch (packetType)
             {
                 case PacketType.joinRequest:
-                    RoomPlayerData joinPlayerData = BsonSerializer.Deserialize<RoomPlayerData>(request.Data.GetString());
-                    reqJoinRoom(request, joinPlayerData);
+                    RoomJoinRequest joinRequest = new RoomJoinRequest(request.Data);
+                    reqJoinRoom(request, joinRequest);
                     break;
                 default:
                     log?.log(name + "收到未知的请求连接类型");
@@ -629,9 +653,18 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="request"></param>
         /// <param name="player"></param>
-        void reqJoinRoom(ConnectionRequest request, RoomPlayerData player)
+        void reqJoinRoom(ConnectionRequest request, RoomJoinRequest req)
         {
+            var player = req.player;
             log?.logTrace(request.RemoteEndPoint + $"({player.id}) 请求加入房间。");
+
+            if (_roomInfo.IsLocked && req.roomPassword != _roomInfo.Password)
+            {
+                log?.log(request.RemoteEndPoint + "密码错误，拒绝加入房间。");
+                request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(new ArgumentException("密码错误"))));
+                return;
+            }
+
             RoomData roomData = null;
             try
             {
@@ -744,6 +777,9 @@ namespace TouhouCardEngine
             AlterRoomInfo(_roomInfo);
         }
 
+        /// <summary>
+        /// 反向同步房间数据。注意房间名称和密码不会同步
+        /// </summary>
         private void syncRoomInfo()
         {
             _roomInfo.PlayerCount = _hostRoomData.playerDataList.Count;

@@ -483,9 +483,11 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public LobbyRoomData CreateRoom()
+        public LobbyRoomData CreateRoom(string name = "", string password = "")
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
+            request.AddParameter("name", name);
+            request.AddParameter("password", password);
             var response = client.Execute<ExecuteResult<LobbyRoomData>>(request);
 
             errorHandler(response, request);
@@ -497,9 +499,11 @@ namespace NitoriNetwork.Common
         /// 创建一个房间
         /// </summary>
         /// <returns></returns>
-        public async Task<LobbyRoomData> CreateRoomAsync()
+        public async Task<LobbyRoomData> CreateRoomAsync(string name = "", string password = "")
         {
             RestRequest request = new RestRequest("/api/Room", Method.POST);
+            request.AddParameter("name", name);
+            request.AddParameter("password", password);
             var response = await client.ExecuteAsync<ExecuteResult<LobbyRoomData>>(request);
 
             errorHandler(response, request);

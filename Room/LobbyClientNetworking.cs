@@ -52,12 +52,12 @@ namespace TouhouCardEngine
         /// 创建一个空房间，房主为自己
         /// </summary>
         /// <returns></returns>
-        public async override Task<RoomData> CreateRoom()
+        public async override Task<RoomData> CreateRoom(string name = "", string password = "")
         {
             // step 1: 在服务器上创建房间
-            var roomInfo = await serverClient.CreateRoomAsync();
+            var roomInfo = await serverClient.CreateRoomAsync(name, password);
             // step 2: 加入这个房间
-            return await joinRoom(roomInfo);
+            return await joinRoom(roomInfo, password);
         }
 
         public override event Action<LobbyRoomDataList> OnRoomListUpdate;
@@ -82,13 +82,13 @@ namespace TouhouCardEngine
             OnRoomListUpdate?.Invoke(lobby);
         }
 
-        public override Task<RoomData> JoinRoom(string roomId)
+        public override Task<RoomData> JoinRoom(string roomId, string password)
         {
             if (!lobby.ContainsKey(roomId))
                 throw new ArgumentOutOfRangeException("roomID", "指定ID的房间不存在");
 
             var roomInfo = lobby[roomId];
-            return joinRoom(roomInfo);
+            return joinRoom(roomInfo, password);
         }
 
         /// <summary>
@@ -96,16 +96,14 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="roomInfo"></param>
         /// <returns></returns>
-        private Task<RoomData> joinRoom(LobbyRoomData roomInfo)
+        private Task<RoomData> joinRoom(LobbyRoomData roomInfo, string password)
         {
             var writer = new NetDataWriter();
 
             GetSelfPlayerData(); // 更新缓存的player数据
 
-            writer.Put(roomInfo.RoomID);
-            writer.Put(serverClient.UserSession);
-            writer.Put(localPlayer.ToJson());
-            writer.Put(localPlayer.id);
+            RoomJoinRequest req = new RoomJoinRequest(roomInfo.RoomID, password, serverClient.UserSession, localPlayer);
+            req.Write(writer);
             log.logTrace($"尝试以 {localPlayer.id}: {serverClient.UserSession} 连接");
 
             hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
