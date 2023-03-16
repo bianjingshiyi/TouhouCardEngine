@@ -57,6 +57,10 @@ namespace TouhouCardEngine
             else
                 return default;
         }
+        public virtual bool removeProp(string propName)
+        {
+            return _propDict.Remove(propName);
+        }
         public virtual string[] getPropNames()
         {
             return _propDict.Keys.ToArray();
