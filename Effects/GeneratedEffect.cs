@@ -307,6 +307,7 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         string[] IPassiveEffect.piles => pileList.ToArray();
+        public string name;
         public PileNameCollection pileList = new PileNameCollection();
         public ActionNode onEnableAction;
         public ActionNode onDisableAction;
@@ -332,6 +333,7 @@ namespace TouhouCardEngine
         {
             if (generatedEffect == null)
                 throw new ArgumentNullException(nameof(generatedEffect));
+            name = generatedEffect.name;
             typeName = generatedEffect.GetType().Name;
             pileList = generatedEffect.pileList != null ? generatedEffect.pileList : new PileNameCollection();
             tagList = generatedEffect.tagList != null ? generatedEffect.tagList : new EffectTagCollection();
@@ -383,6 +385,7 @@ namespace TouhouCardEngine
         {
             GeneratedEffect generatedEffect = !string.IsNullOrEmpty(typeName) && typeFinder != null && typeFinder(typeName) is Type type ?
                 Activator.CreateInstance(type) as GeneratedEffect : new GeneratedEffect();
+            generatedEffect.name = name;
             generatedEffect.pileList.AddRange(pileList);
             if (onEnableRootActionNodeId != 0)
             {
@@ -450,6 +453,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
+        public string name;
         public string typeName;
         public PileNameCollection pileList;
         public int onEnableRootActionNodeId;
