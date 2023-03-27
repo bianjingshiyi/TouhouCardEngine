@@ -3,63 +3,59 @@ using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    [Serializable]
-    public class TargetChecker
+    public class TargetChecker : ITraversable
     {
         #region 公有方法
-        public TargetChecker(string targetType, ActionValueRef condition, string invalidMsg)
+        public TargetChecker(string targetType, int targetIndex, string invalidMsg)
         {
             this.targetType = targetType;
-            this.condition = condition;
+            this.targetIndex = targetIndex;
             this.errorTip = invalidMsg;
         }
-        public TargetChecker() : this(string.Empty, null, string.Empty)
+        public TargetChecker() : this(string.Empty, -1, string.Empty)
         {
         }
-        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
-            if (condition != null)
-                condition.traverse(action, traversedActionNodeSet);
+                traversedActionNodeSet = new HashSet<IActionNode>();
+            var condition = trigger?.getTargetConditionPort(targetIndex);
+            condition?.traverse(action, traversedActionNodeSet);
         }
         public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
-            if (condition == null || condition.action == null)
+            var condition = trigger?.getTargetConditionPort(targetIndex);
+            if (condition == null || condition.getConnectedOutputPort() == null)
             {
                 invalidMsg = null;
                 return true;
             }
-            var task = game.doActionAsync(card, buff, eventArg, condition.action);
+            var task = game.getValue<bool>(card, buff, eventArg, condition);
             if (task.IsCompleted)
             {
-                object[] returnValues = game.doActionAsync(card, buff, eventArg, condition.action).Result;
-                if (returnValues[condition.index] is bool returnValue)
+                bool returnValue = task.Result;
+                if (!returnValue)
                 {
-                    if (!returnValue)
-                    {
-                        //有条件没有通过，不是合法目标
-                        invalidMsg = errorTip;
-                        return false;
-                    }
-                    else
-                    {
-                        //是合法目标
-                        invalidMsg = null;
-                        return true;
-                    }
+                    //有条件没有通过，不是合法目标
+                    invalidMsg = errorTip;
+                    return false;
                 }
                 else
-                    throw new InvalidCastException(returnValues[condition.index] + "不是真值类型");
+                {
+                    //是合法目标
+                    invalidMsg = null;
+                    return true;
+                }
             }
             else
                 throw new InvalidOperationException("不能在条件中调用需要等待的动作");
         }
         #endregion
+        public TriggerEntryNode trigger;
         public string targetType;
-        public ActionValueRef condition;
+        public int targetIndex;
         public string errorTip;
     }
     [Serializable]
@@ -72,21 +68,20 @@ namespace TouhouCardEngine
             if (targetChecker == null)
                 throw new ArgumentNullException(nameof(targetChecker));
             targetType = targetChecker.targetType;
-            condition = targetChecker.condition != null ? new SerializableActionValueRef(targetChecker.condition) : null;
+            targetIndex = targetChecker.targetIndex;
             errorTip = targetChecker.errorTip;
         }
         #endregion
-        public TargetChecker toTargetChecker(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
+        public TargetChecker toTargetChecker()
         {
-            return new TargetChecker(
-                targetType,
-                condition != null ? condition.toActionValueRef(actionNodeList, actionNodeDict) : null,
-                errorTip);
+            return new TargetChecker(targetType, targetIndex, errorTip);
         }
         #endregion
         #region 属性字段
         public string targetType;
+        [Obsolete]
         public SerializableActionValueRef condition;
+        public int targetIndex;
         public string errorTip;
         #endregion
     }

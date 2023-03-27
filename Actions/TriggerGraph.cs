@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -19,12 +21,12 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
-        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
+                traversedActionNodeSet = new HashSet<IActionNode>();
             if (condition != null)
                 condition.traverse(action, traversedActionNodeSet);
             if (targetCheckerList != null && targetCheckerList.Count > 0)
@@ -45,106 +47,10 @@ namespace TouhouCardEngine
         public List<TargetChecker> targetCheckerList = new List<TargetChecker>();
         public ActionNode action;
     }
+    [Obsolete]
     [Serializable]
     public class SerializableTrigger
     {
-        #region 公有方法
-        #region 构造方法
-        public SerializableTrigger(TriggerGraph trigger)
-        {
-            if (trigger == null)
-                throw new ArgumentNullException(nameof(trigger));
-            eventName = trigger.eventName;
-            if (trigger.condition != null)
-            {
-                condition = new SerializableActionValueRef(trigger.condition);
-                if (trigger.condition.action != null)
-                {
-                    trigger.condition.action.traverse(a =>
-                    {
-                        if (a != null)
-                            actionList.Add(new SerializableActionNode(a));
-                    });
-                }
-            }
-            else
-                condition = null;
-            if (trigger.targetCheckerList != null)
-            {
-                for (int i = 0; i < trigger.targetCheckerList.Count; i++)
-                {
-                    if (trigger.targetCheckerList[i] == null)
-                        continue;
-                    targetCheckerList.Add(new SerializableTargetChecker(trigger.targetCheckerList[i]));
-                    if (trigger.targetCheckerList[i].condition != null && trigger.targetCheckerList[i].condition.action != null)
-                    {
-                        trigger.targetCheckerList[i].condition.action.traverse(a =>
-                        {
-                            if (a != null)
-                                actionList.Add(new SerializableActionNode(a));
-                        });
-                    }
-                }
-            }
-            if (trigger.action != null)
-            {
-                actionId = trigger.action.id;
-                trigger.action.traverse(a =>
-                {
-                    if (a != null)
-                        actionList.Add(new SerializableActionNode(a));
-                });
-            }
-            else
-                actionId = 0;
-        }
-        #endregion
-        public TriggerGraph toTrigger()
-        {
-            TriggerGraph trigger = new TriggerGraph();
-            trigger.eventName = eventName;
-            if (condition != null)
-            {
-                try
-                {
-                    trigger.condition = condition.toActionValueRef(actionList, new Dictionary<int, ActionNode>());
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException("反序列化触发器条件失败", e);
-                }
-            }
-            else
-                trigger.condition = null;
-            for (int i = 0; i < targetCheckerList.Count; i++)
-            {
-                if (targetCheckerList[i] == null)
-                    continue;
-                try
-                {
-                    trigger.targetCheckerList.Add(targetCheckerList[i].toTargetChecker(actionList, new Dictionary<int, ActionNode>()));
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException("反序列化触发器目标条件" + i + "失败", e);
-                }
-            }
-            if (actionId != 0)
-            {
-                try
-                {
-                    trigger.action = SerializableActionNode.toActionNodeGraph(actionId, actionList, new Dictionary<int, ActionNode>());
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException("反序列化触发器动作失败", e);
-                }
-            }
-            else
-                trigger.action = null;
-            return trigger;
-        }
-        #endregion
         #region 属性字段
         public string eventName;
         public SerializableActionValueRef condition;
