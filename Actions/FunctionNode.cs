@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using static UnityEngine.GraphicsBuffer;
 using TouhouCardEngine.Interfaces;
-using System.Threading.Tasks;
 
 namespace TouhouCardEngine
 {
-    [Serializable]
+    [Obsolete]
     public sealed class FunctionNode
     {
         #region 公有方法
@@ -23,12 +21,12 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
+                traversedActionNodeSet = new HashSet<IActionNode>();
             //遍历输入
             if (returns != null && returns.Length > 0)
             {
@@ -100,62 +98,6 @@ namespace TouhouCardEngine
             sb.Append("); ");
             return string.Intern(sb.ToString());
         }
-
-        /// <summary>
-        /// 执行入口节点的后续动作（红线连接），并获取该动作的返回值。
-        /// </summary>
-        /// <param name="game">游戏对象。</param>
-        /// <param name="card">这张卡牌。</param>
-        /// <param name="buff">该增益。</param>
-        /// <param name="eventArg">当前事件。</param>
-        /// <param name="args">参数列表。</param>
-        /// <returns>返回值。</returns>
-        public async Task<object[]> doFunctionAsync(CardEngine game, Card card, Buff buff, EventArg eventArg, params object[] args)
-        {
-            if (action != null)
-            {
-                var scope = new Scope() { args = args, consts = consts };
-                return await game.doActionAsync(card, buff, eventArg, action, scope);
-            }
-            return new object[0];
-        }
-        /// <summary>
-        /// 执行入口节点的后续动作（红线连接），并执行整个由红线连接起来的链表。
-        /// </summary>
-        /// <param name="game">游戏对象。</param>
-        /// <param name="card">这张卡牌。</param>
-        /// <param name="buff">该增益。</param>
-        /// <param name="eventArg">当前事件。</param>
-        /// <param name="args">参数列表。</param>
-        public async Task doFunctionsAsync(CardEngine game, Card card, Buff buff, EventArg eventArg, params object[] args)
-        {
-            if (action != null)
-            {
-                var scope = new Scope() { args = args, consts = consts };
-                await game.doActionsAsync(card, buff, eventArg, action, scope);
-            }
-        }
-        /// <summary>
-        /// 执行出口节点的输入点连接的动作，并获取该动作的返回值。
-        /// </summary>
-        /// <typeparam name="T">返回值类型。</typeparam>
-        /// <param name="game">游戏对象。</param>
-        /// <param name="card">这张卡牌。</param>
-        /// <param name="buff">该增益。</param>
-        /// <param name="eventArg">当前事件。</param>
-        /// <param name="valueIndex">返回值索引。</param>
-        /// <param name="args">参数列表。</param>
-        /// <returns>该动作的返回值。</returns>
-        public async Task<T> getFunctionReturnValueAsync<T>(CardEngine game, Card card, Buff buff, EventArg eventArg, int valueIndex, params object[] args)
-        {
-            var returnRef = returns[valueIndex];
-            if (returnRef != null)
-            {
-                var scope = new Scope() { args = args, consts = consts };
-                return await game.getActionReturnValueAsync<T>(card, buff, eventArg, returnRef.valueRef.action, valueIndex, scope);
-            }
-            return default;
-        }
         #endregion
         public string functionName;
         public ActionNode action;
@@ -168,62 +110,6 @@ namespace TouhouCardEngine
     [Serializable]
     public sealed class SerializableFunctionNode
     {
-        #region 公有方法
-        #region 构造函数
-        public SerializableFunctionNode(FunctionNode functionNode, bool isGraph = false)
-        {
-            if (functionNode == null)
-                throw new ArgumentNullException(nameof(functionNode));
-            functionName = functionNode.functionName;
-            actionNodeId = functionNode.action != null ? functionNode.action.id : 0;
-            returns = functionNode.returns != null ?
-                Array.ConvertAll(functionNode.returns, i => i != null ? new SerializableReturnValueRef(i) : null) :
-                new SerializableReturnValueRef[0];
-            consts = functionNode.consts ?? new object[0];
-            if (isGraph)
-            {
-                actionNodeList = new List<SerializableActionNode>();
-                functionNode.traverse(a =>
-                {
-                    if (a != null)
-                        actionNodeList.Add(new SerializableActionNode(a));
-                });
-            }
-        }
-        #endregion
-        public FunctionNode toFunctionNodeGraph(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict = null)
-        {
-            if (actionNodeDict == null)
-                actionNodeDict = new Dictionary<int, ActionNode>();
-            FunctionNode funcNode = new FunctionNode
-            {
-                functionName = functionName,
-                consts = consts,
-                returns = new ReturnValueRef[returns.Length]
-            };
-            if (actionNodeId != 0)
-            {
-                if (actionNodeDict.TryGetValue(actionNodeId, out ActionNode actionNode))
-                    funcNode.action = actionNode;
-                else
-                    funcNode.action = SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList, actionNodeDict);
-            }
-            //returns
-            for (int i = 0; i < funcNode.returns.Length; i++)
-            {
-                if (returns[i] != null)
-                    funcNode.returns[i] = returns[i].toReturnValueRef(actionNodeList, actionNodeDict);
-                else
-                    funcNode.returns[i] = null;
-            }
-            return funcNode;
-        }
-
-        public FunctionNode toFunctionNodeNodeGraph()
-        {
-            return toFunctionNodeGraph(actionNodeList);
-        }
-        #endregion
         #region 属性字段
         public int actionNodeId;
         public SerializableReturnValueRef[] returns;

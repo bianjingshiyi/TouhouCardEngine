@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    [Serializable]
+    [Obsolete]
     public class ActionValueRef
     {
         #region 公有方法
@@ -40,14 +41,14 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (this.action == null)
                 return;
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
+                traversedActionNodeSet = new HashSet<IActionNode>();
             else if (traversedActionNodeSet.Contains(this.action))
                 return;
             this.action.traverse(action, traversedActionNodeSet);
@@ -95,51 +96,9 @@ namespace TouhouCardEngine
         /// </summary>
         public int argIndex;
     }
+    [Obsolete]
     public class SerializableActionValueRef
     {
-        #region 公有方法
-        #region 构造函数
-        public SerializableActionValueRef(ActionValueRef actionValueRef, bool isGraph = false)
-        {
-            if (actionValueRef == null)
-                throw new ArgumentNullException(nameof(actionValueRef));
-            actionNodeId = actionValueRef.action != null ? actionValueRef.action.id : actionValueRef.actionNodeId;
-            index = actionValueRef.index;
-            eventVarName = actionValueRef.eventVarName;
-            argIndex = actionValueRef.argIndex;
-            if (isGraph)
-            {
-                actionNodeList = new List<SerializableActionNode>();
-                if (actionValueRef.action != null)
-                {
-                    actionValueRef.action.traverse(a =>
-                    {
-                        if (a != null)
-                            actionNodeList.Add(new SerializableActionNode(a));
-                    });
-                }
-            }
-        }
-        #endregion
-        public ActionValueRef toActionValueRef(List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict)
-        {
-            if (actionNodeId != 0)
-            {
-                if (actionNodeDict.TryGetValue(actionNodeId, out ActionNode actionNode))
-                    return new ActionValueRef(actionNode, index);
-                else
-                    return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList, actionNodeDict), index);
-            }
-            else if (!string.IsNullOrEmpty(eventVarName))
-                return new ActionValueRef(eventVarName);
-            else
-                return new ActionValueRef(argIndex);
-        }
-        public ActionValueRef toActionValueRef()
-        {
-            return new ActionValueRef(SerializableActionNode.toActionNodeGraph(actionNodeId, actionNodeList), index);
-        }
-        #endregion
         #region 属性字段
         public int actionNodeId;
         public int index;
