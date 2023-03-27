@@ -84,4 +84,14 @@ namespace TouhouCardEngine
         public string name;
         public Type type;
     }
+    public class EventTypeInfo
+    {
+        #region 属性字段
+        public string eventName;
+        public string editorName;
+        public EventVariableInfo[] variableInfos;
+        public string[] obsoleteNames;
+        #endregion
+    }
+
 }
