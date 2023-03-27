@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -7,80 +8,92 @@ namespace TouhouCardEngine
     {
         public CompareActionDefine() : base("Compare")
         {
-            inputs = new ValueDefine[2]
+            inputs = new PortDefine[]
             {
-                new ValueDefine(typeof(object), "A", false, false),
-                new ValueDefine(typeof(object), "B", false, false)
+                enterPortDefine,
+                PortDefine.Value(typeof(object), "A"),
+                PortDefine.Value(typeof(object), "B")
             };
-            consts = new ValueDefine[1]
+            consts = new PortDefine[1]
             {
-                new ValueDefine(typeof(CompareOperator), "operator", false, false)
+                PortDefine.Const(typeof(CompareOperator), "operator")
             };
-            outputs = new ValueDefine[1]
+            outputs = new PortDefine[]
             {
-                new ValueDefine(typeof(bool), "result", false, false)
+                exitPortDefine,
+                PortDefine.Value(typeof(bool), "result")
             };
         }
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
         {
+            object opObj = node.getConst("operator");
             CompareOperator op;
-            if (constValues == null || constValues.Length < 1)
+
+            if (opObj == null)
                 op = CompareOperator.equals;
-            else if (constValues[0] is CompareOperator cmpOp)
+            else if (opObj is CompareOperator cmpOp)
                 op = cmpOp;
-            else if (constValues[0] is int enumValue)
+            else if (opObj is int enumValue)
                 op = (CompareOperator)enumValue;
             else
                 op = CompareOperator.equals;
+
+            var arg0 = await flow.getValue(node.getInputPort<ValueInput>("A"));
+            var arg1 = await flow.getValue(node.getInputPort<ValueInput>("B"));
+            object[] args = new object[] { arg0, arg1 };
+            bool result;
             switch (op)
             {
                 case CompareOperator.equals:
-                    return Task.FromResult(new object[] { args[0] != null ? args[0].Equals(args[1]) : args[1] == null });
+                    result = args[0] != null ? args[0].Equals(args[1]) : args[1] == null;
+                    break;
                 case CompareOperator.unequals:
-                    return Task.FromResult(new object[] { args[0] != null ? !args[0].Equals(args[1]) : args[1] != null });
+                    result = args[0] != null ? !args[0].Equals(args[1]) : args[1] != null;
+                    break;
                 case CompareOperator.greater:
                     {
-                        return Task.FromResult(new object[]
-                        {
-                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                        result = args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
                                 cmp1.CompareTo(cmp2) > 0 :
-                                false
-                        });
+                                false;
                     }
+                    break;
                 case CompareOperator.greaterEquals:
                     {
-                        return Task.FromResult(new object[]
-                        {
-                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                        result = args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
                                 cmp1.CompareTo(cmp2) >= 0 :
-                                false
-                        });
+                                false;
                     }
+                    break;
                 case CompareOperator.less:
                     {
-                        return Task.FromResult(new object[]
-                        {
-                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                        result = args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
                                 cmp1.CompareTo(cmp2) < 0 :
-                                false
-                        });
+                                false;
                     }
+                    break;
                 case CompareOperator.lessEquals:
                     {
-                        return Task.FromResult(new object[]
-                        {
-                            args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
+                        result = args[0] is IComparable cmp1 && args[1] is IComparable cmp2 ?
                                 cmp1.CompareTo(cmp2) <= 0 :
-                                false
-                        });
+                                false;
                     }
+                    break;
                 default:
                     throw new InvalidOperationException("未知的操作符" + op);
             }
+
+            flow.setValue(node.getOutputPort<ValueOutput>("result"), result);
+            return null;
         }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
+        public PortDefine[] inputs { get; }
+        public PortDefine[] consts { get; }
+        public PortDefine[] outputs { get; }
+
+        public override IEnumerable<PortDefine> inputDefines => inputs;
+
+        public override IEnumerable<PortDefine> constDefines => consts;
+
+        public override IEnumerable<PortDefine> outputDefines => outputs;
     }
     public enum CompareOperator
     {

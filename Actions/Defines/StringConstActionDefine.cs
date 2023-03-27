@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
@@ -6,22 +7,34 @@ namespace TouhouCardEngine
     {
         public StringConstActionDefine() : base("StringConst")
         {
-            inputs = new ValueDefine[0];
-            consts = new ValueDefine[1]
+            inputs = new PortDefine[]
             {
-                new ValueDefine(typeof(string), "value", false, false)
+                enterPortDefine,
             };
-            outputs = new ValueDefine[1]
+            consts = new PortDefine[1]
             {
-                new ValueDefine(typeof(string), "value", false, false)
+                PortDefine.Const(typeof(string), "value", "Value")
             };
+            outputs = new PortDefine[]
+            {
+                exitPortDefine,
+                PortDefine.Value(typeof(string), "value", "Value")
+            };
+            category = "Const";
         }
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public override Task<ControlOutput> run(Flow flow, IActionNode node)
         {
-            return Task.FromResult(constValues);
+            flow.setValue(node.getOutputPort<ValueOutput>("value"), node.getConst("value"));
+            return Task.FromResult<ControlOutput>(null);
         }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
+        public PortDefine[] inputs { get; }
+        public PortDefine[] consts { get; }
+        public PortDefine[] outputs { get; }
+
+        public override IEnumerable<PortDefine> inputDefines => inputs;
+
+        public override IEnumerable<PortDefine> constDefines => consts;
+
+        public override IEnumerable<PortDefine> outputDefines => outputs;
     }
 }

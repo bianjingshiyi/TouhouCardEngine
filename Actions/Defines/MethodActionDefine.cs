@@ -27,7 +27,8 @@ namespace TouhouCardEngine
                     {
                         if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
                         {
-                            defineDict.Add(attribute.methodName, new MethodActionDefine(attribute, method));
+                            var define = new MethodActionDefine(attribute, method);
+                            defineDict.Add(define.defineName, define);
                         }
                     }
                 }
@@ -45,17 +46,25 @@ namespace TouhouCardEngine
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));
             category = attribute.category;
             _methodInfo = methodInfo;
-            List<ValueDefine> outputList = new List<ValueDefine>();
             //分析参数设置输入和输出
             _paramsInfo = methodInfo.GetParameters();
             ActionNodeParamAttribute paramAttr;
-            List<ValueDefine> inputList = new List<ValueDefine>();
-            List<ValueDefine> constList = new List<ValueDefine>();
+            List<PortDefine> inputList = new List<PortDefine>()
+            {
+                enterPortDefine
+            };
+            List<PortDefine> constList = new List<PortDefine>();
+            List<PortDefine> outputList = new List<PortDefine>()
+            {
+                exitPortDefine
+            };
             for (int i = 0; i < _paramsInfo.Length; i++)
             {
                 var paramInfo = _paramsInfo[i];
                 paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
                 bool isParams = paramAttr != null ? paramAttr.isParams : false;
+                bool isOut = paramAttr != null ? paramAttr.isOut : false;
+
                 Type paramType = paramInfo.ParameterType;
                 if (isParams)
                 {
@@ -64,20 +73,18 @@ namespace TouhouCardEngine
                         paramType = paramType.GetElementType();
                     }
                 }
-                ValueDefine valueDefine = new ValueDefine(
-                    paramType,
-                    paramAttr != null && !string.IsNullOrEmpty(paramAttr.paramName) ? paramAttr.paramName : "Value",
-                    isParams,
-                    paramAttr != null ? paramAttr.isOut : false);
-                if (paramInfo.IsOut || valueDefine.isOut)
+
+                if (paramInfo.IsOut || isOut)
                 {
                     //如果参数是out参数，那么它是一个输出
+                    PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
                     outputList.Add(valueDefine);
                 }
-                else if (paramInfo.ParameterType == typeof(ActionNode))
+                else if (paramInfo.ParameterType == typeof(ActionNode) && paramAttr != null)
                 {
                     //如果参数类型是动作节点，那么它是一个动作分支输出
-                    outputList.Add(valueDefine);
+                    PortDefine controlDefine = PortDefine.Control(paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                    outputList.Add(controlDefine);
                 }
                 else
                 {
@@ -86,11 +93,13 @@ namespace TouhouCardEngine
                         if (paramAttr.isConst)
                         {
                             //用特性指定是常量
-                            constList.Add(valueDefine);
+                            PortDefine constDefine = PortDefine.Const(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                            constList.Add(constDefine);
                         }
                         else
                         {
                             //用特性指定是输入
+                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
                             inputList.Add(valueDefine);
                         }
                     }
@@ -98,9 +107,11 @@ namespace TouhouCardEngine
                         !typeof(ICard).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(IBuff).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType) &&
-                        !typeof(Scope).IsAssignableFrom(paramInfo.ParameterType))
+                        !typeof(Flow).IsAssignableFrom(paramInfo.ParameterType) &&
+                        !typeof(ActionNode).IsAssignableFrom(paramInfo.ParameterType))
                     {
                         //不是Game,Card,Buff,EventArg,Scope这种可以缺省的参数也一定是输入
+                        PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
                         inputList.Add(valueDefine);
                     }
                 }
@@ -109,155 +120,32 @@ namespace TouhouCardEngine
             if (methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(Task))
             {
                 paramAttr = methodInfo.ReturnParameter.GetCustomAttribute<ActionNodeParamAttribute>();
-                string returnValueName = paramAttr?.paramName;
+                Type returnType = methodInfo.ReturnType;
                 if (methodInfo.ReturnType.IsGenericType && methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
                     //如果返回类型为Task<T>，则返回值类型视为T
-                    outputList.Add(new ValueDefine(
-                        methodInfo.ReturnType.GetGenericArguments()[0],
-                        string.IsNullOrEmpty(returnValueName) ? "Value" : returnValueName,
-                        false, false));
+                    returnType = methodInfo.ReturnType.GetGenericArguments()[0];
                 }
-                else
-                {
-                    outputList.Add(new ValueDefine(
-                        methodInfo.ReturnType,
-                        string.IsNullOrEmpty(returnValueName) ? "Value" : returnValueName,
-                        false, false));
-                }
+                outputList.Add(PortDefine.Value(returnType, returnValueName, paramAttr?.paramName ?? "Value"));
             }
             //设置输入输出
-            inputs = inputList.ToArray();
-            consts = constList.ToArray();
-            outputs = outputList.ToArray();
+            _inputs = inputList.ToArray();
+            _consts = constList.ToArray();
+            _outputs = outputList.ToArray();
 
             // 设置过期提示
             var obsolete = methodInfo.GetCustomAttribute<ObsoleteAttribute>();
-            if (obsolete != null) 
+            if (obsolete != null)
                 setObsoleteMessage(obsolete.Message);
         }
-        public override async Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
         {
-            object[] paramters = new object[_paramsInfo.Length];
-            int actionArgIndex = 0;
-            int valueArgIndex = 0;
-            int constIndex = 0;
-            int actionOutputsCount = getActionOutputs().Length;
-            object[] actionArgs = new object[actionOutputsCount];
-            Array.Copy(args, 0, actionArgs, 0, actionArgs.Length);
-            object[] valueArgs = new object[args.Length - actionOutputsCount];
-            Array.Copy(args, actionOutputsCount, valueArgs, 0, valueArgs.Length);
-            for (int i = 0; i < _paramsInfo.Length; i++)
-            {
-                var paramInfo = _paramsInfo[i];
-                if (paramInfo.IsOut)
-                {
-                    //out参数输出留空
-                    paramters[i] = null;
-                }
-                else if (paramInfo.ParameterType == typeof(ActionNode))
-                {
-                    paramters[i] = actionArgs[actionArgIndex];
-                    actionArgIndex++;
-                }
-                else if (paramInfo.GetCustomAttribute<ActionNodeParamAttribute>() is ActionNodeParamAttribute attribute)
-                {
-                    //指定了不能省略的参数
-                    if (attribute.isOut)
-                    {
-                        //out参数输出留空
-                        paramters[i] = null;
-                    }
-                    else if (attribute.isConst)
-                    {
-                        if (isObjectNeedToPackForType(constValues[constIndex], paramInfo.ParameterType))
-                            constValues[constIndex] = packObjectToArray(constValues[constIndex], paramInfo.ParameterType.GetElementType());
-                        else if (isObjectNeedToUnpackForType(constValues[constIndex], paramInfo.ParameterType))
-                            constValues[constIndex] = unpackArrayToObject(constValues[constIndex] as Array);
-                        else if (constValues[constIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
-                            constValues[constIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
-                        paramters[i] = constValues[constIndex];
-                        constIndex++;
-                    }
-                    else
-                    {
-                        if (isObjectNeedToPackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = packObjectToArray(valueArgs[valueArgIndex], paramInfo.ParameterType.GetElementType());
-                        else if (isObjectNeedToUnpackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = unpackArrayToObject(valueArgs[valueArgIndex] as Array);
-                        else if (valueArgs[valueArgIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
-                        paramters[i] = valueArgs[valueArgIndex];
-                        valueArgIndex++;
-                    }
-                }
-                else
-                {
-                    if (typeof(IGame).IsAssignableFrom(paramInfo.ParameterType))
-                    {
-                        paramters[i] = game;
-                    }
-                    else if (typeof(ICard).IsAssignableFrom(paramInfo.ParameterType))
-                    {
-                        //可以省略的Card
-                        paramters[i] = card;
-                    }
-                    else if (typeof(IBuff).IsAssignableFrom(paramInfo.ParameterType))
-                    {
-                        //可以省略的Buff
-                        paramters[i] = buff;
-                    }
-                    else if (typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType))
-                    {
-                        //可以省略的EventArg
-                        paramters[i] = eventArg;
-                    }
-                    else if (typeof(Scope).IsAssignableFrom(paramInfo.ParameterType))
-                    {
-                        //可以省略的Scope
-                        paramters[i] = scope;
-                    }
-                    else
-                    {
-                        if (isObjectNeedToPackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = packObjectToArray(valueArgs[valueArgIndex], paramInfo.ParameterType.GetElementType());
-                        else if (isObjectNeedToUnpackForType(valueArgs[valueArgIndex], paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = unpackArrayToObject(valueArgs[valueArgIndex] as Array);
-                        else if (valueArgs[valueArgIndex] is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
-                            valueArgs[valueArgIndex] = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
-                        paramters[i] = valueArgs[valueArgIndex];
-                        valueArgIndex++;
-                    }
-                }
-            }
-            object returnValue = _methodInfo.Invoke(null, paramters);
-            if (returnValue is Task task)
-            {
-                await task;
-                //返回Task则视为返回null，返回Task<T>则返回对应值
-                if (task.GetType().GetProperty(nameof(Task<object>.Result)) is PropertyInfo propInfo)
-                {
-                    return new object[] { propInfo.GetValue(task) };
-                }
-                else
-                    return null;
-            }
-            else
-            {
-                //不是Task，返回由返回值和out参数组成的数组
-                List<object> outputList = new List<object>();
-                for (int i = 0; i < _paramsInfo.Length; i++)
-                {
-                    var paramInfo = _paramsInfo[i];
-                    if (paramInfo.IsOut ||
-                        (paramInfo.GetCustomAttribute<ActionNodeParamAttribute>() is ActionNodeParamAttribute attr && attr.isOut))
-                    {
-                        outputList.Add(paramters[i]);
-                    }
-                }
-                outputList.Add(returnValue);
-                return outputList.ToArray();
-            }
+            var parameters = await getParameters(flow, node);
+
+            object returnValue = _methodInfo.Invoke(null, parameters);
+
+            await sendReturnValue(flow, node, returnValue, parameters);
+            return node.getOutputPort<ControlOutput>("exit");
         }
         #endregion
         #region 私有方法
@@ -306,13 +194,154 @@ namespace TouhouCardEngine
             }
             return targetArray;
         }
+
+        private async Task<object[]> getParameters(Flow flow, IActionNode node)
+        {
+            object[] parameters = new object[_paramsInfo.Length];
+            for (int i = 0; i < _paramsInfo.Length; i++)
+            {
+                var paramInfo = _paramsInfo[i];
+                var paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                string name = paramInfo.Name;
+                if (paramAttr != null)
+                {
+                    //指定了不能省略的参数
+                    if (paramInfo.IsOut || paramAttr.isOut)
+                    {
+                        //out参数输出留空
+                        parameters[i] = null;
+                    }
+                    else if (paramInfo.ParameterType == typeof(IActionNode))
+                    {
+                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
+                        parameters[i] = port?.getConnectedInputPort()?.node;
+                    }
+                    else
+                    {
+                        object param = null;
+                        if (paramAttr.isConst)
+                        {
+                            param = node.consts;
+                        }
+                        else
+                        {
+                            ValueInput port = node.getInputPort<ValueInput>(paramAttr.paramName);
+                            if (port != null)
+                            {
+                                param = await flow.getValue(port);
+                            }
+                        }
+                        if (isObjectNeedToPackForType(param, paramInfo.ParameterType))
+                            param = packObjectToArray(param, paramInfo.ParameterType.GetElementType());
+                        else if (isObjectNeedToUnpackForType(param, paramInfo.ParameterType))
+                            param = unpackArrayToObject(param as Array);
+                        else if (param is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
+                            param = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
+                        parameters[i] = param;
+                    }
+                }
+                else
+                {
+                    if (paramInfo.IsOut)
+                    {
+                        //out参数输出留空
+                        parameters[i] = null;
+                    }
+                    else if (paramInfo.ParameterType == typeof(IActionNode))
+                    {
+                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
+                        parameters[i] = port?.getConnectedInputPort()?.node;
+                    }
+                    else if (typeof(IGame).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        parameters[i] = flow.env.game;
+                    }
+                    else if (typeof(ICard).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Card
+                        parameters[i] = flow.env.card;
+                    }
+                    else if (typeof(IBuff).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Buff
+                        parameters[i] = flow.env.buff;
+                    }
+                    else if (typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的EventArg
+                        parameters[i] = flow.env.eventArg;
+                    }
+                    else if (typeof(Flow).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Flow
+                        parameters[i] = flow;
+                    }
+                    else if (typeof(ActionNode).IsAssignableFrom(paramInfo.ParameterType))
+                    {
+                        //可以省略的Node
+                        parameters[i] = node as ActionNode;
+                    }
+                    else
+                    {
+                        ValueInput port = node.getInputPort<ValueInput>(name);
+                        if (port != null)
+                        {
+                            object param = await flow.getValue(port);
+                            if (isObjectNeedToPackForType(param, paramInfo.ParameterType))
+                                param = packObjectToArray(param, paramInfo.ParameterType.GetElementType());
+                            else if (isObjectNeedToUnpackForType(param, paramInfo.ParameterType))
+                                param = unpackArrayToObject(param as Array);
+                            else if (param is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
+                                param = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
+                            parameters[i] = param;
+                        }
+                    }
+                }
+            }
+            return parameters;
+        }
+        private async Task sendReturnValue(Flow flow, IActionNode node, object returnValue, object[] parameters)
+        {
+            if (returnValue is Task task)
+            {
+                await task;
+                //返回Task则视为返回null，返回Task<T>则返回对应值
+                if (task.GetType().GetProperty(nameof(Task<object>.Result)) is PropertyInfo propInfo)
+                {
+                    returnValue = propInfo.GetValue(task);
+                }
+            }
+
+            //返回由返回值和out参数组成的数组
+            for (int i = 0; i < _paramsInfo.Length; i++)
+            {
+                var paramInfo = _paramsInfo[i];
+                var attr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                if (paramInfo.IsOut || (attr != null && attr.isOut))
+                {
+                    var name = paramInfo.Name;
+                    ValueOutput port = node.getOutputPort<ValueOutput>(name);
+                    flow.setValue(port, parameters[i]);
+                }
+            }
+
+            var returnName = returnValueName;
+            ValueOutput returnPort = node.getOutputPort<ValueOutput>(returnName);
+            flow.setValue(returnPort, returnValue);
+
+
+        }
         #endregion
+        private const string returnValueName = "return";
         public string methodName => defineName;
-        public string category { get; }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
         MethodInfo _methodInfo;
         ParameterInfo[] _paramsInfo;
+
+        private PortDefine[] _inputs;
+        private PortDefine[] _consts;
+        private PortDefine[] _outputs;
+        public override IEnumerable<PortDefine> inputDefines => _inputs;
+        public override IEnumerable<PortDefine> constDefines => _consts;
+        public override IEnumerable<PortDefine> outputDefines => _outputs;
     }
 }

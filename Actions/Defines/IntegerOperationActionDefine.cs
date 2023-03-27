@@ -1,98 +1,108 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    //public class BuiltinActionDefine : ActionDefine
-    //{
-    //    #region 方法
-    //    public BuiltinActionDefine(Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action) : base()
-    //    {
-    //        this.action = action;
-    //        consts = new ValueDefine[0];
-    //    }
-    //    public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, object[] args, object[] constValues)
-    //    {
-    //        return action(game, card, buff, eventArg, args, constValues);
-    //    }
-    //    #endregion
-    //    Func<IGame, ICard, IBuff, IEventArg, object[], object[], Task<object[]>> action { get; }
-    //    public override ValueDefine[] inputs { get; }
-    //    public override ValueDefine[] consts { get; }
-    //    public override ValueDefine[] outputs { get; }
-    //}
     public class IntegerOperationActionDefine : ActionDefine
     {
         public IntegerOperationActionDefine() : base("IntegerOperation")
         {
-            inputs = new ValueDefine[1]
+            inputs = new PortDefine[]
             {
-                new ValueDefine(typeof(int), "value", true, false)
+                enterPortDefine,
+                PortDefine.Value(typeof(int), paramName, "Value")
             };
-            consts = new ValueDefine[1]
+            consts = new PortDefine[]
             {
-                new ValueDefine(typeof(IntegerOperator), "operator", false, false)
+                PortDefine.Const(typeof(IntegerOperator), "operator")
             };
-            outputs = new ValueDefine[1]
+            outputs = new PortDefine[]
             {
-                new ValueDefine(typeof(int), "result", false, false)
+                exitPortDefine,
+                PortDefine.Value(typeof(int), resultName, "Value")
             };
+            isParams = true;
         }
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
         {
+            var opObj = node.getConst("operator");
             IntegerOperator op;
-            if (constValues == null || constValues.Length < 1)
+
+            if (opObj == null)
                 op = IntegerOperator.add;
-            else if (constValues[0] is IntegerOperator intOp)
+            else if (opObj is IntegerOperator intOp)
                 op = intOp;
-            else if (constValues[0] is int enumValue)
+            else if (opObj is int enumValue)
                 op = (IntegerOperator)enumValue;
             else
                 op = IntegerOperator.add;
+
+            var ports = node.getParamInputPorts(paramName);
+
+            List<int> numList = new List<int>();
+            foreach (var port in ports)
+            {
+                if (port.getConnectedOutputPort() == null)
+                    continue;
+                var value = await flow.getValue<int>(port);
+                numList.Add((int)value);
+            }
+            var numbers = numList.ToArray();
+
+            int calced;
             switch (op)
             {
                 case IntegerOperator.add:
-                    return Task.FromResult(new object[] { ((int[])args[0]).Sum(a => a) });
+                    calced = numbers.Sum();
+                    break;
                 case IntegerOperator.sub:
-                    int[] numbers = (int[])args[0];
-                    int result = numbers[0];
+                    calced = numbers[0];
                     for (int i = 1; i < numbers.Length; i++)
                     {
-                        result -= numbers[i];
+                        calced -= numbers[i];
                     }
-                    return Task.FromResult(new object[] { result });
+                    break;
                 case IntegerOperator.mul:
-                    numbers = (int[])args[0];
-                    result = 1;
+                    calced = 1;
                     for (int i = 0; i < numbers.Length; i++)
                     {
-                        result *= numbers[i];
+                        calced *= numbers[i];
                     }
-                    return Task.FromResult(new object[] { result });
+                    break;
                 case IntegerOperator.div:
-                    numbers = (int[])args[0];
-                    result = numbers[0];
+                    calced = numbers[0];
                     for (int i = 1; i < numbers.Length; i++)
                     {
-                        result /= numbers[i];
+                        calced /= numbers[i];
                     }
-                    return Task.FromResult(new object[] { result });
+                    break;
                 case IntegerOperator.mod:
-                    numbers = (int[])args[0];
-                    result = numbers[0];
+                    calced = numbers[0];
                     for (int i = 1; i < numbers.Length; i++)
                     {
-                        result %= numbers[i];
+                        calced %= numbers[i];
                     }
-                    return Task.FromResult(new object[] { result });
+                    break;
                 default:
                     throw new InvalidOperationException("未知的操作符" + op);
             }
+
+            var output = node.getOutputPort<ValueOutput>(resultName);
+            flow.setValue(output, calced);
+            return null;
         }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
+        public PortDefine[] inputs { get; }
+        public PortDefine[] consts { get; }
+        public PortDefine[] outputs { get; }
+        public const string paramName = "arg";
+        public const string resultName = "result";
+        public override IEnumerable<PortDefine> inputDefines => inputs;
+
+        public override IEnumerable<PortDefine> constDefines => consts;
+
+        public override IEnumerable<PortDefine> outputDefines => outputs;
     }
     public enum IntegerOperator
     {

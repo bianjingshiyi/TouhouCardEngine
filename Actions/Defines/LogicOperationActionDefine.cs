@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -8,61 +8,92 @@ namespace TouhouCardEngine
     {
         public LogicOperationActionDefine() : base("LogicOperation")
         {
-            inputs = new ValueDefine[1]
+            inputs = new PortDefine[]
             {
-                new ValueDefine(typeof(bool), "value", true, false)
+                enterPortDefine,
+                PortDefine.Value(typeof(bool), "value")
             };
-            consts = new ValueDefine[1]
+            consts = new PortDefine[1]
             {
-                new ValueDefine(typeof(LogicOperator), "operator", false, false)
+                PortDefine.Const(typeof(LogicOperator), "operator")
             };
-            outputs = new ValueDefine[1]
+            outputs = new PortDefine[]
             {
-                new ValueDefine(typeof(bool), "result", false, false)
+                exitPortDefine,
+                PortDefine.Value(typeof(bool), "result")
             };
+            isParams = true;
         }
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
         {
+            var opObj = node.getConst("operator");
             LogicOperator op;
-            if (constValues == null || constValues.Length < 1 || constValues[0] == null)
+
+            if (opObj == null)
                 // 因为LogicOperator的默认值是not（为0），所以在常量值为null时，将操作符默认值设置为not。
                 op = LogicOperator.not;
-            else if (constValues[0] is LogicOperator lgcOp)
+            else if (opObj is LogicOperator lgcOp)
                 op = lgcOp;
-            else if (constValues[0] is int enumValue)
+            else if (opObj is int enumValue)
                 op = (LogicOperator)enumValue;
             else
                 op = LogicOperator.and;
-            if (args != null && args.Length > 0 && args[0] is bool[] values)
+
+            var argPorts = node.getParamInputPorts("value");
+            var values = new bool[argPorts.Length];
+            for (int i = 0; i < argPorts.Length; i++)
+            {
+                values[i] = await flow.getValue<bool>(argPorts[i]);
+            }
+
+            bool result;
+            if (values != null && values.Length > 0)
             {
                 switch (op)
                 {
                     case LogicOperator.not:
-                        return Task.FromResult(new object[] { values.Length > 0 && values[0] is bool b ? !b : true });
+                        result = values.Length > 0 && values[0] is bool b ? !b : true;
+                        break;
                     case LogicOperator.and:
                         foreach (var value in values)
                         {
-                            if (value == false)
-                                return Task.FromResult(new object[] { false });
+                            if (!value)
+                            {
+                                result = false;
+                                break;
+                            }
                         }
-                        return Task.FromResult(new object[] { true });
+                        result = true;
+                        break;
                     case LogicOperator.or:
                         foreach (var value in values)
                         {
-                            if (value == true)
-                                return Task.FromResult(new object[] { true });
+                            if (value)
+                            {
+                                result = true;
+                                break;
+                            }
                         }
-                        return Task.FromResult(new object[] { false });
+                        result = false;
+                        break;
                     default:
                         throw new InvalidOperationException("未知的操作符" + op);
                 }
+                flow.setValue(node.getOutputPort<ValueOutput>("result"), result);
             }
             else
                 throw new ArgumentException("传入参数无法转化为bool[]");
+            return null;
         }
-        public override ValueDefine[] inputs { get; }
-        public override ValueDefine[] consts { get; }
-        public override ValueDefine[] outputs { get; }
+        public PortDefine[] inputs { get; }
+        public PortDefine[] consts { get; }
+        public PortDefine[] outputs { get; }
+
+        public override IEnumerable<PortDefine> inputDefines => inputs;
+
+        public override IEnumerable<PortDefine> constDefines => consts;
+
+        public override IEnumerable<PortDefine> outputDefines => outputs;
     }
     public enum LogicOperator
     {
