@@ -1,8 +1,6 @@
 ﻿using NUnit.Framework;
-using System.Collections;
-using System.Collections.Generic;
 using TouhouCardEngine;
-using UnityEngine;
+using TouhouCardEngine.Interfaces;
 
 namespace Tests
 {
@@ -15,77 +13,118 @@ namespace Tests
         public void multipleInputRefToOutputThroughScopeTest()
         {
             CardEngine game = new CardEngine();
-            game.addActionDefine("IntegerBinaryOperation", new IntegerOperationActionDefine());
-            game.addActionDefine("IntegerConst", new IntegerConstActionDefine());
+            var opDefine = new IntegerOperationActionDefine();
+            var constDefine = new IntegerConstActionDefine();
+            game.addActionDefine("IntegerBinaryOperation", opDefine);
+            game.addActionDefine("IntegerConst", constDefine);
+
+            ActionGraph graph = new ActionGraph();
             //动作节点1的输出值会被多次引用，获取节点的返回值应该可以得到正确答案。
-            ActionNode actionNode1 = new ActionNode(1, "IntegerConst", consts: new object[] { 2 }, regVar: new bool[] { true });
-            Scope scope = new Scope();
-            Assert.AreEqual(2, game.getActionReturnValueAsync<int>(null, null, null, actionNode1, scope: scope).Result);
-            Assert.AreEqual(2, scope.getLocalVar(1, 0));
-            ActionNode actionNode2 = new ActionNode(2, "IntegerBinaryOperation",
-                inputs: new ActionValueRef[] { new ActionValueRef(actionNode1), new ActionValueRef(actionNode1) },
-                consts: new object[] { IntegerOperator.add });
-            Assert.AreEqual(4, game.getActionReturnValueAsync<int>(null, null, null, actionNode2, scope: scope).Result);
-            ActionNode actionNode3 = new ActionNode(3, "IntegerBinaryOperation",
-                inputs: new ActionValueRef[] { new ActionValueRef(actionNode2), new ActionValueRef(actionNode1) },
-                consts: new object[] { IntegerOperator.sub });
-            Assert.AreEqual(2, game.getActionReturnValueAsync<int>(null, null, null, actionNode3, scope: scope).Result);
+            ActionNode actionNode1 = graph.createActionNode(constDefine);
+            actionNode1.setConst("value", 2);
+            var constOutput = actionNode1.getOutputPort<ValueOutput>("result");
+
+            Assert.AreEqual(2, game.getValue<int>(null, null, null, constOutput).Result);
+
+
+
+            ActionNode actionNode2 = graph.createActionNode(opDefine);
+            actionNode2.setConst("operator", IntegerOperator.add);
+
+            graph.connect(constOutput, actionNode2.getParamInputPort("Value", 0));
+            graph.connect(constOutput, actionNode2.getParamInputPort("Value", 1));
+            var intOpOutput = actionNode2.getOutputPort<ValueOutput>("result");
+
+            Assert.AreEqual(4, game.getValue<int>(null, null, null, intOpOutput).Result);
+
+
+
+            ActionNode actionNode3 = graph.createActionNode(opDefine);
+            actionNode3.setConst("operator", IntegerOperator.sub);
+
+            graph.connect(intOpOutput, actionNode2.getParamInputPort("Value", 0));
+            graph.connect(constOutput, actionNode2.getParamInputPort("Value", 1));
+            var intOp2Output = actionNode3.getOutputPort<ValueOutput>("result");
+
+            Assert.AreEqual(2, game.getValue<int>(null, null, null, intOp2Output).Result);
         }
         [Test]
         public void doActionWithGeneratedActionDefineTest()
         {
             CardEngine game = new CardEngine();
-            game.addActionDefine("IntegerBinaryOperation", new IntegerOperationActionDefine());
-            game.addActionDefine("IntegerConst", new IntegerConstActionDefine());
-            ActionNode actionNode1 = new ActionNode(1, "IntegerBinaryOperation", new ActionValueRef[]
-            {
-                new ActionValueRef(0),
-                new ActionValueRef(1)
-            }, new object[] { IntegerOperator.add }, new bool[] { true });
-            ActionNode actionNode2 = new ActionNode(2, "IntegerBinaryOperation", new ActionValueRef[]
-            {
-                new ActionValueRef(actionNode1,0),
-                new ActionValueRef(2)
-            }, new object[] { IntegerOperator.mul }, null, null);
-            actionNode1.branches = new ActionNode[] { actionNode2 };
-            game.addActionDefine("GeneratedActionDefine", new GeneratedActionDefine(1, null, "GeneratedActionDefine",
-                new ValueDefine[]
+
+            ActionGraph genGraph = new ActionGraph();
+
+            var generated = new GeneratedActionDefine(genGraph, 1, null, "GeneratedActionDefine",
+                new PortDefine[]
                 {
-                    new ValueDefine(typeof(int),"A",false,false),
-                    new ValueDefine(typeof(int),"B",false,false)
+                    PortDefine.Value(typeof(int),"A"),
+                    PortDefine.Value(typeof(int),"B")
                 },
-                new ValueDefine[]
+                new PortDefine[]
                 {
-                    new ValueDefine(typeof(int),"C",false,false)
+                    PortDefine.Const(typeof(int),"C")
                 },
-                new ValueDefine[]
+                new PortDefine[]
                 {
-                    new ValueDefine(typeof(int),"Result",false,false)
-                },
-                new ReturnValueRef[] { new ReturnValueRef(actionNode2, 0, 0) },
-                actionNode1));
-            ActionNode action = new ActionNode(1, "GeneratedActionDefine", new ActionValueRef[]
-            {
-                new ActionValueRef(new ActionNode(2, "IntegerConst", new ActionValueRef[0], new object[] { 2 }, null, null)),
-                new ActionValueRef(new ActionNode(3, "IntegerConst", new ActionValueRef[0], new object[] { 2 }, null, null))
-            }, new object[] { 2 }, null, null);
-            var task = game.doActionAsync(null, null, null, action);
-            Assert.AreEqual(8, task.Result[0]);
+                    PortDefine.Value(typeof(int),"Result")
+                }
+                );
+            generated.InitNodes();
+
+            var opDefine = new IntegerOperationActionDefine();
+            var constDefine = new IntegerConstActionDefine();
+            game.addActionDefine("IntegerBinaryOperation", opDefine);
+            game.addActionDefine("IntegerConst", constDefine);
+            game.addActionDefine("GeneratedActionDefine", generated);
+
+
+            ActionNode actionNode1 = genGraph.createActionNode(opDefine, 0, 0);
+            actionNode1.setConst("operator", IntegerOperator.add);
+
+            ActionNode actionNode2 = genGraph.createActionNode(constDefine, 100, 0);
+            actionNode1.setConst("operator", IntegerOperator.mul);
+
+            var entryNode = generated.getEntryNode();
+            var exitNode = generated.getEntryNode();
+            entryNode.Define();
+            exitNode.Define();
+
+            genGraph.connect(entryNode.getExitPort(), actionNode1.getEnterPort());
+            genGraph.connect(actionNode1.getExitPort(), actionNode2.getExitPort());
+            genGraph.connect(actionNode2.getExitPort(), exitNode.getInputPort("Result"));
+
+
+            ActionGraph graph = new ActionGraph();
+            ActionNode action = graph.createActionNode(generated, 0, 0);
+
+            ActionNode constNode1 = graph.createActionNode(constDefine, -100, 0);
+            constNode1.setConst("Value", 2);
+
+            ActionNode constNode2 = graph.createActionNode(constDefine, -100, 100);
+            constNode2.setConst("Value", 2);
+
+            action.setConst("C", 2);
+            var task = game.getValue(null, null, null, action.getOutputPort<ValueOutput>("Result"));
+            Assert.AreEqual(8, task.Result);
         }
         [Test]
         public void doActionTest()
         {
             CardEngine engine = new CardEngine();
-            engine.addActionDefine("IntegerBinaryOperation", new IntegerOperationActionDefine());
-            engine.addActionDefine("IntegerConst", new IntegerConstActionDefine());
-            ActionNode action = new ActionNode(1, "IntegerBinaryOperation", new ActionValueRef[]
-            {
-                new ActionValueRef(new ActionNode(2, "IntegerConst", new ActionValueRef[0], new object[] { 2 }, null, null)),
-                new ActionValueRef(new ActionNode(3, "IntegerConst", new ActionValueRef[0], new object[] { 2 }, null, null))
-            }, new object[] { IntegerOperator.add }, new bool[] { true }, null);
-            Scope scope = new Scope();
-            _ = engine.doActionAsync(null, null, null, action, scope);
-            Assert.AreEqual(4, scope.getLocalVar(1, 0));
+            var opDefine = new IntegerOperationActionDefine();
+            var constDefine = new IntegerConstActionDefine();
+            engine.addActionDefine("IntegerBinaryOperation", opDefine);
+            engine.addActionDefine("IntegerConst", constDefine);
+            ActionGraph graph = new ActionGraph();
+            ActionNode action = graph.createActionNode(opDefine);
+            ActionNode const1 = graph.createActionNode(constDefine);
+            ActionNode const2 = graph.createActionNode(constDefine);
+            action.setConst("operator", IntegerOperator.add);
+            const1.setConst("value", 2);
+            const1.setConst("value", 2);
+            int result = engine.getValue<int>(null, null, null, action.getOutputPort<ValueOutput>("result")).Result;
+            Assert.AreEqual(4, result);
         }
     }
 }
