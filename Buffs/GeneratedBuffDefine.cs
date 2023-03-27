@@ -69,7 +69,7 @@ namespace TouhouCardEngine
                 new List<SerializableEffect>();
         }
         #endregion
-        public GeneratedBuffDefine toGeneratedBuffDefine(Func<string, Type> typeFinder)
+        public GeneratedBuffDefine toGeneratedBuffDefine(ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder, TypeFinder typeFinder = null)
         {
             GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
             generatedBuffDefine.setId(id);
@@ -80,7 +80,7 @@ namespace TouhouCardEngine
                     continue;
                 try
                 {
-                    generatedBuffDefine.effectList.Add(effectList[i].toGeneratedEffect(typeFinder));
+                    generatedBuffDefine.effectList.Add(effectList[i].toGeneratedEffect(defineFinder, eventFinder, typeFinder));
                 }
                 catch (Exception e)
                 {
