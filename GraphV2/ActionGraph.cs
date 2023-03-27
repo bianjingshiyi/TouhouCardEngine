@@ -6,6 +6,7 @@ using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public delegate ActionDefine ActionDefineFinder(string name);
+    public delegate EventTypeInfo EventTypeInfoFinder(string name);
     public delegate Type TypeFinder(string name);
     public class ActionGraph
     {
@@ -20,6 +21,70 @@ namespace TouhouCardEngine
         #endregion
 
         #region 创建/移除节点
+        public ActionNode createActionNode(string defineName, float posX = 0, float posY = 0)
+        {
+            int id = getUniqueNodeId();
+            var node = new ActionNode(id, defineName);
+            node.posX = posX;
+            node.posY = posY;
+            node.graph = this;
+            nodes.Add(node);
+            updateSize();
+            return node;
+        }
+        public ActionNode createActionNode(ActionDefine define, float posX = 0, float posY = 0)
+        {
+            var node = createActionNode(define?.defineName, posX, posY);
+            if (define != null)
+            {
+                node.define = define;
+                node.Define();
+            }
+            return node;
+        }
+        public TriggerEntryNode createTriggerEntryNode(string eventName, float posX = 0, float posY = 0)
+        {
+            int id = getUniqueNodeId();
+            var node = new TriggerEntryNode(id, eventName);
+            node.posX = posX;
+            node.posY = posY;
+            node.graph = this;
+            nodes.Add(node);
+            updateSize();
+            return node;
+        }
+        public TriggerEntryNode createTriggerEntryNode(EventTypeInfo eventInfo, float posX = 0, float posY = 0)
+        {
+            var node = createTriggerEntryNode(eventInfo?.eventName, posX, posY);
+            if (eventInfo != null)
+            {
+                node.eventTypeInfo = eventInfo;
+                node.Define();
+            }
+            return node;
+        }
+        public GeneratedActionEntryNode createActionDefineEntryNode(GeneratedActionDefine define, float posX = 0, float posY = 0)
+        {
+            int id = getUniqueNodeId();
+            var node = new GeneratedActionEntryNode(id, define);
+            node.posX = posX;
+            node.posY = posY;
+            node.graph = this;
+            nodes.Add(node);
+            updateSize();
+            return node;
+        }
+        public GeneratedActionReturnNode createActionDefineExitNode(GeneratedActionDefine define, float posX = 0, float posY = 0)
+        {
+            int id = getUniqueNodeId();
+            var node = new GeneratedActionReturnNode(id, define);
+            node.posX = posX;
+            node.posY = posY;
+            node.graph = this;
+            nodes.Add(node);
+            updateSize();
+            return node;
+        }
         public bool removeNode(IActionNode node)
         {
             if (nodes.Remove(node))
@@ -44,12 +109,14 @@ namespace TouhouCardEngine
             {
                 var connection = port1.connect(port2);
                 connections.Add(connection);
+                UpdateParamsInputs(connection.destination.node as ActionNode);
                 return connection;
             }
             return null;
         }
         public bool disconnect(NodeConnection connection)
         {
+            UpdateParamsInputs(connection.destination.node as ActionNode);
             return connections.Remove(connection);
         }
         public bool disconnect(IPort port1, IPort port2)
@@ -112,7 +179,55 @@ namespace TouhouCardEngine
         {
             return nodes.OfType<ActionNode>().FirstOrDefault(n => n.defineName == defineName);
         }
+        public TriggerEntryNode findTriggerEntryNode(string eventName)
+        {
+            return nodes.OfType<TriggerEntryNode>().FirstOrDefault(n => n.eventName == eventName);
+        }
         #endregion 查找
+
+        #region 定义节点
+        /// <summary>
+        /// 使用动作定义/事件类型信息定义所有节点/触发器，以创建它们的端点和常量。
+        /// </summary>
+        /// <param name="defineFinder"></param>
+        /// <param name="eventTypeInfoFinder"></param>
+        public void DefineNodes(ActionDefineFinder defineFinder, EventTypeInfoFinder eventTypeInfoFinder)
+        {
+            foreach (var node in nodes)
+            {
+                if (node is ActionNode action)
+                {
+                    action.define = defineFinder?.Invoke(action.defineName);
+                    action.Define();
+                }
+                if (node is TriggerEntryNode trigger)
+                {
+                    trigger.eventTypeInfo = eventTypeInfoFinder?.Invoke(trigger.eventName);
+                    trigger.Define();
+                }
+            }
+        }
+        /// <summary>
+        /// 定义自定义动作内的入口节点和返回节点。
+        /// </summary>
+        /// <param name="actionDefine"></param>
+        public void DefineGeneratedActionDefine(GeneratedActionDefine actionDefine)
+        {
+            foreach (var node in actionDefine.graph.nodes)
+            {
+                if (node is GeneratedActionEntryNode entry)
+                {
+                    entry.generatedDefine = actionDefine;
+                    entry.Define();
+                }
+                if (node is GeneratedActionReturnNode returnNode)
+                {
+                    returnNode.generatedDefine = actionDefine;
+                    returnNode.Define();
+                }
+            }
+        }
+        #endregion
 
         #endregion 公共方法
 
@@ -128,6 +243,12 @@ namespace TouhouCardEngine
         #endregion 内部方法
 
         #region 私有方法
+        private void UpdateParamsInputs(ActionNode node)
+        {
+            if (node == null)
+                return;
+            node.Define();
+        }
         private void updateSize()
         {
             //计算输入的宽度
@@ -159,5 +280,38 @@ namespace TouhouCardEngine
         public float height { get; private set; }
         public List<IActionNode> nodes { get; private set; }
         public List<NodeConnection> connections { get; private set; }
+    }
+    [Serializable]
+    public sealed class SerializableActionNodeGraph
+    {
+        #region 公有方法
+        public SerializableActionNodeGraph(ActionGraph graph)
+        {
+            if (graph == null)
+                throw new ArgumentNullException(nameof(graph));
+            nodes.AddRange(graph.nodes.ConvertAll(n => n.ToSerializableNode()));
+            connections.AddRange(graph.connections.ConvertAll(c => new SerializableConnection(c)));
+        }
+        public ActionGraph toActionGraph(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder)
+        {
+            ActionGraph graph = new ActionGraph();
+            graph.AddNodes(GetNodes());
+            graph.DefineNodes(defineFinder, eventInfoFinder);
+            graph.AddConnections(GetConnections(graph));
+            return graph;
+        }
+        public IActionNode[] GetNodes()
+        {
+            return nodes.ConvertAll(n => n.ToActionNode()).ToArray();
+        }
+        public NodeConnection[] GetConnections(ActionGraph graph)
+        {
+            return connections.ConvertAll(n => n.ToNodeConnection(graph)).ToArray();
+        }
+        #endregion
+        #region 属性字段
+        public List<ISerializableNode> nodes = new List<ISerializableNode>();
+        public List<SerializableConnection> connections = new List<SerializableConnection>();
+        #endregion
     }
 }

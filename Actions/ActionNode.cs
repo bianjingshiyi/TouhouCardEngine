@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
     /// <summary>
@@ -9,140 +12,106 @@ namespace TouhouCardEngine
     /// 由于要方便编辑器统一进行操作更改和存储，这个数据结构不允许多态。
     /// 这个数据结构必须同时支持多种类型的语句，比如赋值，分支，循环，返回，方法调用。
     /// </summary>
-    [Serializable]
-    public sealed class ActionNode
+    public sealed class ActionNode : IActionNode
     {
         #region 公有方法
         #region 构造方法
-        public ActionNode(int id, string defineName, ActionValueRef[] inputs = null, object[] consts = null, bool[] regVar = null, ActionNode[] branches = null)
+        public ActionNode(int id, string defineName)
         {
             this.id = id;
             this.defineName = defineName;
-            this.branches = branches != null ? branches : new ActionNode[0];
-            this.inputs = inputs != null ? inputs : new ActionValueRef[0];
-            this.consts = consts != null ? consts : new object[0];
-            this.regVar = regVar != null ? regVar : new bool[0];
-        }
-        public ActionNode(string defineName, ActionValueRef[] inputs, object[] consts) : this(0, defineName, inputs, consts, new bool[0], new ActionNode[0])
-        {
-        }
-        public ActionNode(string defineName, ActionValueRef[] inputs, ActionNode next) : this(0, defineName, inputs, new object[0], new bool[0], new ActionNode[] { next })
-        {
-        }
-        public ActionNode(string defineName, ActionValueRef[] inputs) : this(0, defineName, inputs, new object[0], new bool[0], new ActionNode[0])
-        {
-        }
-        public ActionNode(string defineName, object[] consts) : this(0, defineName, new ActionValueRef[0], consts, new bool[0], new ActionNode[0])
-        {
-        }
-        public ActionNode(string defineName) : this(0, defineName, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
-        {
-        }
-        public ActionNode(int id) : this(id, null, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
-        {
-        }
-        public ActionNode() : this(0, string.Empty, new ActionValueRef[0], new object[0], new bool[0], new ActionNode[0])
-        {
+            inputPorts = new List<IPort>();
+            outputPorts = new List<IPort>();
+            consts = new Dictionary<string, object>();
         }
         #endregion
-        public void traverse(Action<ActionNode> action, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
+                traversedActionNodeSet = new HashSet<IActionNode>();
             else if (traversedActionNodeSet.Contains(this))
                 return;
             traversedActionNodeSet.Add(this);
             action(this);
             //遍历输入
-            if (inputs != null && inputs.Length > 0)
+            if (inputPorts != null)
             {
-                for (int i = 0; i < inputs.Length; i++)
+                foreach (var port in inputPorts)
                 {
-                    if (inputs[i] == null)
+                    if (port == null)
                         continue;
-                    inputs[i].traverse(action, traversedActionNodeSet);
+                    port.traverse(action, traversedActionNodeSet);
                 }
             }
             //遍历常量
-            if (consts != null && consts.Length > 0)
+            if (consts != null)
             {
-                for (int i = 0; i < consts.Length; i++)
+                foreach (var cst in consts.Values)
                 {
-                    if (consts[i] == null)
+                    if (cst == null)
                         continue;
-                    if (consts[i] is ActionNode childActionNode)
+                    if (cst is ITraversable traversable)
                     {
-                        childActionNode.traverse(action, traversedActionNodeSet);
-                    }
-                    else if (consts[i] is ActionValueRef valueRef)
-                    {
-                        valueRef.traverse(action, traversedActionNodeSet);
-                    }
-                    else if (consts[i] is TargetChecker targetChecker)
-                    {
-                        targetChecker.traverse(action, traversedActionNodeSet);
-                    }
-                    else if (consts[i] is TriggerGraph trigger)
-                    {
-                        trigger.traverse(action, traversedActionNodeSet);
+                        traversable.traverse(action, traversedActionNodeSet);
                     }
                 }
             }
             //遍历后续
-            if (branches != null && branches.Length > 0)
+            if (outputPorts != null)
             {
-                for (int i = 0; i < branches.Length; i++)
+                foreach (var port in outputPorts)
                 {
-                    if (branches[i] == null)
+                    if (port == null)
                         continue;
-                    branches[i].traverse(action, traversedActionNodeSet);
+                    port.traverse(action, traversedActionNodeSet);
                 }
             }
         }
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
+            var valueConst = this.getConst("value");
             if (defineName == "BooleanConst")
-                sb.Append(consts != null && consts.Length > 0 && consts[0] is bool b ? b : false);
+                sb.Append(valueConst is bool b ? b : false);
             else if (defineName == "IntegerConst")
-                sb.Append(consts != null && consts.Length > 0 && consts[0] is int i ? i : 0);
+                sb.Append(valueConst is int i ? i : 0);
             else if (defineName == "StringConst")
-                sb.Append(consts != null && consts.Length > 0 && consts[0] is string s ? s : string.Empty);
+                sb.Append(valueConst is string s ? s : string.Empty);
             else
             {
                 if (defineName == "Compare")
                 {
-                    sb.Append(inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null");
-                    if (consts != null && consts.Length > 0 && consts[0] is CompareOperator compareOperator && compareOperator == CompareOperator.equals)
+                    sb.Append(inputPorts.Count > 0 && inputPorts[0] != null ? inputPorts[0].ToString() : "null");
+                    if (this.getConst("operator") is CompareOperator compareOperator && compareOperator == CompareOperator.equals)
                         sb.Append(" == ");
                     else
                         sb.Append(" != ");
-                    sb.Append(inputs.Length > 1 && inputs[1] != null ? inputs[1].ToString() : "null");
+                    sb.Append(inputPorts.Count > 1 && inputPorts[1] != null ? inputPorts[1].ToString() : "null");
                 }
                 else if (defineName == "LogicOperation")
                 {
-                    if (consts != null && consts.Length > 0 && consts[0] is LogicOperator logicOperator)
+                    if (this.getConst("operator") is LogicOperator logicOperator)
                     {
                         if (logicOperator == LogicOperator.not)
-                            sb.Append("!" + (inputs.Length > 0 && inputs[0] != null ? inputs[0].ToString() : "null"));
+                            sb.Append("!" + (inputPorts.Count > 0 && inputPorts[0] != null ? inputPorts[0].ToString() : "null"));
                         else if (logicOperator == LogicOperator.and)
                         {
-                            for (int i = 0; i < inputs.Length; i++)
+                            for (int i = 0; i < inputPorts.Count; i++)
                             {
                                 if (i != 0)
                                     sb.Append(" && ");
-                                sb.Append(inputs[i].ToString());
+                                sb.Append(inputPorts[i].ToString());
                             }
                         }
                         else if (logicOperator == LogicOperator.or)
                         {
-                            for (int i = 0; i < inputs.Length; i++)
+                            for (int i = 0; i < inputPorts.Count; i++)
                             {
                                 if (i != 0)
                                     sb.Append(" || ");
-                                sb.Append(inputs[i].ToString());
+                                sb.Append(inputPorts[i].ToString());
                             }
                         }
                     }
@@ -150,29 +119,30 @@ namespace TouhouCardEngine
                 else
                 {
                     sb.Append(defineName);
-                    if (consts != null && consts.Length > 0)
+                    if (consts != null && consts.Count > 0)
                     {
                         sb.Append('<');
-                        for (int i = 0; i < consts.Length; i++)
+                        for (int i = 0; i < consts.Count; i++)
                         {
                             if (i != 0)
                             {
                                 sb.Append(',');
                             }
-                            sb.Append(consts[i] != null ? consts[i].ToString() : "null");
+                            var cst = consts.ElementAt(i).Value;
+                            sb.Append(cst != null ? cst.ToString() : "null");
                         }
                         sb.Append('>');
                     }
                     sb.Append('(');
-                    if (inputs != null && inputs.Length > 0)
+                    if (inputPorts != null && inputPorts.Count > 0)
                     {
-                        for (int i = 0; i < inputs.Length; i++)
+                        for (int i = 0; i < inputPorts.Count; i++)
                         {
                             if (i != 0)
                             {
                                 sb.Append(',');
                             }
-                            sb.Append(inputs[i] != null ? inputs[i].ToString() : "null");
+                            sb.Append(inputPorts[i] != null ? inputPorts[i].ToString() : "null");
                         }
                     }
                     sb.Append("); ");
@@ -180,29 +150,166 @@ namespace TouhouCardEngine
             }
             return string.Intern(sb.ToString());
         }
+        public async Task<ControlOutput> run(Flow flow)
+        {
+            var define = flow.env.game.getActionDefine(defineName);
+            if (define != null)
+            {
+                return await define.run(flow, this);
+            }
+            return null;
+        }
+        public void Define()
+        {
+            DefinitionInputs(define);
+            DefinitionOutputs(define);
+        }
+        public void setConst(string name, object value)
+        {
+            if (!consts.ContainsKey(name))
+            {
+                consts.Add(name, value);
+            }
+            else
+            {
+                consts[name] = value;
+            }
+        }
+        public ControlInput getEnterPort()
+        {
+            return this.getInputPort<ControlInput>(enterControlName);
+        }
+        public ControlOutput getExitPort()
+        {
+            return this.getOutputPort<ControlOutput>(exitControlName);
+        }
+        public ValueInput extendParamsPort(string name)
+        {
+            var ports = this.getParamInputPorts(name);
+            var portDefine = ports.Select(p => p.define).FirstOrDefault();
+            var count = ports.Count();
+            count++;
+            var valueInput = new ValueInput(this, portDefine, count);
+            inputPorts.Add(valueInput);
+            return valueInput;
+        }
+        ISerializableNode IActionNode.ToSerializableNode()
+        {
+            return new SerializableActionNode(this);
+        }
         #endregion
+        private void DefinitionInputs(ActionDefine define)
+        {
+            ValueInput valueInput(PortDefine def, int paramIndex)
+                => inputPorts.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def) && d.paramIndex == paramIndex) ?? new ValueInput(this, def, paramIndex);
+            ControlInput controlInput(PortDefine def)
+                => inputPorts.OfType<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
+
+            List<IPort> inputs = new List<IPort>();
+            if (define.inputDefines != null)
+            {
+                foreach (var portDefine in define.inputDefines)
+                {
+                    if (portDefine.GetPortType() == PortType.Control)
+                    {
+                        inputs.Add(controlInput(portDefine));
+                    }
+                    else
+                    {
+                        if (define.isParams && portDefine == define.inputDefines.Last())
+                        {
+                            // 变长参数。
+                            var count = 0;
+                            var connectedInputs = this.getParamInputPorts(portDefine.name).Where(p => p.connections.Count() > 0);
+                            if (connectedInputs.Count() > 0)
+                            {
+                                count = connectedInputs.Max(p => p.paramIndex);
+                            }
+                            count = Math.Max(count, -1) + 2;
+                            for (int i = 0; i < count; i++)
+                            {
+                                inputs.Add(valueInput(portDefine, i));
+                            }
+                        }
+                        else
+                        {
+                            inputs.Add(valueInput(portDefine, -1));
+                        }
+                    }
+                }
+            }
+            foreach (var lostPort in inputPorts.Except(inputs))
+            {
+                graph.disconnectAll(lostPort);
+            }
+            inputPorts.Clear();
+            inputPorts.AddRange(inputs);
+        }
+        private void DefinitionOutputs(ActionDefine define)
+        {
+            ValueOutput valueOutput(PortDefine def)
+                => outputPorts.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def, async flow =>
+                {
+                    await define.run(flow, this);
+                    var port = this.getOutputPort<ValueOutput>(def.name);
+                    return flow.currentScope.getLocalVar(port);
+                });
+            ControlOutput controlOutput(PortDefine def)
+                => outputPorts.OfType<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
+
+            List<IPort> outputs = new List<IPort>();
+            if (define.outputDefines != null)
+            {
+                foreach (var portDefine in define.outputDefines)
+                {
+                    if (portDefine.GetPortType() == PortType.Control)
+                        outputs.Add(controlOutput(portDefine));
+                    else
+                        outputs.Add(valueOutput(portDefine));
+                }
+            }
+            foreach (var lostPort in outputPorts.Except(outputs))
+            {
+                graph.disconnectAll(lostPort);
+            }
+            outputPorts.Clear();
+            outputPorts.AddRange(outputs);
+        }
+
         /// <summary>
         /// 用来区分不同动作节点的ID。
         /// </summary>
         /// <remarks>其实这个ID在逻辑上并没有什么特殊的作用，但是编辑器需要一个ID来保存对应的视图信息。</remarks>
         public int id;
         public string defineName;
+        int IActionNode.id => id;
+        IEnumerable<IPort> IActionNode.outputPorts => outputPorts;
+        IEnumerable<IPort> IActionNode.inputPorts => inputPorts;
+        IDictionary<string, object> IActionNode.consts => consts;
+
+        public float posX { get; set; }
+        public float posY { get; set; }
         /// <summary>
-        /// 该动作的后续动作，根据动作的类型不同可能有多个动作分支，比如条件结构，或者循环结构
+        /// 该动作的输出端口。
         /// </summary>
-        public ActionNode[] branches;
+        public List<IPort> outputPorts;
         /// <summary>
-        /// 该动作引用的输入值
+        /// 该动作的输入端口。
         /// </summary>
-        public ActionValueRef[] inputs;
-        public object[] consts;
+        public List<IPort> inputPorts;
         /// <summary>
-        /// 用于标识返回值是否需要保存为局部变量
+        /// 该动作的常量列表。
         /// </summary>
-        public bool[] regVar;
+        public Dictionary<string, object> consts;
+        public ActionDefine define { get; set; }
+        public ActionGraph graph { get; set; }
+
+        public const string enterControlName = "enter";
+        public const string exitControlName = "exit";
     }
+
     [Serializable]
-    public sealed class SerializableActionNode
+    public sealed class SerializableActionNode : ISerializableNode
     {
         #region 公有方法
         #region 构造函数
@@ -212,87 +319,39 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(actionNode));
             id = actionNode.id;
             defineName = actionNode.defineName;
-            branches = actionNode.branches != null ?
-                Array.ConvertAll(actionNode.branches, a => a != null ? a.id : 0) :
-                new int[0];
-            inputs = actionNode.inputs != null ?
-                Array.ConvertAll(actionNode.inputs, i => i != null ? new SerializableActionValueRef(i) : null) :
-                new SerializableActionValueRef[0];
-            consts = actionNode.consts != null ? actionNode.consts : new object[0];
-            regVar = actionNode.regVar != null ? actionNode.regVar : new bool[0];
+            posX = actionNode.posX;
+            posY = actionNode.posY;
+            constDict = actionNode.consts;
         }
         #endregion
-        public static ActionNode toActionNodeGraph(int actionNodeId, List<SerializableActionNode> actionNodeList, Dictionary<int, ActionNode> actionNodeDict = null)
+
+        public ActionNode ToActionNode()
         {
-            if (actionNodeId == 0)
-                return null;
-            if (actionNodeList == null)
-                return null;
-            if (actionNodeDict == null)
-                actionNodeDict = new Dictionary<int, ActionNode>();
-            SerializableActionNode seriActionNode = actionNodeList.Find(s => s.id == actionNodeId);
-            if (seriActionNode == null)
-                throw new KeyNotFoundException("不存在id为" + actionNodeId + "的动作节点");
-            ActionNode actionNode = new ActionNode(actionNodeId);
-            actionNodeDict.Add(actionNodeId, actionNode);
-            actionNode.defineName = seriActionNode.defineName;
-            actionNode.consts = seriActionNode.consts;
-            actionNode.regVar = seriActionNode.regVar;
-            //inputs
-            actionNode.inputs = new ActionValueRef[seriActionNode.inputs.Length];
-            for (int i = 0; i < actionNode.inputs.Length; i++)
+            var node = new ActionNode(id, defineName)
             {
-                if (seriActionNode.inputs[i] != null)
-                    actionNode.inputs[i] = seriActionNode.inputs[i].toActionValueRef(actionNodeList, actionNodeDict);
-                else
-                    actionNode.inputs[i] = null;
-            }
-            //branches
-            actionNode.branches = new ActionNode[seriActionNode.branches.Length];
-            for (int i = 0; i < actionNode.branches.Length; i++)
-            {
-                if (seriActionNode.branches[i] == 0)
-                    actionNode.branches[i] = null;
-                else if (actionNodeDict.TryGetValue(seriActionNode.branches[i], out ActionNode childNode))
-                    actionNode.branches[i] = childNode;
-                else
-                    actionNode.branches[i] = toActionNodeGraph(seriActionNode.branches[i], actionNodeList, actionNodeDict);
-            }
-            return actionNode;
+                posX = posX,
+                posY = posY,
+            };
+            node.consts = constDict;
+            return node;
         }
+        IActionNode ISerializableNode.ToActionNode() => ToActionNode();
         #endregion
         #region 属性字段
         public int id;
         public string defineName;
+        public float posX;
+        public float posY;
+        public Dictionary<string, object> constDict;
+
+        [Obsolete]
         public int[] branches;
+        [Obsolete]
         public SerializableActionValueRef[] inputs;
-        public object[] consts;
+        [Obsolete]
         public bool[] regVar;
-        #endregion
-    }
-    [Serializable]
-    public sealed class SerializableActionNodeGraph
-    {
-        #region 公有方法
-        public SerializableActionNodeGraph(ActionNode actionNode)
-        {
-            if (actionNode == null)
-                throw new ArgumentNullException(nameof(actionNode));
-            rootActionId = actionNode.id;
-            actionNode.traverse(a =>
-            {
-                if (a != null)
-                    actionNodeList.Add(new SerializableActionNode(a));
-            });
-        }
-        public ActionNode toActionNodeGraph(Dictionary<int, ActionNode> actionNodeDict = null)
-        {
-            return SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
-        }
-        #endregion
-        #region 属性字段
-        public int rootActionId;
-        public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
+        [Obsolete]
+        public object[] consts;
         #endregion
     }
 }
