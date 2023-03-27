@@ -1,0 +1,269 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
+
+namespace TouhouCardEngine
+{
+    public class Flow
+    {
+        #region 公有方法
+        #region 构造方法
+        public Flow(FlowEnv env)
+        {
+            nodeStack = new Stack<IActionNode>();
+            scopeStack = new Stack<FlowScope>();
+            scopeStack.Push(new FlowScope());
+            rootScope = currentScope;
+            this.env = env;
+        }
+        public Flow(Flow parent) : this(parent.env)
+        {
+            this.parent = parent;
+        }
+        public Flow(IGame game, ICard card, IBuff buff, IEventArg eventArg) : this(new FlowEnv(game, card, buff, eventArg))
+        {
+        }
+        #endregion
+        public FlowScope EnterScope()
+        {
+            var scope = new FlowScope(currentScope);
+            scopeStack.Push(scope);
+            return scope;
+        }
+        public void ExitScope()
+        {
+            scopeStack.Pop();
+        }
+        public async Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
+        {
+            var value = await getValue(input, scope);
+            if (value is T result)
+                return result;
+            return default;
+        }
+        public async Task<object> getValue(ValueInput input, FlowScope scope = null)
+        {
+            if (scope == null)
+                scope = currentScope;
+
+            if (scope.tryGetLocalVar(input, out var value))
+            {
+                return value;
+            }
+
+
+            var output = input.getConnectedOutputPort();
+
+            if (output != null)
+            {
+                return await getValue(output, scope);
+            }
+            else
+            {
+                throw new NullReferenceException($"没有找到连接输入端口{input}的端口。");
+            }
+
+        }
+        public async Task<T> getValue<T>(ValueOutput output, FlowScope scope = null)
+        {
+            var value = await getValue(output, scope);
+            if (value is T result)
+                return result;
+            return default;
+        }
+        public async Task<object> getValue(ValueOutput output, FlowScope scope = null)
+        {
+            if (scope == null)
+                scope = currentScope;
+            if (scope.tryGetLocalVar(output, out var value))
+            {
+                return value;
+            }
+
+            return await GetValueDelegate(output);
+        }
+        public void setValue(IValuePort port, object value, FlowScope scope = null)
+        {
+            if (scope == null)
+                scope = currentScope;
+            scope.setLocalVar(port, value);
+        }
+        public bool tryGetFlowVariable(string key, out object value)
+        {
+            return flowVariables.TryGetValue(key, out value);
+        }
+        public object getFlowVariable(string key)
+        {
+            if (tryGetFlowVariable(key, out var value))
+            {
+                return value;
+            }
+            return null;
+        }
+        public void setFlowVariable(string key, object value)
+        {
+            if (flowVariables.ContainsKey(key))
+            {
+                flowVariables[key] = value;
+            }
+            else
+            {
+                flowVariables.Add(key, value);
+            }
+        }
+
+        public async Task Run(ControlInput input)
+        {
+            await Invoke(input);
+        }
+        public async Task Run(ControlOutput outputPort)
+        {
+            await Invoke(outputPort);
+        }
+        public async Task Invoke(ControlOutput port)
+        {
+            var input = port.getConnectedInputPort();
+
+            if (input == null)
+            {
+                return;
+            }
+            await Invoke(input);
+        }
+        public async Task Invoke(ControlInput input)
+        {
+            var nextPort = await InvokeDelegate(input);
+
+            if (nextPort != null)
+            {
+                await Invoke(nextPort);
+            }
+        }
+
+
+        #endregion
+
+        private Task<ControlOutput> InvokeDelegate(ControlInput port)
+        {
+            IActionNode node = port.node;
+            return InvokeNode(node);
+        }
+        private async Task<ControlOutput> InvokeNode(IActionNode node)
+        {
+
+            if (node == null)
+            {
+                return null;
+            }
+            nodeStack.Push(node);
+            try
+            {
+                return await node.run(this);
+            }
+            catch (Exception e)
+            {
+                if (e is TargetInvocationException targetInvocationException)
+                    e = targetInvocationException.InnerException;
+                env.game.logger.logError("Game", "执行动作" + node + "发生异常：" + e);
+                throw e;
+            }
+            finally
+            {
+                nodeStack.Pop();
+            }
+        }
+
+        private async Task<object> GetValueDelegate(ValueOutput output)
+        {
+            try
+            {
+                return await output.getValue(this);
+            }
+            catch (Exception e)
+            {
+                if (e is TargetInvocationException targetInvocationException)
+                    e = targetInvocationException.InnerException;
+                env.game.logger.logError("Game", "获取值" + output + "发生异常：" + e);
+                throw e;
+            }
+        }
+
+        #region 属性字段
+        public FlowScope rootScope { get; private set; }
+        public IActionNode currentNode => nodeStack.Peek();
+        public FlowScope currentScope => scopeStack.Peek();
+        public FlowEnv env { get; private set; }
+        public Flow parent { get; private set; }
+        private Stack<IActionNode> nodeStack;
+        private Stack<FlowScope> scopeStack;
+        private Dictionary<string, object> flowVariables = new Dictionary<string, object>();
+        #endregion
+    }
+
+    public class FlowEnv
+    {
+        public IGame game { get; private set; }
+        public ICard card { get; private set; }
+        public IBuff buff { get; private set; }
+        public IEventArg eventArg { get; private set; }
+        public FlowEnv(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        {
+            this.game = game;
+            this.card = card;
+            this.buff = buff;
+            this.eventArg = eventArg;
+        }
+        public FlowEnv(FlowEnv other)
+        {
+            game = other.game;
+            card = other.card;
+            buff = other.buff;
+            eventArg = other.eventArg;
+        }
+    }
+    public class FlowScope
+    {
+        public FlowScope() : this(null)
+        {
+        }
+        public FlowScope(FlowScope parentScope)
+        {
+            this.parentScope = parentScope;
+        }
+        public bool tryGetLocalVar(IValuePort port, out object value)
+        {
+            FlowScope scope = this;
+            while (scope != null)
+            {
+                if (scope.localVarDict.TryGetValue(port, out value))
+                    return true;
+                scope = scope.parentScope;
+            }
+            value = null;
+            return false;
+        }
+        public object getLocalVar(IValuePort port)
+        {
+            if (tryGetLocalVar(port, out object value))
+            {
+                return value;
+            }
+            return null;
+        }
+        public void setLocalVar(IValuePort port, object value)
+        {
+            if (localVarDict.ContainsKey(port))
+            {
+                localVarDict[port] = value;
+            }
+            else
+            {
+                localVarDict.Add(port, value);
+            }
+        }
+        public FlowScope parentScope;
+        private Dictionary<IValuePort, object> localVarDict = new Dictionary<IValuePort, object>();
+    }
+}
