@@ -1,9 +1,8 @@
-﻿
-using TouhouCardEngine;
-using TouhouCardEngine.Interfaces;
-using System.Threading.Tasks;
+﻿using System;
 using System.Collections.Generic;
-using System;
+using System.Linq;
+using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -11,61 +10,134 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public GeneratedActionDefine(int id, string category, string defineName, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ReturnValueRef[] returnValueRefs, ActionNode action) : base(defineName, null)
+        public GeneratedActionDefine(ActionGraph graph, int id, string category, string defineName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(defineName, null)
         {
             this.id = id;
             this.category = category;
+            _inputs.Add(enterPortDefine);
+            _outputs.Add(exitPortDefine);
             if (inputs != null)
-                inputList.AddRange(inputs);
+                _inputs.AddRange(inputs);
             if (consts != null)
-                constList.AddRange(consts);
+                _consts.AddRange(consts);
             if (outputs != null)
-                outputList.AddRange(outputs);
-            this.action = action;
-            if (returnValueRefs != null)
-                returnValueRefList.AddRange(returnValueRefs);
-        }
-        public GeneratedActionDefine(int id, ValueDefine[] inputs, ValueDefine[] consts, ValueDefine[] outputs, ActionNode action) :
-            this(id, string.Empty, string.Empty, inputs, consts, outputs, null, action)
-        {
+                _outputs.AddRange(outputs);
 
+            this.graph = graph;
         }
         #endregion
-        public override Task<object[]> execute(IGame game, ICard card, IBuff buff, IEventArg eventArg, Scope scope, object[] args, object[] constValues)
+        public void InitNodes()
         {
-            Scope invokeScope = new Scope() { args = args, consts = constValues };
-            return (game as CardEngine).getActionsReturnValueAsync(card as Card, buff as Buff, eventArg as EventArg, action, invokeScope, returnValueRefList.ToArray());
+            var entry = graph.createActionDefineEntryNode(this, 0, 0);
+            entry.generatedDefine = this;
+
+            var exit = graph.createActionDefineExitNode(this, 300, 0);
+            exit.generatedDefine = this;
+        }
+        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
+        {
+            Flow childFlow = new Flow(flow);
+
+            var entryNode = getEntryNode();
+
+            var port = entryNode.getExitPort();
+
+            await childFlow.Run(port);
+
+            var exitNode = getReturnNode();
+
+            foreach (var outputDef in outputDefines)
+            {
+                var input = exitNode.getInputPort<ValueInput>(outputDef.name);
+                var output = node.getOutputPort<ValueOutput>(outputDef.name);
+                flow.setValue(output, await childFlow.getValue(input));
+            }
+            return node.getOutputPort<ControlOutput>("exit");
         }
 
-        public void traverse(Action<ActionNode> act, HashSet<ActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<IActionNode> act, HashSet<IActionNode> traversedActionNodeSet = null)
         {
             if (act == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<ActionNode>();
-            if (action != null)
+                traversedActionNodeSet = new HashSet<IActionNode>();
+            IActionNode entryNode = getEntryNode();
+            entryNode.traverse(act, traversedActionNodeSet);
+
+            IActionNode exitNode = getReturnNode();
+            exitNode.traverse(act, traversedActionNodeSet);
+            foreach (var portDef in outputDefines)
             {
-                action.traverse(act, traversedActionNodeSet);
+                if (portDef.GetPortType() == PortType.Value)
+                {
+                    var port = exitNode.getInputPort<ValueInput>(portDef.name);
+                    if (port == null || port.getConnectedOutputPort() == null)
+                        continue;
+                    port.traverse(act, traversedActionNodeSet);
+                }
             }
-            foreach (var returnRef in returnValueRefList)
+        }
+
+        public GeneratedActionEntryNode getEntryNode()
+        {
+            return graph.nodes.OfType<GeneratedActionEntryNode>().FirstOrDefault();
+        }
+        public GeneratedActionReturnNode getReturnNode()
+        {
+            return graph.nodes.OfType<GeneratedActionReturnNode>().FirstOrDefault();
+        }
+        public void addInput(PortDefine define) => _inputs.Add(define);
+        public bool removeInput(PortDefine define)
+        {
+            if (_inputs.Remove(define))
             {
-                if (returnRef == null || returnRef.valueRef == null)
-                    continue;
-                returnRef.valueRef.traverse(act, traversedActionNodeSet);
+                var entryNode = getEntryNode();
+                var port = entryNode.getOutputPort(define.name);
+                graph.disconnectAll(port);
+                return true;
             }
+            return false;
+        }
+        public void addConst(PortDefine define) => _consts.Add(define);
+        public bool removeConst(PortDefine define)
+        {
+            if (_consts.Remove(define))
+            {
+                var entryNode = getEntryNode();
+                var port = entryNode.getOutputPort(define.name);
+                graph.disconnectAll(port);
+                return true;
+            }
+            return false;
+        }
+        public void addOutput(PortDefine define) => _outputs.Add(define);
+        public bool removeOutput(PortDefine define)
+        {
+            if (_outputs.Remove(define))
+            {
+                var returnNode = getReturnNode();
+                var port = returnNode.getInputPort(define.name);
+                graph.disconnectAll(port);
+                return true;
+            }
+            return false;
+        }
+        public void setCategory(string category)
+        {
+            this.category = category;
         }
         #endregion
         #region 属性字段
         public int id { get; }
-        public string category;
-        public override ValueDefine[] inputs => inputList.ToArray();
-        public override ValueDefine[] consts => constList.ToArray();
-        public override ValueDefine[] outputs => outputList.ToArray();
-        public List<ValueDefine> inputList = new List<ValueDefine>();
-        public List<ValueDefine> constList = new List<ValueDefine>();
-        public List<ValueDefine> outputList = new List<ValueDefine>();
-        public ActionNode action;
-        public List<ReturnValueRef> returnValueRefList = new List<ReturnValueRef>();
+        public ActionGraph graph;
+
+        private List<PortDefine> _inputs = new List<PortDefine>();
+        private List<PortDefine> _consts = new List<PortDefine>();
+        private List<PortDefine> _outputs = new List<PortDefine>();
+
+        public override IEnumerable<PortDefine> inputDefines => _inputs;
+        public override IEnumerable<PortDefine> constDefines => _consts;
+        public override IEnumerable<PortDefine> outputDefines => _outputs;
         #endregion
     }
     [Serializable]
@@ -80,72 +152,76 @@ namespace TouhouCardEngine
             id = generatedActionDefine.id;
             category = generatedActionDefine.category;
             name = generatedActionDefine.defineName;
-            inputList = generatedActionDefine.inputs != null ?
-                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.inputs, v => v != null ?
-                    new SerializableValueDefine(v) :
-                    null)) :
-                new List<SerializableValueDefine>();
-            constList = generatedActionDefine.consts != null ?
-                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.consts, v => v != null ?
-                    new SerializableValueDefine(v) :
-                    null)) :
-                new List<SerializableValueDefine>();
-            outputList = generatedActionDefine.outputs != null ?
-                new List<SerializableValueDefine>(Array.ConvertAll(generatedActionDefine.outputs, v => v != null ?
-                    new SerializableValueDefine(v) :
-                    null)) :
-                new List<SerializableValueDefine>();
-            //returnList = new List<ReturnValueRef>(generatedActionDefine.returnValueRefList);
-            seriReturnList = generatedActionDefine.returnValueRefList != null ?
-                generatedActionDefine.returnValueRefList.ConvertAll(r => r != null ?
-                    new SerializableReturnValueRef(r) :
-                    null) :
-                new List<SerializableReturnValueRef>();
-            //action = generatedActionDefine.action;
-            generatedActionDefine.traverse(a =>
-            {
-                if (a != null)
-                    actionNodeList.Add(new SerializableActionNode(a));
-            });
-            rootActionId = generatedActionDefine.action != null ? generatedActionDefine.action.id : 0;
+            graph = new SerializableActionNodeGraph(generatedActionDefine.graph);
+            // 不包括动作入口端点
+            inputs.AddRange(generatedActionDefine.inputDefines.Where(d => d.name != ActionDefine.enterPortName).Select(d => new SerializablePortDefine(d)));
+            consts.AddRange(generatedActionDefine.constDefines.Select(d => new SerializablePortDefine(d)));
+            // 不包括动作出口端点
+            outputs.AddRange(generatedActionDefine.outputDefines.Where(d => d.name != ActionDefine.exitPortName).Select(d => new SerializablePortDefine(d)));
         }
         #endregion
-        public GeneratedActionDefine toGeneratedActionDefine(Func<string, Type> typeFinder)
+        public static GeneratedActionDefine[] toGeneratedActionDefines(IEnumerable<SerializableActionDefine> defines, ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder, TypeFinder typeFinder)
         {
-            //action
-            Dictionary<int, ActionNode> actionNodeDict = new Dictionary<int, ActionNode>();
-            ActionNode rootActionNode = action != null ? action :
-                SerializableActionNode.toActionNodeGraph(rootActionId, actionNodeList, actionNodeDict);
-            //return
-            ReturnValueRef[] returnValueRefs;
-            if (returnList != null)
-                returnValueRefs = returnList.ToArray();
-            else
+            Dictionary<SerializableActionDefine, GeneratedActionDefine> dict = new Dictionary<SerializableActionDefine, GeneratedActionDefine>();
+            // 铺设节点。
+            foreach (var seri in defines)
             {
-                returnValueRefs = new ReturnValueRef[seriReturnList.Count];
-                for (int i = 0; i < returnValueRefs.Length; i++)
-                {
-                    returnValueRefs[i] = seriReturnList[i].toReturnValueRef(actionNodeList, actionNodeDict);
-                }
+                var graph = new ActionGraph();
+                var nodes = seri.graph.GetNodes();
+                graph.AddNodes(nodes);
+
+                var define = new GeneratedActionDefine(graph, seri.id, seri.category, seri.name,
+                    seri.inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
+                    seri.consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
+                    seri.outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());
+
+                dict.Add(seri, define);
             }
-            return new GeneratedActionDefine(id, category, name,
-                inputList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
-                constList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
-                outputList.ConvertAll(s => s.toValueDefine(typeFinder)).ToArray(),
-                returnValueRefs, rootActionNode);
+            // 定义所有节点。
+            foreach (var define in dict.Values)
+            {
+                define.graph.DefineNodes(getActionDefine, eventFinder);
+                define.graph.DefineGeneratedActionDefine(define);
+            }
+            // 连接所有节点。
+            foreach (var pair in dict)
+            {
+                var graph = pair.Value.graph;
+                var nodes = pair.Key.graph.GetConnections(graph);
+                graph.AddConnections(nodes);
+            }
+            return dict.Values.ToArray();
+
+            ActionDefine getActionDefine(string name)
+            {
+                return defineFinder?.Invoke(name) ?? dict.Values.FirstOrDefault(a => a.defineName == name || (a.obsoleteNames != null && a.obsoleteNames.Contains(name)));
+            }
         }
         #endregion
         #region 属性字段
         public int id;
         public string name;
         public string category;
+        public SerializableActionNodeGraph graph;
+        public List<SerializablePortDefine> inputs = new List<SerializablePortDefine>();
+        public List<SerializablePortDefine> consts = new List<SerializablePortDefine>();
+        public List<SerializablePortDefine> outputs = new List<SerializablePortDefine>();
+
+        [Obsolete]
         public List<SerializableValueDefine> inputList = new List<SerializableValueDefine>();
+        [Obsolete]
         public List<SerializableValueDefine> constList = new List<SerializableValueDefine>();
+        [Obsolete]
         public List<SerializableValueDefine> outputList = new List<SerializableValueDefine>();
+        [Obsolete]
         public List<ReturnValueRef> returnList = null;
+        [Obsolete]
         public List<SerializableReturnValueRef> seriReturnList = new List<SerializableReturnValueRef>();
+        [Obsolete]
         public ActionNode action;
+        [Obsolete]
         public int rootActionId;
+        [Obsolete]
         public List<SerializableActionNode> actionNodeList = new List<SerializableActionNode>();
         #endregion
     }

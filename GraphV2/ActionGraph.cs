@@ -281,37 +281,4 @@ namespace TouhouCardEngine
         public List<IActionNode> nodes { get; private set; }
         public List<NodeConnection> connections { get; private set; }
     }
-    [Serializable]
-    public sealed class SerializableActionNodeGraph
-    {
-        #region 公有方法
-        public SerializableActionNodeGraph(ActionGraph graph)
-        {
-            if (graph == null)
-                throw new ArgumentNullException(nameof(graph));
-            nodes.AddRange(graph.nodes.ConvertAll(n => n.ToSerializableNode()));
-            connections.AddRange(graph.connections.ConvertAll(c => new SerializableConnection(c)));
-        }
-        public ActionGraph toActionGraph(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder)
-        {
-            ActionGraph graph = new ActionGraph();
-            graph.AddNodes(GetNodes());
-            graph.DefineNodes(defineFinder, eventInfoFinder);
-            graph.AddConnections(GetConnections(graph));
-            return graph;
-        }
-        public IActionNode[] GetNodes()
-        {
-            return nodes.ConvertAll(n => n.ToActionNode()).ToArray();
-        }
-        public NodeConnection[] GetConnections(ActionGraph graph)
-        {
-            return connections.ConvertAll(n => n.ToNodeConnection(graph)).ToArray();
-        }
-        #endregion
-        #region 属性字段
-        public List<ISerializableNode> nodes = new List<ISerializableNode>();
-        public List<SerializableConnection> connections = new List<SerializableConnection>();
-        #endregion
-    }
 }
