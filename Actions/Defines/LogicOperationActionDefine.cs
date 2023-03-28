@@ -24,7 +24,7 @@ namespace TouhouCardEngine
             };
             isParams = true;
         }
-        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override async Task<ControlOutput> run(Flow flow, Node node)
         {
             var opObj = node.getConst("operator");
             LogicOperator op;

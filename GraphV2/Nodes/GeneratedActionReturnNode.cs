@@ -6,7 +6,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class GeneratedActionReturnNode : IActionNode
+    public class GeneratedActionReturnNode : Node
     {
         #region 公有方法
         public GeneratedActionReturnNode(int id, GeneratedActionDefine actionDefine)
@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         {
             id = 0;
         }
-        public Task<ControlOutput> run(Flow flow)
+        public override Task<ControlOutput> run(Flow flow)
         {
             ActionNode node = flow.parent.currentNode as ActionNode;
             return Task.FromResult(node?.getExitPort());
@@ -27,19 +27,7 @@ namespace TouhouCardEngine
         {
             DefinitionInputs(generatedDefine);
         }
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
-        {
-            if (action == null)
-                return;
-            if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
-
-            foreach (var input in inputs)
-            {
-                input.traverse(action, traversedActionNodeSet);
-            }
-        }
-        public ISerializableNode ToSerializableNode()
+        public override ISerializableNode ToSerializableNode()
         {
             return new SerializableGeneratedReturnNode(this);
         }
@@ -48,9 +36,9 @@ namespace TouhouCardEngine
         private void DefinitionInputs(GeneratedActionDefine actionDefine)
         {
             ControlInput controlInput(PortDefine def)
-                => inputs.OfType<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
+                => _inputs.OfType<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
             ValueInput valueInput(PortDefine def)
-                => inputs.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueInput(this, def, -1);
+                => _inputs.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueInput(this, def, -1);
 
             List<IPort> inputList = new List<IPort>();
 
@@ -66,25 +54,21 @@ namespace TouhouCardEngine
             }
 
 
-            foreach (var lostPort in inputs.Except(inputList))
+            foreach (var lostPort in _inputs.Except(inputList))
             {
                 graph.disconnectAll(lostPort);
             }
 
-            inputs.Clear();
-            inputs.AddRange(inputList);
+            _inputs.Clear();
+            _inputs.AddRange(inputList);
         }
-        public ActionGraph graph { get; set; }
-        public int id { get; set; }
-        public float posX { get; set; }
-        public float posY { get; set; }
         public GeneratedActionDefine generatedDefine { get; set; }
-        public List<IPort> inputs = new List<IPort>();
+        private List<IPort> _inputs = new List<IPort>();
         private IPort[] _outputs = new IPort[0];
         private Dictionary<string, object> _consts = new Dictionary<string, object>();
-        IEnumerable<IPort> IActionNode.outputPorts => _outputs;
-        IEnumerable<IPort> IActionNode.inputPorts => inputs;
-        IDictionary<string, object> IActionNode.consts => _consts;
+        public override IEnumerable<IPort> outputPorts => _outputs;
+        public override IEnumerable<IPort> inputPorts => _inputs;
+        public override IDictionary<string, object> consts => _consts;
     }
 
     [Serializable]
@@ -106,7 +90,7 @@ namespace TouhouCardEngine
                 posY = posY
             };
         }
-        IActionNode ISerializableNode.ToActionNode() => ToGeneratedEntryNode();
+        Node ISerializableNode.ToActionNode() => ToGeneratedEntryNode();
         public int id;
         public float posX;
         public float posY;

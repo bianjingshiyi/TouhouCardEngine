@@ -92,7 +92,7 @@ namespace TouhouCardEngine
         /// 遍历效果中的动作节点
         /// </summary>
         /// <param name="action"></param>
-        public void traverseActionNode(Action<IActionNode> action)
+        public void traverseActionNode(Action<Node> action)
         {
             if (action == null)
                 return;

@@ -12,7 +12,7 @@ namespace TouhouCardEngine
         #region 构造方法
         public Flow(FlowEnv env)
         {
-            nodeStack = new Stack<IActionNode>();
+            nodeStack = new Stack<Node>();
             scopeStack = new Stack<FlowScope>();
             scopeStack.Push(new FlowScope());
             rootScope = currentScope;
@@ -147,10 +147,10 @@ namespace TouhouCardEngine
 
         private Task<ControlOutput> InvokeDelegate(ControlInput port)
         {
-            IActionNode node = port.node;
+            Node node = port.node;
             return InvokeNode(node);
         }
-        private async Task<ControlOutput> InvokeNode(IActionNode node)
+        private async Task<ControlOutput> InvokeNode(Node node)
         {
 
             if (node == null)
@@ -192,11 +192,11 @@ namespace TouhouCardEngine
 
         #region 属性字段
         public FlowScope rootScope { get; private set; }
-        public IActionNode currentNode => nodeStack.Peek();
+        public Node currentNode => nodeStack.Peek();
         public FlowScope currentScope => scopeStack.Peek();
         public FlowEnv env { get; private set; }
         public Flow parent { get; private set; }
-        private Stack<IActionNode> nodeStack;
+        private Stack<Node> nodeStack;
         private Stack<FlowScope> scopeStack;
         private Dictionary<string, object> flowVariables = new Dictionary<string, object>();
         #endregion

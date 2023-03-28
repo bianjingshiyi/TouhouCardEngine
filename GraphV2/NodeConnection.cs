@@ -16,7 +16,7 @@ namespace TouhouCardEngine
         public IPort destination { get; protected set; }
         public PortType type { get; private set; }
 
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             if (type == PortType.Control)
             {

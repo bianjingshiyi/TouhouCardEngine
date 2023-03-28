@@ -51,7 +51,7 @@ namespace TouhouCardEngine
             return defineDict;
         }
         #endregion
-        public abstract Task<ControlOutput> run(Flow flow, IActionNode node);
+        public abstract Task<ControlOutput> run(Flow flow, Node node);
         /// <summary>
         /// 获取指定索引的输出端口定义，动作类型输出不会被包括在内。
         /// </summary>

@@ -138,7 +138,7 @@ namespace TouhouCardEngine
             if (obsolete != null)
                 setObsoleteMessage(obsolete.Message);
         }
-        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override async Task<ControlOutput> run(Flow flow, Node node)
         {
             var parameters = await getParameters(flow, node);
 
@@ -195,7 +195,7 @@ namespace TouhouCardEngine
             return targetArray;
         }
 
-        private async Task<object[]> getParameters(Flow flow, IActionNode node)
+        private async Task<object[]> getParameters(Flow flow, Node node)
         {
             object[] parameters = new object[_paramsInfo.Length];
             for (int i = 0; i < _paramsInfo.Length; i++)
@@ -211,7 +211,7 @@ namespace TouhouCardEngine
                         //out参数输出留空
                         parameters[i] = null;
                     }
-                    else if (paramInfo.ParameterType == typeof(IActionNode))
+                    else if (paramInfo.ParameterType == typeof(Node))
                     {
                         ControlOutput port = node.getOutputPort<ControlOutput>(name);
                         parameters[i] = port?.getConnectedInputPort()?.node;
@@ -247,7 +247,7 @@ namespace TouhouCardEngine
                         //out参数输出留空
                         parameters[i] = null;
                     }
-                    else if (paramInfo.ParameterType == typeof(IActionNode))
+                    else if (paramInfo.ParameterType == typeof(Node))
                     {
                         ControlOutput port = node.getOutputPort<ControlOutput>(name);
                         parameters[i] = port?.getConnectedInputPort()?.node;
@@ -300,7 +300,7 @@ namespace TouhouCardEngine
             }
             return parameters;
         }
-        private async Task sendReturnValue(Flow flow, IActionNode node, object returnValue, object[] parameters)
+        private async Task sendReturnValue(Flow flow, Node node, object returnValue, object[] parameters)
         {
             if (returnValue is Task task)
             {

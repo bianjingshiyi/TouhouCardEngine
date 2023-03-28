@@ -10,7 +10,7 @@ namespace TouhouCardEngine
         where TValidOtherPort : IPort
     {
 
-        public Port(IActionNode node, PortDefine define)
+        public Port(Node node, PortDefine define)
         {
             this.node = node;
             this.define = define;
@@ -30,7 +30,7 @@ namespace TouhouCardEngine
                 other is TValidOtherPort; // 属于可连接端口
         }
 
-        public abstract void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null);
+        public abstract void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null);
         public abstract NodeConnection connect(TValidOtherPort other);
 
         public static bool CanTypeConvert(Type inputType, Type outputType)
@@ -65,13 +65,13 @@ namespace TouhouCardEngine
         }
         public abstract IEnumerable<NodeConnection> connections { get; }
         public PortDefine define { get; }
-        public IActionNode node { get; private set; }
+        public Node node { get; private set; }
         public string name => define?.name;
         public abstract bool isOutput { get; }
     }
     public class ValueInput : Port<ValueOutput>, IValuePort
     {
-        public ValueInput(IActionNode node, PortDefine define, int paramIndex = -1) : base(node, define)
+        public ValueInput(Node node, PortDefine define, int paramIndex = -1) : base(node, define)
         {
             this.paramIndex = paramIndex;
         }
@@ -85,7 +85,7 @@ namespace TouhouCardEngine
         {
             return base.canConnectTo(other) && CanTypeConvert(define.type, other?.define?.type);
         }
-        public override void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             foreach (var connection in connections)
             {
@@ -103,7 +103,7 @@ namespace TouhouCardEngine
     }
     public class ValueOutput : Port<ValueInput>, IValuePort
     {
-        public ValueOutput(IActionNode node, PortDefine define, Func<Flow, Task<object>> getValueFunc) : base(node, define)
+        public ValueOutput(Node node, PortDefine define, Func<Flow, Task<object>> getValueFunc) : base(node, define)
         {
             this.getValueFunc = getValueFunc;
         }
@@ -115,7 +115,7 @@ namespace TouhouCardEngine
         {
             return base.canConnectTo(other) && CanTypeConvert(define.type, other?.define?.type);
         }
-        public override void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             node.traverse(action, traversedActionNodeSet);
         }
@@ -130,7 +130,7 @@ namespace TouhouCardEngine
     }
     public class ControlInput : Port<ControlOutput>
     {
-        public ControlInput(IActionNode node, PortDefine define) : base(node, define)
+        public ControlInput(Node node, PortDefine define) : base(node, define)
         {
 
         }
@@ -138,7 +138,7 @@ namespace TouhouCardEngine
         {
             return new NodeConnection(PortType.Control, other, this);
         }
-        public override void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             node.traverse(action, traversedActionNodeSet);
         }
@@ -148,7 +148,7 @@ namespace TouhouCardEngine
     }
     public class ControlOutput : Port<ControlInput>
     {
-        public ControlOutput(IActionNode node, PortDefine define) : base(node, define)
+        public ControlOutput(Node node, PortDefine define) : base(node, define)
         {
 
         }
@@ -158,7 +158,7 @@ namespace TouhouCardEngine
                 node.graph.disconnectAll(this);
             return new NodeConnection(PortType.Control, this, other);
         }
-        public override void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             foreach (var connection in connections)
             {

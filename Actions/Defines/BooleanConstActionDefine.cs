@@ -23,7 +23,7 @@ namespace TouhouCardEngine
             category = "Const";
         }
 
-        public override Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override Task<ControlOutput> run(Flow flow, Node node)
         {
             var value = node.getConst("value");
             if (value == null)

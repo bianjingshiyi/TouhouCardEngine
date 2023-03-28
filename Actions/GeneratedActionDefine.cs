@@ -34,7 +34,7 @@ namespace TouhouCardEngine
             var exit = graph.createActionDefineExitNode(this, 300, 0);
             exit.generatedDefine = this;
         }
-        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override async Task<ControlOutput> run(Flow flow, Node node)
         {
             Flow childFlow = new Flow(flow);
 
@@ -55,16 +55,16 @@ namespace TouhouCardEngine
             return node.getOutputPort<ControlOutput>("exit");
         }
 
-        public void traverse(Action<IActionNode> act, HashSet<IActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<Node> act, HashSet<Node> traversedActionNodeSet = null)
         {
             if (act == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
-            IActionNode entryNode = getEntryNode();
+                traversedActionNodeSet = new HashSet<Node>();
+            Node entryNode = getEntryNode();
             entryNode.traverse(act, traversedActionNodeSet);
 
-            IActionNode exitNode = getReturnNode();
+            Node exitNode = getReturnNode();
             exitNode.traverse(act, traversedActionNodeSet);
             foreach (var portDef in outputDefines)
             {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public class TargetChecker : ITraversable
+    public class TargetChecker
     {
         #region 公有方法
         public TargetChecker(string targetType, int targetIndex, string invalidMsg)
@@ -15,12 +15,12 @@ namespace TouhouCardEngine
         public TargetChecker() : this(string.Empty, -1, string.Empty)
         {
         }
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
+                traversedActionNodeSet = new HashSet<Node>();
             var condition = trigger?.getTargetConditionPort(targetIndex);
             condition?.traverse(action, traversedActionNodeSet);
         }

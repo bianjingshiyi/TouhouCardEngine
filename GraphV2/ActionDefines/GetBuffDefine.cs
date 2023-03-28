@@ -26,7 +26,7 @@ namespace TouhouCardEngine
         private PortDefine[] _inputs;
         private PortDefine[] _consts;
         private PortDefine[] _outputs;
-        public override Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override Task<ControlOutput> run(Flow flow, Node node)
         {
             CardEngine eng = flow.env.game as CardEngine;
             var defRef = node.getConst<DefineReference>(constName);

@@ -41,14 +41,14 @@ namespace TouhouCardEngine
         {
         }
         #endregion
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             if (this.action == null)
                 return;
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
+                traversedActionNodeSet = new HashSet<Node>();
             else if (traversedActionNodeSet.Contains(this.action))
                 return;
             this.action.traverse(action, traversedActionNodeSet);

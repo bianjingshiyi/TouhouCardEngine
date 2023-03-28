@@ -5,6 +5,6 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface ITraversable
     {
-        void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null);
+        void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null);
     }
 }

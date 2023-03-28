@@ -20,7 +20,7 @@ namespace TouhouCardEngine
         }
         public PortType GetPortType()
         {
-            if (typeof(IActionNode).IsAssignableFrom(type))
+            if (typeof(Node).IsAssignableFrom(type))
             {
                 return PortType.Control;
             }

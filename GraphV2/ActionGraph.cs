@@ -15,7 +15,7 @@ namespace TouhouCardEngine
         #region 构造函数
         public ActionGraph()
         {
-            nodes = new List<IActionNode>();
+            nodes = new List<Node>();
             connections = new List<NodeConnection>();
         }
         #endregion
@@ -85,7 +85,7 @@ namespace TouhouCardEngine
             updateSize();
             return node;
         }
-        public bool removeNode(IActionNode node)
+        public bool removeNode(Node node)
         {
             if (nodes.Remove(node))
             {
@@ -132,7 +132,7 @@ namespace TouhouCardEngine
         {
             return connections.RemoveAll(c => c.source == port || c.destination == port);
         }
-        public int disconnectAll(IActionNode node)
+        public int disconnectAll(Node node)
         {
             var count = 0;
             foreach (var input in node.inputPorts)
@@ -149,7 +149,7 @@ namespace TouhouCardEngine
         {
             return connections.SingleOrDefault(c => (c.source == port1 && c.destination == port2) || (c.source == port2 && c.destination == port1));
         }
-        public IEnumerable<NodeConnection> getNodeConnections(IActionNode node)
+        public IEnumerable<NodeConnection> getNodeConnections(Node node)
         {
             HashSet<NodeConnection> connections = new HashSet<NodeConnection>();
             foreach (var input in node.inputPorts)
@@ -232,7 +232,7 @@ namespace TouhouCardEngine
         #endregion 公共方法
 
         #region 内部方法
-        internal void AddNodes(IEnumerable<IActionNode> nodes)
+        internal void AddNodes(IEnumerable<Node> nodes)
         {
             this.nodes.AddRange(nodes);
         }
@@ -278,7 +278,7 @@ namespace TouhouCardEngine
         #endregion 私有方法
         public float width { get; private set; }
         public float height { get; private set; }
-        public List<IActionNode> nodes { get; private set; }
+        public List<Node> nodes { get; private set; }
         public List<NodeConnection> connections { get; private set; }
     }
     [Serializable]
@@ -300,7 +300,7 @@ namespace TouhouCardEngine
             graph.AddConnections(GetConnections(graph));
             return graph;
         }
-        public IActionNode[] GetNodes()
+        public Node[] GetNodes()
         {
             return nodes.ConvertAll(n => n.ToActionNode()).ToArray();
         }

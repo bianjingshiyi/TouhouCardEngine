@@ -24,7 +24,7 @@ namespace TouhouCardEngine
                 PortDefine.Value(typeof(bool), "result")
             };
         }
-        public override async Task<ControlOutput> run(Flow flow, IActionNode node)
+        public override async Task<ControlOutput> run(Flow flow, Node node)
         {
             object opObj = node.getConst("operator");
             CompareOperator op;

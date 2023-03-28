@@ -21,12 +21,12 @@ namespace TouhouCardEngine
         public TriggerGraph() : this(string.Empty, null, new TargetChecker[0], null)
         {
         }
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
+        public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             if (action == null)
                 return;
             if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
+                traversedActionNodeSet = new HashSet<Node>();
             if (condition != null)
                 condition.traverse(action, traversedActionNodeSet);
             if (targetCheckerList != null && targetCheckerList.Count > 0)

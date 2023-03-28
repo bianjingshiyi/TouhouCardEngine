@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MongoDB.Bson.Serialization.Attributes;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class TriggerEntryNode : IActionNode
+    public class TriggerEntryNode : Node
     {
         #region 公有方法
         public TriggerEntryNode(int id, string eventName)
@@ -16,60 +15,35 @@ namespace TouhouCardEngine
             this.id = id;
             this.eventName = eventName;
 
-            conditions = new List<IPort>()
+            _conditions = new List<IPort>()
             {
                 new ValueInput(this, triggerConditionPortDefine),
             };
-            outputs = new List<IPort>()
+            _outputs = new List<IPort>()
             {
                 new ControlOutput(this, actionPortDefine),
             };
         }
-        public Task<ControlOutput> run(Flow flow)
+        public override Task<ControlOutput> run(Flow flow)
         {
-            return Task.FromResult(this.getOutputPort<ControlOutput>("action"));
+            return Task.FromResult(getOutputPort<ControlOutput>("action"));
         }
         public void Define()
         {
             DefinitionConditions();
             DefinitionOutputs(eventTypeInfo);
         }
-        public void traverse(Action<IActionNode> action, HashSet<IActionNode> traversedActionNodeSet = null)
-        {
-            if (action == null)
-                return;
-
-            var conditionPort = getTriggerCondtionValuePort();
-            var nextAction = getActionOutputPort();
-
-            if (traversedActionNodeSet == null)
-                traversedActionNodeSet = new HashSet<IActionNode>();
-
-            conditionPort?.traverse(action, traversedActionNodeSet);
-            if (targetCheckerList != null && targetCheckerList.Count > 0)
-            {
-                for (int i = 0; i < targetCheckerList.Count; i++)
-                {
-                    if (targetCheckerList[i] == null)
-                        continue;
-                    targetCheckerList[i].traverse(action, traversedActionNodeSet);
-                }
-            }
-            IActionNode nextNode = nextAction.connections.FirstOrDefault()?.destination?.node;
-            if (nextNode != null && !traversedActionNodeSet.Contains(nextNode))
-                nextAction.traverse(action, traversedActionNodeSet);
-        }
         public ValueInput getTriggerCondtionValuePort()
         {
-            return this.getInputPort<ValueInput>("condition");
+            return getInputPort<ValueInput>("condition");
         }
         public ControlOutput getActionOutputPort()
         {
-            return outputs?.FirstOrDefault() as ControlOutput;
+            return _outputs?.FirstOrDefault() as ControlOutput;
         }
         public ValueInput getTargetConditionPort(int index)
         {
-            return this.getInputPorts<ValueInput>().FirstOrDefault(p => p.name == targetConditionName && p.paramIndex == index);
+            return getInputPorts<ValueInput>().FirstOrDefault(p => p.name == targetConditionName && p.paramIndex == index);
         }
         public void AddTargetChecker(TargetChecker checker)
         {
@@ -81,7 +55,7 @@ namespace TouhouCardEngine
             targetCheckerList.RemoveAt(index);
             DefinitionConditions();
         }
-        public SerializableTriggerNode ToSerializableNode()
+        public override ISerializableNode ToSerializableNode()
         {
             return new SerializableTriggerNode()
             {
@@ -93,16 +67,15 @@ namespace TouhouCardEngine
                 hideEvents = hideEvents
             };
         }
-        ISerializableNode IActionNode.ToSerializableNode() => ToSerializableNode();
 
 
         private void DefinitionConditions()
         {
             ValueInput valueCondition()
-                 => conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(triggerConditionPortDefine)) ??
+                 => _conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(triggerConditionPortDefine)) ??
                  new ValueInput(this, triggerConditionPortDefine);
             ValueInput targetCondition(int paramIndex)
-                 => conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(targetConditionPortDefine) && d.paramIndex == paramIndex) ??
+                 => _conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(targetConditionPortDefine) && d.paramIndex == paramIndex) ??
                  new ValueInput(this, targetConditionPortDefine, paramIndex);
 
 
@@ -112,23 +85,23 @@ namespace TouhouCardEngine
                 inputs.Add(targetCondition(i));
             }
 
-            foreach (var lostPort in conditions.Except(inputs))
+            foreach (var lostPort in _conditions.Except(inputs))
             {
                 graph.disconnectAll(lostPort);
             }
-            conditions.Clear();
-            conditions.AddRange(inputs);
+            _conditions.Clear();
+            _conditions.AddRange(inputs);
         }
         private void DefinitionOutputs(EventTypeInfo typeInfo)
         {
             ValueOutput valueOutput(EventVariableInfo info)
-                 => this.outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.type == info.type && d.define.name == info.name) ??
+                 => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.type == info.type && d.define.name == info.name) ??
                  new ValueOutput(this, PortDefine.Value(info.type, info.name, info.name), flow =>
                  {
                      return Task.FromResult(flow.env.eventArg.getVar(info.name));
                  });
             ControlOutput controlOutput()
-                 => this.outputs.OfType<ControlOutput>().FirstOrDefault() ??
+                 => _outputs.OfType<ControlOutput>().FirstOrDefault() ??
                  new ControlOutput(this, actionPortDefine);
 
 
@@ -141,29 +114,24 @@ namespace TouhouCardEngine
                 outputs.Add(valueOutput(info));
             }
 
-            foreach (var lostPort in this.outputs.Except(outputs))
+            foreach (var lostPort in _outputs.Except(outputs))
             {
                 graph.disconnectAll(lostPort);
             }
-            this.outputs.Clear();
-            this.outputs.AddRange(outputs);
+            _outputs.Clear();
+            _outputs.AddRange(outputs);
         }
 
         #endregion
-        [BsonIgnore]
-        public ActionGraph graph { get; set; }
-        public int id { get; private set; }
-        public float posX { get; set; }
-        public float posY { get; set; }
         public EventTypeInfo eventTypeInfo { get; set; }
         public string eventName;
         public bool hideEvents;
         public List<TargetChecker> targetCheckerList { get; private set; } = new List<TargetChecker>(); 
-        public List<IPort> conditions;
-        public List<IPort> outputs;
-        IEnumerable<IPort> IActionNode.outputPorts => outputs;
-        IEnumerable<IPort> IActionNode.inputPorts => conditions;
-        IDictionary<string, object> IActionNode.consts => targetCheckerList.ToDictionary(t => $"target[{t.targetIndex}]", t => (object)t);
+        private List<IPort> _conditions;
+        private List<IPort> _outputs;
+        public override IEnumerable<IPort> outputPorts => _outputs;
+        public override IEnumerable<IPort> inputPorts => _conditions;
+        public override IDictionary<string, object> consts => targetCheckerList.ToDictionary(t => $"target[{t.targetIndex}]", t => (object)t);
 
         private const string targetConditionName = "targetCondition";
         private static PortDefine targetConditionPortDefine = PortDefine.Value(typeof(bool), targetConditionName, "目标{0}条件");
@@ -188,7 +156,7 @@ namespace TouhouCardEngine
             }
             return entry;
         }
-        IActionNode ISerializableNode.ToActionNode() => ToActionNode();
+        Node ISerializableNode.ToActionNode() => ToActionNode();
 
         public int id;
         public float posX;
