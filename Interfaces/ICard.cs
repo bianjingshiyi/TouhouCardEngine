@@ -9,12 +9,12 @@ namespace TouhouCardEngine.Interfaces
         ITimeManager time { get; }
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
-        Task runActions(ICard card, IBuff buff, IEventArg eventArg, ControlInput port, Flow flow = null);
-        Task runActions(ICard card, IBuff buff, IEventArg eventArg, ControlOutput port, Flow flow = null);
-        Task<object> getValue(ICard card, IBuff buff, IEventArg eventArg, ValueInput port, Flow flow = null);
-        Task<T> getValue<T>(ICard card, IBuff buff, IEventArg eventArg, ValueInput port, Flow flow = null);
-        Task<object> getValue(ICard card, IBuff buff, IEventArg eventArg, ValueOutput port, Flow flow = null);
-        Task<T> getValue<T>(ICard card, IBuff buff, IEventArg eventArg, ValueOutput port, Flow flow = null);
+        Task runActions(Flow flow, ControlInput port);
+        Task runActions(Flow flow, ControlOutput port);
+        Task<object> getValue(Flow flow, ValueInput port);
+        Task<T> getValue<T>(Flow flow, ValueInput port);
+        Task<object> getValue(Flow flow, ValueOutput port);
+        Task<T> getValue<T>(Flow flow, ValueOutput port);
         ActionDefine getActionDefine(string name);
     }
     public interface IPlayer

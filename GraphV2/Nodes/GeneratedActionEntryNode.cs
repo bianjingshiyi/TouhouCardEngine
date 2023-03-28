@@ -18,9 +18,25 @@ namespace TouhouCardEngine
         {
             id = 0;
         }
-        public override Task<ControlOutput> run(Flow flow)
+        public override async Task<ControlOutput> run(Flow flow)
         {
-            return Task.FromResult(getExitPort());
+            var parentFlow = flow.parent;
+            var outerNode = parentFlow.currentNode;
+            foreach (var input in outputPorts.OfType<ValueOutput>())
+            {
+                var outerInput = outerNode.getInputPort<ValueInput>(input.name);
+                if (outerInput != null)
+                {
+                    var value = await parentFlow.getValue(outerInput);
+                    flow.setValue(input, value);
+                }
+                else
+                {
+                    if (outerNode.consts.TryGetValue(input.name, out object value))
+                        flow.setValue(input, value);
+                }
+            }
+            return getExitPort();
         }
         public void Define()
         {
@@ -40,20 +56,9 @@ namespace TouhouCardEngine
         private void DefinitionOutputs(GeneratedActionDefine actionDefine)
         {
             ValueOutput valueOutput(PortDefine def)
-                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def, async flow =>
-                {
-                    var parentFlow = flow.parent;
-                    ValueInput input = parentFlow.currentNode.getInputPort<ValueInput>(def.name);
-                    return await flow.getValue(input);
-                });
+                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
             ValueOutput valueConst(PortDefine def)
-                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def, flow =>
-                {
-                    var parentFlow = flow.parent;
-                    if (parentFlow.currentNode.consts.TryGetValue(def.name, out object value))
-                        return Task.FromResult(value);
-                    return null;
-                });
+                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
             ControlOutput controlOutput(PortDefine def)
                 => _outputs.OfType<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
 
@@ -100,7 +105,7 @@ namespace TouhouCardEngine
             posY = node.posY;
         }
 
-        public GeneratedActionEntryNode ToGeneratedEntryNode()
+        public GeneratedActionEntryNode ToGeneratedEntryNode(ActionGraph graph)
         {
             var node = new GeneratedActionEntryNode()
             {
@@ -108,9 +113,10 @@ namespace TouhouCardEngine
                 posX = posX,
                 posY = posY
             };
+            node.graph = graph;
             return node;
         }
-        Node ISerializableNode.ToActionNode() => ToGeneratedEntryNode();
+        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
         public int id;
         public float posX;
         public float posY;

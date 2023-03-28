@@ -91,7 +91,7 @@ namespace TouhouCardEngine
 
             var output = node.getOutputPort<ValueOutput>(resultName);
             flow.setValue(output, calced);
-            return null;
+            return node.getOutputPort<ControlOutput>(exitPortName);
         }
         public PortDefine[] inputs { get; }
         public PortDefine[] consts { get; }

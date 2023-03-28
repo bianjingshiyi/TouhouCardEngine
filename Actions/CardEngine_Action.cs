@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
@@ -23,43 +21,35 @@ namespace TouhouCardEngine
             else
                 return null;
         }
-        public async Task runActions(ICard card, IBuff buff, IEventArg eventArg, ControlInput inputPort, Flow flow = null)
+        public async Task runActions(Flow flow, ControlInput inputPort)
         {
-            if (flow == null)
-                flow = new Flow(this, card, buff, eventArg);
-
             await flow.Run(inputPort);
         }
-        public async Task runActions(ICard card, IBuff buff, IEventArg eventArg, ControlOutput outputPort, Flow flow = null)
+        public async Task runActions(Flow flow, ControlOutput outputPort)
         {
-            if (flow == null)
-                flow = new Flow(this, card, buff, eventArg);
-
             await flow.Run(outputPort);
         }
-        public async Task<T> getValue<T>(ICard card, IBuff buff, IEventArg eventArg, ValueInput input, Flow flow = null)
+        public async Task<T> getValue<T>(Flow flow, ValueInput input)
         {
-            flow = flow ?? new Flow(this, card, buff, eventArg);
             var value = await flow.getValue(input);
             if (value is T result)
                 return result;
             return default;
         }
-        public Task<object> getValue(ICard card, IBuff buff, IEventArg eventArg, ValueInput input, Flow flow = null)
+        public Task<object> getValue(Flow flow, ValueInput input)
         {
-            return getValue<object>(card, buff, eventArg, input, flow);
+            return getValue<object>(flow, input);
         }
-        public async Task<T> getValue<T>(ICard card, IBuff buff, IEventArg eventArg, ValueOutput output, Flow flow = null)
+        public async Task<T> getValue<T>(Flow flow, ValueOutput output)
         {
-            flow = flow ?? new Flow(this, card, buff, eventArg);
             var value = await flow.getValue(output);
             if (value is T result)
                 return result;
             return default;
         }
-        public Task<object> getValue(ICard card, IBuff buff, IEventArg eventArg, ValueOutput output, Flow flow = null)
+        public Task<object> getValue(Flow flow, ValueOutput output)
         {
-            return getValue<object>(card, buff, eventArg, output, flow);
+            return getValue<object>(flow, output);
         }
         #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();

@@ -83,7 +83,7 @@ namespace TouhouCardEngine
             }
 
             flow.setValue(node.getOutputPort<ValueOutput>("result"), result);
-            return null;
+            return node.getOutputPort<ControlOutput>(exitPortName);
         }
         public PortDefine[] inputs { get; }
         public PortDefine[] consts { get; }

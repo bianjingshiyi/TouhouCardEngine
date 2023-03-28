@@ -108,9 +108,8 @@ namespace TouhouCardEngine
     }
     public class ValueOutput : Port<ValueInput>, IValuePort
     {
-        public ValueOutput(Node node, PortDefine define, Func<Flow, Task<object>> getValueFunc) : base(node, define)
+        public ValueOutput(Node node, PortDefine define) : base(node, define)
         {
-            this.getValueFunc = getValueFunc;
         }
         public override NodeConnection connect(ValueInput other)
         {
@@ -126,11 +125,6 @@ namespace TouhouCardEngine
         }
         public override IEnumerable<NodeConnection> connections => node?.graph?.connections.OfType<NodeConnection>().Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
 
-        public Task<object> getValue(Flow flow)
-        {
-            return getValueFunc?.Invoke(flow);
-        }
-        private Func<Flow, Task<object>> getValueFunc;
         public override bool isOutput => true;
     }
     public class ControlInput : Port<ControlOutput>

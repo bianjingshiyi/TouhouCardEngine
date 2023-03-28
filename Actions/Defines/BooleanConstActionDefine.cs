@@ -31,7 +31,7 @@ namespace TouhouCardEngine
                 value = false;
             }
             flow.setValue(node.getOutputPort<ValueOutput>("return"), value);
-            return Task.FromResult<ControlOutput>(null);
+            return Task.FromResult(node.getOutputPort<ControlOutput>(exitPortName));
         }
 
         public override IEnumerable<PortDefine> inputDefines => inputs;

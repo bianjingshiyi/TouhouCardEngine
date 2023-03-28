@@ -74,17 +74,17 @@ namespace TouhouCardEngine
                     }
                 }
 
-                if (paramInfo.IsOut || isOut)
-                {
-                    //如果参数是out参数，那么它是一个输出
-                    PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
-                    outputList.Add(valueDefine);
-                }
-                else if (paramInfo.ParameterType == typeof(ActionNode) && paramAttr != null)
+                if (paramInfo.ParameterType == typeof(ControlInput) && paramAttr != null)
                 {
                     //如果参数类型是动作节点，那么它是一个动作分支输出
                     PortDefine controlDefine = PortDefine.Control(paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
                     outputList.Add(controlDefine);
+                }
+                else if (paramInfo.IsOut || isOut)
+                {
+                    //如果参数是out参数，那么它是一个输出
+                    PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                    outputList.Add(valueDefine);
                 }
                 else
                 {
@@ -110,7 +110,7 @@ namespace TouhouCardEngine
                         !typeof(Flow).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(ActionNode).IsAssignableFrom(paramInfo.ParameterType))
                     {
-                        //不是Game,Card,Buff,EventArg,Scope这种可以缺省的参数也一定是输入
+                        //不是Game,Card,Buff,EventArg,Flow, ActionNode这种可以缺省的参数也一定是输入
                         PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
                         inputList.Add(valueDefine);
                     }
@@ -145,7 +145,7 @@ namespace TouhouCardEngine
             object returnValue = _methodInfo.Invoke(null, parameters);
 
             await sendReturnValue(flow, node, returnValue, parameters);
-            return node.getOutputPort<ControlOutput>("exit");
+            return node.getOutputPort<ControlOutput>(exitPortName);
         }
         #endregion
         #region 私有方法
@@ -205,27 +205,27 @@ namespace TouhouCardEngine
                 string name = paramInfo.Name;
                 if (paramAttr != null)
                 {
+                    if (paramInfo.ParameterType == typeof(ControlInput))
+                    {
+                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
+                        parameters[i] = port?.getConnectedInputPort();
+                    }
                     //指定了不能省略的参数
-                    if (paramInfo.IsOut || paramAttr.isOut)
+                    else if (paramInfo.IsOut || paramAttr.isOut)
                     {
                         //out参数输出留空
                         parameters[i] = null;
-                    }
-                    else if (paramInfo.ParameterType == typeof(Node))
-                    {
-                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
-                        parameters[i] = port?.getConnectedInputPort()?.node;
                     }
                     else
                     {
                         object param = null;
                         if (paramAttr.isConst)
                         {
-                            param = node.consts;
+                            param = node.getConst(paramInfo.Name);
                         }
                         else
                         {
-                            ValueInput port = node.getInputPort<ValueInput>(paramAttr.paramName);
+                            ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
                             if (port != null)
                             {
                                 param = await flow.getValue(port);
@@ -242,15 +242,15 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    if (paramInfo.IsOut)
+                    if (paramInfo.ParameterType == typeof(ControlInput))
+                    {
+                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
+                        parameters[i] = port?.getConnectedInputPort();
+                    }
+                    else if (paramInfo.IsOut)
                     {
                         //out参数输出留空
                         parameters[i] = null;
-                    }
-                    else if (paramInfo.ParameterType == typeof(Node))
-                    {
-                        ControlOutput port = node.getOutputPort<ControlOutput>(name);
-                        parameters[i] = port?.getConnectedInputPort()?.node;
                     }
                     else if (typeof(IGame).IsAssignableFrom(paramInfo.ParameterType))
                     {
@@ -310,6 +310,10 @@ namespace TouhouCardEngine
                 {
                     returnValue = propInfo.GetValue(task);
                 }
+                else
+                {
+                    returnValue = null;
+                }
             }
 
             //返回由返回值和out参数组成的数组
@@ -321,13 +325,18 @@ namespace TouhouCardEngine
                 {
                     var name = paramInfo.Name;
                     ValueOutput port = node.getOutputPort<ValueOutput>(name);
+                    if (port == null)
+                        continue;
                     flow.setValue(port, parameters[i]);
                 }
             }
 
             var returnName = returnValueName;
             ValueOutput returnPort = node.getOutputPort<ValueOutput>(returnName);
-            flow.setValue(returnPort, returnValue);
+            if (returnPort != null)
+            {
+                flow.setValue(returnPort, returnValue);
+            }
 
 
         }

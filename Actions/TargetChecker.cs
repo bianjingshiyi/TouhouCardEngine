@@ -36,7 +36,8 @@ namespace TouhouCardEngine
                 invalidMsg = null;
                 return true;
             }
-            var task = game.getValue<bool>(card, buff, eventArg, condition);
+            var flow = new Flow(game, card, buff, eventArg);
+            var task = game.getValue<bool>(flow, condition);
             if (task.IsCompleted)
             {
                 bool returnValue = task.Result;

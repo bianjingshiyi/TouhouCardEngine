@@ -81,16 +81,18 @@ namespace TouhouCardEngine
             posY = node.posY;
         }
 
-        public GeneratedActionReturnNode ToGeneratedEntryNode()
+        public GeneratedActionReturnNode ToGeneratedEntryNode(ActionGraph graph)
         {
-            return new GeneratedActionReturnNode()
+            var node = new GeneratedActionReturnNode()
             {
                 id = id,
                 posX = posX,
                 posY = posY
             };
+            node.graph = graph;
+            return node;
         }
-        Node ISerializableNode.ToActionNode() => ToGeneratedEntryNode();
+        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
         public int id;
         public float posX;
         public float posY;

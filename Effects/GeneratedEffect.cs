@@ -20,7 +20,10 @@ namespace TouhouCardEngine
         public virtual async Task onEnable(IGame game, ICard card, IBuff buff)
         {
             if (onEnableAction != null)
-                await game.runActions(card, buff, null, onEnableAction);
+            {
+                var flow = new Flow(game, card, buff, null);
+                await game.runActions(flow, onEnableAction);
+            }
             foreach (var entryNode in triggerList)
             {
                 string triggerName = getEffectName(card, buff, entryNode.eventName);
@@ -29,12 +32,12 @@ namespace TouhouCardEngine
                     args =>
                     {
                         var condition = entryNode.getTriggerCondtionValuePort();
-                        if (condition == null)
+                        if (condition == null || condition.getConnectedOutputPort() == null)
                             return true;
-                        Task<bool> task = game.getValue<bool>(
-                            card as Card,
-                            buff as Buff,
-                            args.OfType<EventArg>().FirstOrDefault(), condition);
+
+                        var flow = new Flow(game, card, buff, args.OfType<EventArg>().FirstOrDefault());
+                        Task<bool> task = game.getValue<bool>(flow, condition);
+
                         if (task.IsCompleted)
                             return task.Result;
                         else
@@ -42,7 +45,8 @@ namespace TouhouCardEngine
                     },
                     args =>
                     {
-                        return game.runActions(card, buff, args.OfType<IEventArg>().FirstOrDefault(), entryNode.getActionOutputPort());
+                        var flow = new Flow(game, card, buff, args.OfType<IEventArg>().FirstOrDefault());
+                        return game.runActions(flow, entryNode.getActionOutputPort());
                     }, name: triggerName);
                 await card.setProp(game, triggerName, trigger);
                 game.triggers.register(entryNode.eventName, trigger);
@@ -66,7 +70,10 @@ namespace TouhouCardEngine
             await card.setProp(game, disableName, true);
 
             if (onDisableAction != null)
-                await game.runActions(card, buff, null, onDisableAction);
+            {
+                var flow = new Flow(game, card, buff, null);
+                await game.runActions(flow, onDisableAction);
+            }
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
         {
@@ -130,16 +137,14 @@ namespace TouhouCardEngine
             if (trigger != null)
             {
                 var condition = trigger.getTriggerCondtionValuePort();
-                if (condition == null)
+                if (condition == null || condition.getConnectedOutputPort() == null)
                     return true;
-                var task = game.getValue(card, buff, eventArg, condition);
+
+                var flow = new Flow(game, card, buff, eventArg);
+                var task = game.getValue<bool>(flow, condition);
                 if (task.IsCompleted)
                 {
-                    object returnValue = task.Result;
-                    if (returnValue is bool b)
-                        return b;
-                    else
-                        throw new InvalidCastException(returnValue + "不是真值类型");
+                    return task.Result;
                 }
                 else
                     throw new InvalidOperationException("不能在条件中调用需要等待的动作");
@@ -188,7 +193,8 @@ namespace TouhouCardEngine
             var trigger = triggerList.FirstOrDefault(t => t.eventName == game.triggers.getName(eventArg));
             if (trigger != null)
             {
-                return game.runActions(card, buff, eventArg, trigger.getActionOutputPort());
+                var flow = new Flow(game, card, buff, eventArg);
+                return game.runActions(flow, trigger.getActionOutputPort());
             }
             return Task.CompletedTask;
         }

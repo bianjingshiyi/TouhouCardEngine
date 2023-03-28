@@ -60,10 +60,7 @@ namespace TouhouCardEngine
             {
                 return await getValue(output, scope);
             }
-            else
-            {
-                throw new NullReferenceException($"没有找到连接输入端口{input}的端口。");
-            }
+            return null;
 
         }
         public async Task<T> getValue<T>(ValueOutput output, FlowScope scope = null)
@@ -177,9 +174,17 @@ namespace TouhouCardEngine
 
         private async Task<object> GetValueDelegate(ValueOutput output)
         {
+            if (output == null)
+                return null;
+            var node = output.node;
             try
             {
-                return await output.getValue(this);
+                await InvokeNode(node);
+                if (currentScope.tryGetLocalVar(output, out var value))
+                {
+                    return value;
+                }
+                throw new KeyNotFoundException($"获取端口“{output}”的值失败。");
             }
             catch (Exception e)
             {
@@ -208,12 +213,14 @@ namespace TouhouCardEngine
         public ICard card { get; private set; }
         public IBuff buff { get; private set; }
         public IEventArg eventArg { get; private set; }
+        private Dictionary<string, object> arguments;
         public FlowEnv(IGame game, ICard card, IBuff buff, IEventArg eventArg)
         {
             this.game = game;
             this.card = card;
             this.buff = buff;
             this.eventArg = eventArg;
+            arguments = new Dictionary<string, object>();
         }
         public FlowEnv(FlowEnv other)
         {
@@ -221,6 +228,26 @@ namespace TouhouCardEngine
             card = other.card;
             buff = other.buff;
             eventArg = other.eventArg;
+            arguments = new Dictionary<string, object>(other.arguments);
+        }
+        public void SetArgument(string name, object value)
+        {
+            if (arguments.ContainsKey(name))
+            {
+                arguments[name] = value;
+            }
+            else
+            {
+                arguments.Add(name, value);
+            }
+        }
+        public T GetArgument<T>(string name)
+        {
+            if (arguments.TryGetValue(name, out object value) && value is T result)
+            {
+                return result;
+            }
+            return default;
         }
     }
     public class FlowScope

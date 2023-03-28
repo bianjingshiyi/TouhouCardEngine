@@ -147,7 +147,7 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface ISerializableNode
     {
-        Node ToActionNode();
+        Node ToActionNode(ActionGraph graph);
     }
 
 }

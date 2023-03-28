@@ -55,6 +55,7 @@ namespace TouhouCardEngine
                         result = values.Length > 0 && values[0] is bool b ? !b : true;
                         break;
                     case LogicOperator.and:
+                        result = true;
                         foreach (var value in values)
                         {
                             if (!value)
@@ -63,9 +64,9 @@ namespace TouhouCardEngine
                                 break;
                             }
                         }
-                        result = true;
                         break;
                     case LogicOperator.or:
+                        result = false;
                         foreach (var value in values)
                         {
                             if (value)
@@ -74,7 +75,6 @@ namespace TouhouCardEngine
                                 break;
                             }
                         }
-                        result = false;
                         break;
                     default:
                         throw new InvalidOperationException("未知的操作符" + op);
@@ -83,7 +83,7 @@ namespace TouhouCardEngine
             }
             else
                 throw new ArgumentException("传入参数无法转化为bool[]");
-            return null;
+            return node.getOutputPort<ControlOutput>(exitPortName);
         }
         public PortDefine[] inputs { get; }
         public PortDefine[] consts { get; }

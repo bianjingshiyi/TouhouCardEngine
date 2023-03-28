@@ -204,12 +204,7 @@ namespace TouhouCardEngine
         private void DefinitionOutputs(ActionDefine define)
         {
             ValueOutput valueOutput(PortDefine def)
-                => outputList.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def, async flow =>
-                {
-                    await define.run(flow, this);
-                    var port = getOutputPort<ValueOutput>(def.name);
-                    return flow.currentScope.getLocalVar(port);
-                });
+                => outputList.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
             ControlOutput controlOutput(PortDefine def)
                 => outputList.OfType<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
 
@@ -271,17 +266,18 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public ActionNode ToActionNode()
+        public ActionNode ToActionNode(ActionGraph graph)
         {
             var node = new ActionNode(id, defineName)
             {
                 posX = posX,
                 posY = posY,
             };
+            node.graph = graph;
             node.constList = constDict;
             return node;
         }
-        Node ISerializableNode.ToActionNode() => ToActionNode();
+        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToActionNode(graph);
         #endregion
         #region 属性字段
         public int id;

@@ -46,13 +46,13 @@ namespace TouhouCardEngine
 
             var exitNode = getReturnNode();
 
-            foreach (var outputDef in outputDefines)
+            foreach (var outputDef in getValueOutputs())
             {
                 var input = exitNode.getInputPort<ValueInput>(outputDef.name);
                 var output = node.getOutputPort<ValueOutput>(outputDef.name);
                 flow.setValue(output, await childFlow.getValue(input));
             }
-            return node.getOutputPort<ControlOutput>("exit");
+            return node.getOutputPort<ControlOutput>(exitPortName);
         }
 
         public void traverse(Action<Node> act, HashSet<Node> traversedActionNodeSet = null)
@@ -167,7 +167,7 @@ namespace TouhouCardEngine
             foreach (var seri in defines)
             {
                 var graph = new ActionGraph();
-                var nodes = seri.graph.GetNodes();
+                var nodes = seri.graph.GetNodes(graph);
                 graph.AddNodes(nodes);
 
                 var define = new GeneratedActionDefine(graph, seri.id, seri.category, seri.name,

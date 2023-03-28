@@ -292,14 +292,14 @@ namespace TouhouCardEngine
         public ActionGraph toActionGraph(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder)
         {
             ActionGraph graph = new ActionGraph();
-            graph.AddNodes(GetNodes());
+            graph.AddNodes(GetNodes(graph));
             graph.DefineNodes(defineFinder, eventInfoFinder);
             graph.AddConnections(GetConnections(graph));
             return graph;
         }
-        public Node[] GetNodes()
+        public Node[] GetNodes(ActionGraph graph)
         {
-            return nodes.ConvertAll(n => n.ToActionNode()).ToArray();
+            return nodes.ConvertAll(n => n.ToActionNode(graph)).ToArray();
         }
         public NodeConnection[] GetConnections(ActionGraph graph)
         {
