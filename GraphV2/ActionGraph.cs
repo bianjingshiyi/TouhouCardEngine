@@ -6,7 +6,7 @@ using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public delegate ActionDefine ActionDefineFinder(string name);
-    public delegate EventTypeInfo EventTypeInfoFinder(string name);
+    public delegate EventDefine EventTypeInfoFinder(string name);
     public delegate Type TypeFinder(string name);
     public class ActionGraph
     {
@@ -53,7 +53,7 @@ namespace TouhouCardEngine
             updateSize();
             return node;
         }
-        public TriggerEntryNode createTriggerEntryNode(EventTypeInfo eventInfo, float posX = 0, float posY = 0)
+        public TriggerEntryNode createTriggerEntryNode(EventDefine eventInfo, float posX = 0, float posY = 0)
         {
             var node = createTriggerEntryNode(eventInfo?.eventName, posX, posY);
             if (eventInfo != null)

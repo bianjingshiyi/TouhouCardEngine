@@ -84,7 +84,7 @@ namespace TouhouCardEngine
         public string name;
         public Type type;
     }
-    public class EventTypeInfo
+    public class EventDefine
     {
         #region 属性字段
         public string eventName;

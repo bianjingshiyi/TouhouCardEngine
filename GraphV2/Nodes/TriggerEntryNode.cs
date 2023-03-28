@@ -92,7 +92,7 @@ namespace TouhouCardEngine
             _conditions.Clear();
             _conditions.AddRange(inputs);
         }
-        private void DefinitionOutputs(EventTypeInfo typeInfo)
+        private void DefinitionOutputs(EventDefine typeInfo)
         {
             ValueOutput valueOutput(EventVariableInfo info)
                  => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.type == info.type && d.define.name == info.name) ??
@@ -123,7 +123,7 @@ namespace TouhouCardEngine
         }
 
         #endregion
-        public EventTypeInfo eventTypeInfo { get; set; }
+        public EventDefine eventTypeInfo { get; set; }
         public string eventName;
         public bool hideEvents;
         public List<TargetChecker> targetCheckerList { get; private set; } = new List<TargetChecker>(); 
