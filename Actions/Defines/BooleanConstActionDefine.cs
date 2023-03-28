@@ -25,12 +25,7 @@ namespace TouhouCardEngine
 
         public override Task<ControlOutput> run(Flow flow, Node node)
         {
-            var value = node.getConst("value");
-            if (value == null)
-            {
-                value = false;
-            }
-            flow.setValue(node.getOutputPort<ValueOutput>("return"), value);
+            flow.setValue(node.getOutputPort<ValueOutput>("return"), node.getConst<bool>("value"));
             return Task.FromResult(node.getOutputPort<ControlOutput>(exitPortName));
         }
 

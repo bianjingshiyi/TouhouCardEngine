@@ -40,25 +40,19 @@ namespace TouhouCardEngine
                 op = LogicOperator.and;
 
             var argPorts = node.getParamInputPorts("value");
-            var values = new bool[argPorts.Length];
-            for (int i = 0; i < argPorts.Length; i++)
-            {
-                values[i] = await flow.getValue<bool>(argPorts[i]);
-            }
-
             bool result;
-            if (values != null && values.Length > 0)
+            if (argPorts != null && argPorts.Length > 0)
             {
                 switch (op)
                 {
                     case LogicOperator.not:
-                        result = values.Length > 0 && values[0] is bool b ? !b : true;
+                        result = !await flow.getValue<bool>(argPorts[0]);
                         break;
                     case LogicOperator.and:
                         result = true;
-                        foreach (var value in values)
+                        foreach (var port in argPorts)
                         {
-                            if (!value)
+                            if (!await flow.getValue<bool>(port))
                             {
                                 result = false;
                                 break;
@@ -67,9 +61,9 @@ namespace TouhouCardEngine
                         break;
                     case LogicOperator.or:
                         result = false;
-                        foreach (var value in values)
+                        foreach (var port in argPorts)
                         {
-                            if (value)
+                            if (await flow.getValue<bool>(port))
                             {
                                 result = true;
                                 break;

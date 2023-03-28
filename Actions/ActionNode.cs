@@ -28,19 +28,18 @@ namespace TouhouCardEngine
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            var valueConst = getConst("value");
             if (defineName == "BooleanConst")
-                sb.Append(valueConst is bool b ? b : false);
+                sb.Append(getConst<bool>("value"));
             else if (defineName == "IntegerConst")
-                sb.Append(valueConst is int i ? i : 0);
+                sb.Append(getConst<int>("value"));
             else if (defineName == "StringConst")
-                sb.Append(valueConst is string s ? s : string.Empty);
+                sb.Append(getConst<string>("value") ?? string.Empty);
             else
             {
                 if (defineName == "Compare")
                 {
                     sb.Append(inputList.Count > 0 && inputList[0] != null ? inputList[0].ToString() : "null");
-                    if (getConst("operator") is CompareOperator compareOperator && compareOperator == CompareOperator.equals)
+                    if (getConst<CompareOperator>("operator") == CompareOperator.equals)
                         sb.Append(" == ");
                     else
                         sb.Append(" != ");
@@ -48,27 +47,25 @@ namespace TouhouCardEngine
                 }
                 else if (defineName == "LogicOperation")
                 {
-                    if (getConst("operator") is LogicOperator logicOperator)
+                    LogicOperator logicOperator = getConst<LogicOperator>("operator");
+                    if (logicOperator == LogicOperator.not)
+                        sb.Append("!" + (inputList.Count > 0 && inputList[0] != null ? inputList[0].ToString() : "null"));
+                    else if (logicOperator == LogicOperator.and)
                     {
-                        if (logicOperator == LogicOperator.not)
-                            sb.Append("!" + (inputList.Count > 0 && inputList[0] != null ? inputList[0].ToString() : "null"));
-                        else if (logicOperator == LogicOperator.and)
+                        for (int i = 0; i < inputList.Count; i++)
                         {
-                            for (int i = 0; i < inputList.Count; i++)
-                            {
-                                if (i != 0)
-                                    sb.Append(" && ");
-                                sb.Append(inputList[i].ToString());
-                            }
+                            if (i != 0)
+                                sb.Append(" && ");
+                            sb.Append(inputList[i].ToString());
                         }
-                        else if (logicOperator == LogicOperator.or)
+                    }
+                    else if (logicOperator == LogicOperator.or)
+                    {
+                        for (int i = 0; i < inputList.Count; i++)
                         {
-                            for (int i = 0; i < inputList.Count; i++)
-                            {
-                                if (i != 0)
-                                    sb.Append(" || ");
-                                sb.Append(inputList[i].ToString());
-                            }
+                            if (i != 0)
+                                sb.Append(" || ");
+                            sb.Append(inputList[i].ToString());
                         }
                     }
                 }
