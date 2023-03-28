@@ -11,7 +11,7 @@ namespace TouhouCardEngine
             _inputs = new PortDefine[0];
             _consts = new PortDefine[]
             {
-                PortDefine.Value(typeof(PileNameCollection), pileListName, "PileName")
+                PortDefine.Value(typeof(PileNameCollection), pileListName, "PileList")
             };
             _outputs = new PortDefine[2]
             {
