@@ -6,6 +6,11 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
+    public enum PortType
+    {
+        Control,
+        Value
+    }
     public abstract class Port<TValidOtherPort> : IPort
         where TValidOtherPort : IPort
     {
@@ -79,7 +84,7 @@ namespace TouhouCardEngine
         {
             if (connections.Count() > 0)
                 node.graph.disconnectAll(this);
-            return new NodeConnection(PortType.Value, other, this);
+            return new NodeConnection(other, this);
         }
         public override bool canConnectTo(IPort other)
         {
@@ -109,7 +114,7 @@ namespace TouhouCardEngine
         }
         public override NodeConnection connect(ValueInput other)
         {
-            return new NodeConnection(PortType.Value, this, other);
+            return new NodeConnection(this, other);
         }
         public override bool canConnectTo(IPort other)
         {
@@ -136,7 +141,7 @@ namespace TouhouCardEngine
         }
         public override NodeConnection connect(ControlOutput other)
         {
-            return new NodeConnection(PortType.Control, other, this);
+            return new NodeConnection(other, this);
         }
         public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
@@ -156,7 +161,7 @@ namespace TouhouCardEngine
         {
             if (connections.Count() > 0)
                 node.graph.disconnectAll(this);
-            return new NodeConnection(PortType.Control, this, other);
+            return new NodeConnection(this, other);
         }
         public override void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {

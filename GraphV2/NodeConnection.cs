@@ -5,31 +5,31 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public enum PortType
-    {
-        Control,
-        Value
-    }
     public class NodeConnection
     {
         public IPort source { get; protected set; }
         public IPort destination { get; protected set; }
-        public PortType type { get; private set; }
-
+        public PortType GetConnectionType()
+        {
+            if (source is IValuePort && destination is IValuePort)
+            {
+                return PortType.Value;
+            }
+            return PortType.Control;
+        }
         public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
-            if (type == PortType.Control)
-            {
-                destination.traverse(action, traversedActionNodeSet);
-            }
-            else
+            if (GetConnectionType() == PortType.Value)
             {
                 source.traverse(action, traversedActionNodeSet);
             }
+            else
+            {
+                destination.traverse(action, traversedActionNodeSet);
+            }
         }
-        public NodeConnection(PortType type, IPort source, IPort destination)
+        public NodeConnection(IPort source, IPort destination)
         {
-            this.type = type;
             this.source = source;
             this.destination = destination;
         }
@@ -47,7 +47,6 @@ namespace TouhouCardEngine
             {
                 destParamIndex = valueInput.paramIndex + 1;
             }
-            type = (int)connection.type;
         }
         public NodeConnection ToNodeConnection(ActionGraph graph)
         {
@@ -60,13 +59,12 @@ namespace TouhouCardEngine
             else
                 destPort = destNode.getInputPort(destName);
 
-            return new NodeConnection((PortType)type, sourcePort, destPort);
+            return new NodeConnection(sourcePort, destPort);
         }
         public string sourceName;
         public int sourceNodeId;
         public string destName;
         public int destParamIndex;
         public int destNodeId;
-        public int type;
     }
 }
