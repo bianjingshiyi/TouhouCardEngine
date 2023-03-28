@@ -6,13 +6,13 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class GeneratedActionEntryNode : Node
+    public class GeneratedActionEntryNode : Node, IDefineNode<GeneratedActionDefine>
     {
         #region 公有方法
         public GeneratedActionEntryNode(int id, GeneratedActionDefine actionDefine)
         {
             this.id = id;
-            generatedDefine = actionDefine;
+            define = actionDefine;
         }
         public GeneratedActionEntryNode()
         {
@@ -24,7 +24,7 @@ namespace TouhouCardEngine
         }
         public void Define()
         {
-            DefinitionOutputs(generatedDefine);
+            DefinitionOutputs(define);
         }
         public ControlOutput getExitPort()
         {
@@ -82,7 +82,7 @@ namespace TouhouCardEngine
             _outputs.AddRange(outputList);
         }
 
-        public GeneratedActionDefine generatedDefine { get; set; }
+        public GeneratedActionDefine define { get; set; }
         private List<IPort> _outputs = new List<IPort>();
         private List<IPort> _inputs = new List<IPort>();
         private Dictionary<string, object> _consts = new Dictionary<string, object>();

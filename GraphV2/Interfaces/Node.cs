@@ -140,7 +140,11 @@ namespace TouhouCardEngine.Interfaces
         public float posY { get; set; }
         public ActionGraph graph { get; set; }
     }
-
+    public interface IDefineNode<TDefine>
+    {
+        TDefine define { get; set; }
+        void Define();
+    }
     public interface ISerializableNode
     {
         Node ToActionNode();

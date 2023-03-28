@@ -12,7 +12,7 @@ namespace TouhouCardEngine
     /// 由于要方便编辑器统一进行操作更改和存储，这个数据结构不允许多态。
     /// 这个数据结构必须同时支持多种类型的语句，比如赋值，分支，循环，返回，方法调用。
     /// </summary>
-    public sealed class ActionNode : Node
+    public sealed class ActionNode : Node, IDefineNode<ActionDefine>
     {
         #region 公有方法
         #region 构造方法

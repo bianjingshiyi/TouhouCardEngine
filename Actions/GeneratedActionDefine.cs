@@ -29,10 +29,10 @@ namespace TouhouCardEngine
         public void InitNodes()
         {
             var entry = graph.createActionDefineEntryNode(this, 0, 0);
-            entry.generatedDefine = this;
+            entry.define = this;
 
             var exit = graph.createActionDefineExitNode(this, 300, 0);
-            exit.generatedDefine = this;
+            exit.define = this;
         }
         public override async Task<ControlOutput> run(Flow flow, Node node)
         {

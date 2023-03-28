@@ -87,8 +87,6 @@ namespace Tests
 
             var entryNode = generated.getEntryNode();
             var exitNode = generated.getEntryNode();
-            entryNode.Define();
-            exitNode.Define();
 
             genGraph.connect(entryNode.getExitPort(), actionNode1.getEnterPort());
             genGraph.connect(actionNode1.getExitPort(), actionNode2.getExitPort());

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Interfaces;
+using UnityEditorInternal;
 
 namespace TouhouCardEngine
 {
@@ -58,7 +59,7 @@ namespace TouhouCardEngine
             var node = createTriggerEntryNode(eventInfo?.eventName, posX, posY);
             if (eventInfo != null)
             {
-                node.eventTypeInfo = eventInfo;
+                node.define = eventInfo;
                 node.Define();
             }
             return node;
@@ -71,6 +72,7 @@ namespace TouhouCardEngine
             node.posY = posY;
             node.graph = this;
             nodes.Add(node);
+            node.Define();
             updateSize();
             return node;
         }
@@ -82,6 +84,7 @@ namespace TouhouCardEngine
             node.posY = posY;
             node.graph = this;
             nodes.Add(node);
+            node.Define();
             updateSize();
             return node;
         }
@@ -202,7 +205,7 @@ namespace TouhouCardEngine
                 }
                 if (node is TriggerEntryNode trigger)
                 {
-                    trigger.eventTypeInfo = eventTypeInfoFinder?.Invoke(trigger.eventName);
+                    trigger.define = eventTypeInfoFinder?.Invoke(trigger.eventName);
                     trigger.Define();
                 }
             }
@@ -215,15 +218,10 @@ namespace TouhouCardEngine
         {
             foreach (var node in actionDefine.graph.nodes)
             {
-                if (node is GeneratedActionEntryNode entry)
+                if (node is IDefineNode<GeneratedActionDefine> genNode)
                 {
-                    entry.generatedDefine = actionDefine;
-                    entry.Define();
-                }
-                if (node is GeneratedActionReturnNode returnNode)
-                {
-                    returnNode.generatedDefine = actionDefine;
-                    returnNode.Define();
+                    genNode.define = actionDefine;
+                    genNode.Define();
                 }
             }
         }

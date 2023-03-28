@@ -7,7 +7,7 @@ using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class TriggerEntryNode : Node
+    public class TriggerEntryNode : Node, IDefineNode<EventDefine>
     {
         #region 公有方法
         public TriggerEntryNode(int id, string eventName)
@@ -31,7 +31,7 @@ namespace TouhouCardEngine
         public void Define()
         {
             DefinitionConditions();
-            DefinitionOutputs(eventTypeInfo);
+            DefinitionOutputs(define);
         }
         public ValueInput getTriggerCondtionValuePort()
         {
@@ -123,7 +123,7 @@ namespace TouhouCardEngine
         }
 
         #endregion
-        public EventDefine eventTypeInfo { get; set; }
+        public EventDefine define { get; set; }
         public string eventName;
         public bool hideEvents;
         public List<TargetChecker> targetCheckerList { get; private set; } = new List<TargetChecker>(); 
