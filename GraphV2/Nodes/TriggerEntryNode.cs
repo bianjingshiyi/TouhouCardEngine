@@ -112,9 +112,12 @@ namespace TouhouCardEngine
             {
                 controlOutput()
             };
-            foreach (EventVariableInfo info in typeInfo.variableInfos)
+            if (typeInfo?.variableInfos != null)
             {
-                outputs.Add(valueOutput(info));
+                foreach (EventVariableInfo info in typeInfo.variableInfos)
+                {
+                    outputs.Add(valueOutput(info));
+                }
             }
 
             foreach (var lostPort in _outputs.Except(outputs))

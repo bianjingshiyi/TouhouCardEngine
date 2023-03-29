@@ -162,7 +162,7 @@ namespace TouhouCardEngine
                 => inputList.OfType<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
 
             List<IPort> inputs = new List<IPort>();
-            if (define.inputDefines != null)
+            if (define?.inputDefines != null)
             {
                 foreach (var portDefine in define.inputDefines)
                 {
@@ -214,7 +214,7 @@ namespace TouhouCardEngine
                 => outputList.OfType<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
 
             List<IPort> outputs = new List<IPort>();
-            if (define.outputDefines != null)
+            if (define?.outputDefines != null)
             {
                 foreach (var portDefine in define.outputDefines)
                 {
