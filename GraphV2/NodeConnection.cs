@@ -55,7 +55,19 @@ namespace TouhouCardEngine
             var sourcePort = sourceNode.getOutputPort(sourceName);
             IPort destPort;
             if (destParamIndex > 0)
-                destPort = destNode.getParamInputPort(destName, destParamIndex - 1);
+            {
+                var paramIndex = destParamIndex - 1;
+                if (destNode is ActionNode action)
+                {
+                    while (paramIndex + 1 >= destNode.getParamInputPorts(destName).Length)
+                    {
+                        action.extendParamsPort(destName);
+                    }
+                }
+                destPort = destNode.getParamInputPort(destName, paramIndex);
+                if (destPort == null)
+                    throw new NullReferenceException($"无法找到节点“{destNode}”的，名为{destName}，索引{paramIndex}的变长参数端口。");
+            }
             else
                 destPort = destNode.getInputPort(destName);
 

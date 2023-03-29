@@ -67,7 +67,7 @@ namespace TouhouCardEngine.Interfaces
         }
         public ValueInput getParamInputPort(string name, int index)
         {
-            return getParamInputPorts(name)?[index];
+            return inputPorts.OfType<ValueInput>().Where(p => p.name == name).ElementAtOrDefault(index);
         }
         public ValueInput[] getParamInputPorts(string name)
         {
