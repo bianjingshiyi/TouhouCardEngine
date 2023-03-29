@@ -35,6 +35,10 @@ namespace TouhouCardEngine
                 other is TValidOtherPort; // 属于可连接端口
         }
 
+        public PortType GetPortType()
+        {
+            return this is IValuePort ? PortType.Value : PortType.Control;
+        }
         public abstract void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null);
         public abstract NodeConnection connect(TValidOtherPort other);
 
