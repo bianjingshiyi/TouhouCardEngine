@@ -47,12 +47,15 @@ namespace TouhouCardEngine
         }
         public void AddTargetChecker(TargetChecker checker)
         {
+            checker.trigger = this;
             targetCheckerList.Add(checker);
             DefinitionConditions();
         }
         public void RemoveTargetChecker(int index)
         {
-            targetCheckerList.RemoveAt(index);
+            var checker = targetCheckerList[index];
+            checker.trigger = null;
+            targetCheckerList.Remove(checker);
             DefinitionConditions();
         }
         public override ISerializableNode ToSerializableNode()
@@ -131,7 +134,7 @@ namespace TouhouCardEngine
         private List<IPort> _outputs;
         public override IEnumerable<IPort> outputPorts => _outputs;
         public override IEnumerable<IPort> inputPorts => _conditions;
-        public override IDictionary<string, object> consts => targetCheckerList.ToDictionary(t => $"target[{t.targetIndex}]", t => (object)t);
+        public override IDictionary<string, object> consts => targetCheckerList.ToDictionary(t => $"target[{t.getIndex()}]", t => (object)t);
 
         private const string targetConditionName = "targetCondition";
         private static PortDefine targetConditionPortDefine = PortDefine.Value(typeof(bool), targetConditionName, "目标{0}条件");
@@ -151,7 +154,6 @@ namespace TouhouCardEngine
             foreach (var seri in targetCheckerList)
             {
                 var checker = seri.toTargetChecker();
-                checker.trigger = entry;
                 entry.AddTargetChecker(checker);
             }
             return entry;

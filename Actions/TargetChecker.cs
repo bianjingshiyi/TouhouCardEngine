@@ -1,19 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using MongoDB.Bson.Serialization.Attributes;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public class TargetChecker
     {
         #region 公有方法
-        public TargetChecker(string targetType, int targetIndex, string invalidMsg)
+        public TargetChecker(string targetType, string invalidMsg)
         {
             this.targetType = targetType;
-            this.targetIndex = targetIndex;
-            this.errorTip = invalidMsg;
+            errorTip = invalidMsg;
         }
-        public TargetChecker() : this(string.Empty, -1, string.Empty)
+        public TargetChecker() : this(string.Empty, string.Empty)
         {
+        }
+        public int getIndex()
+        {
+            return trigger.targetCheckerList.IndexOf(this);
         }
         public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
@@ -21,12 +25,12 @@ namespace TouhouCardEngine
                 return;
             if (traversedActionNodeSet == null)
                 traversedActionNodeSet = new HashSet<Node>();
-            var condition = trigger?.getTargetConditionPort(targetIndex);
+            var condition = trigger?.getTargetConditionPort(getIndex());
             condition?.traverse(action, traversedActionNodeSet);
         }
         public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
-            var condition = trigger?.getTargetConditionPort(targetIndex);
+            var condition = trigger?.getTargetConditionPort(getIndex());
             if (condition == null || condition.getConnectedOutputPort() == null)
             {
                 invalidMsg = null;
@@ -55,10 +59,10 @@ namespace TouhouCardEngine
         #endregion
         public TriggerEntryNode trigger;
         public string targetType;
-        public int targetIndex;
         public string errorTip;
     }
     [Serializable]
+    [BsonIgnoreExtraElements]
     public class SerializableTargetChecker
     {
         #region 公有方法
@@ -68,20 +72,18 @@ namespace TouhouCardEngine
             if (targetChecker == null)
                 throw new ArgumentNullException(nameof(targetChecker));
             targetType = targetChecker.targetType;
-            targetIndex = targetChecker.targetIndex;
             errorTip = targetChecker.errorTip;
         }
         #endregion
         public TargetChecker toTargetChecker()
         {
-            return new TargetChecker(targetType, targetIndex, errorTip);
+            return new TargetChecker(targetType, errorTip);
         }
         #endregion
         #region 属性字段
         public string targetType;
         [Obsolete]
         public SerializableActionValueRef condition;
-        public int targetIndex;
         public string errorTip;
         #endregion
     }
