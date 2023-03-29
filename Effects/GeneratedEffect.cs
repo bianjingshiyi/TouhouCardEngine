@@ -221,12 +221,12 @@ namespace TouhouCardEngine
         public string name;
         public ActionGraph graph { get; set; }
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        public virtual PileNameCollection pileList => getDataNode()?.getConst<PileNameCollection>(GeneratedEffectData.pileListName);
+        protected virtual PileNameCollection pileList => getDataNode()?.getConst<PileNameCollection>(GeneratedEffectData.pileListName);
         public virtual ControlOutput onEnableAction => getDataNode()?.getOutputPort<ControlOutput>(GeneratedEffectData.enableActionName);
         public virtual ControlOutput onDisableAction => getDataNode()?.getOutputPort<ControlOutput>(GeneratedEffectData.disableActionName);
         public virtual IEnumerable<TriggerEntryNode> triggerList => graph?.nodes?.OfType<TriggerEntryNode>();
 
-        string[] IPassiveEffect.piles => pileList.ToArray();
+        public string[] piles => pileList?.ToArray() ?? Array.Empty<string>();
         #endregion
     }
 

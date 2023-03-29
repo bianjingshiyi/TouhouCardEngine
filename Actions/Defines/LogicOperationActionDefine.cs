@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
@@ -39,8 +40,8 @@ namespace TouhouCardEngine
             else
                 op = LogicOperator.and;
 
-            var argPorts = node.getParamInputPorts("value");
-            bool result;
+            var argPorts = node.getParamInputPorts("value").Select(port => port.getConnectedOutputPort()).Where(p => p != null).ToArray();
+            bool result = false;
             if (argPorts != null && argPorts.Length > 0)
             {
                 switch (op)
@@ -73,10 +74,8 @@ namespace TouhouCardEngine
                     default:
                         throw new InvalidOperationException("未知的操作符" + op);
                 }
-                flow.setValue(node.getOutputPort<ValueOutput>("result"), result);
             }
-            else
-                throw new ArgumentException("传入参数无法转化为bool[]");
+            flow.setValue(node.getOutputPort<ValueOutput>("result"), result);
             return node.getOutputPort<ControlOutput>(exitPortName);
         }
         public PortDefine[] inputs { get; }

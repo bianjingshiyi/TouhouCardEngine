@@ -67,11 +67,6 @@ namespace TouhouCardEngine
                                         if (passiveEffect.piles.Contains(from.name) && (to == null || !passiveEffect.piles.Contains(to.name)))
                                             passiveEffect.onDisable(game, card, null);
                                     }
-                                    else if (effect is GeneratedEffect generatedEffect)
-                                    {
-                                        if (generatedEffect.pileList.Contains(from.name) && (to == null || !generatedEffect.pileList.Contains(to.name)))
-                                            generatedEffect.onDisable(game, card, null);
-                                    }
                                 }
                             }
                             catch (Exception e)
@@ -96,11 +91,6 @@ namespace TouhouCardEngine
                                         {
                                             if ((from == null || !passiveEffect.piles.Contains(from.name)) && passiveEffect.piles.Contains(to.name))
                                                 passiveEffect.onEnable(game, card, null);
-                                        }
-                                        else if (effect is GeneratedEffect generatedEffect)
-                                        {
-                                            if ((from == null || !generatedEffect.pileList.Contains(from.name)) && generatedEffect.pileList.Contains(to.name))
-                                                generatedEffect.onEnable(game, card, null);
                                         }
                                     }
                                 }
@@ -136,11 +126,6 @@ namespace TouhouCardEngine
                                     {
                                         if (passiveEffect.piles.Contains(to.name))
                                             passiveEffect.onEnable(game, card, null);
-                                    }
-                                    else if (effect is GeneratedEffect generatedEffect)
-                                    {
-                                        if (generatedEffect.pileList.Contains(to.name))
-                                            generatedEffect.onEnable(game, card, null);
                                     }
                                 }
                             }
