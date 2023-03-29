@@ -118,17 +118,16 @@ namespace TouhouCardEngine
         }
         public bool disconnect(NodeConnection connection)
         {
+            if (connection == null)
+                return false;
+            var connected = connections.Remove(connection);
             UpdateParamsInputs(connection.destination.node as ActionNode);
-            return connections.Remove(connection);
+            return connected;
         }
         public bool disconnect(IPort port1, IPort port2)
         {
             var connection = getConnection(port1, port2);
-            if (connection != null)
-            {
-                return connections.Remove(connection);
-            }
-            return false;
+            return disconnect(connection);
         }
         public int disconnectAll(IPort port)
         {

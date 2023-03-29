@@ -172,7 +172,7 @@ namespace TouhouCardEngine
                         if (define.isParams && portDefine == define.inputDefines.Last())
                         {
                             // 变长参数。
-                            var count = 0;
+                            var count = -1;
                             var connectedInputs = getParamInputPorts(portDefine.name).Where(p => p.connections.Count() > 0);
                             if (connectedInputs.Count() > 0)
                             {
