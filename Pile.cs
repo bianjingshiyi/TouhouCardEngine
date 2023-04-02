@@ -53,9 +53,11 @@ namespace TouhouCardEngine
                     from = arg.from;
                     to = arg.to;
                     card = arg.card;
+                    var fromPosition = -1;
                     position = arg.position;
                     if (from != null)
                     {
+                        fromPosition = from.indexOf(card);
                         if (from.cardList.Remove(card))
                         {
                             try
@@ -140,6 +142,7 @@ namespace TouhouCardEngine
                             card.owner = null;
                         }
                     }
+                    card.addHistory(new CardMoveHistory(from, to, fromPosition, position));
                     return Task.CompletedTask;
                 });
             else
@@ -201,6 +204,13 @@ namespace TouhouCardEngine
             {
                 return "将" + card + "从" + from + "移动到" + to + "的" + position;
             }
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setVar(VAR_FROM_PILE, from);
+                record.setVar(VAR_TO_PILE, to);
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_POSITION, position);
+            }
             #region 动作定义
             [ActionNodeMethod("IsPlayerPileChanged", "Pile")]
             [return: ActionNodeParam("IsChanged")]
@@ -214,6 +224,11 @@ namespace TouhouCardEngine
             public Pile to;
             public Card card;
             public int position;
+
+            public const string VAR_FROM_PILE = "from";
+            public const string VAR_TO_PILE = "to";
+            public const string VAR_CARD = "card";
+            public const string VAR_POSITION = "position";
         }
         public Task moveTo(IGame game, Card card, Pile targetPile)
         {

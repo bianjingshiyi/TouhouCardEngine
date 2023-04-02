@@ -69,12 +69,15 @@ namespace TouhouCardEngine
             this.value = value;
             return game.triggers.doEvent<IPropChangeEventArg>(new Card.PropChangeEventArg()
             {
-                game = game,
                 card = card,
                 propName = getPropName(),
                 beforeValue = beforeValue,
                 value = card.getProp(game, getPropName())
-            }, arg => Task.CompletedTask);
+            }, arg =>
+            {
+                card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value));
+                return Task.CompletedTask;
+            });
         }
         public sealed override object calc(IGame game, Card card, object value)
         {

@@ -143,10 +143,17 @@ namespace TouhouCardEngine
         {
             return _eventChainList.Select(ei => ei.eventArg).ToArray();
         }
-
-        public IEventArg[] getRecordedEvents()
+        public IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = true)
         {
-            return _eventRecordList.Select(ei => ei.eventArg).ToArray();
+            return getRecords(includeCanceled, includeUncompleted).Select(ei => ei.eventArg).ToArray();
+        }
+        public EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = true)
+        {
+            return getRecords(includeCanceled, includeUncompleted).ToArray();
+        }
+        public EventRecord getEventRecord(IEventArg arg, bool includeCanceled = false, bool includeUncompleted = false)
+        {
+            return getRecords(includeCanceled, includeUncompleted).FirstOrDefault(r => r.eventArg == arg);
         }
 
         public IEventArg getEventArg(string[] eventNames, object[] args)
@@ -230,11 +237,6 @@ namespace TouhouCardEngine
 
         public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
         {
-            return await doEvent(eventArg, null);
-        }
-
-        public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
-        {
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
@@ -243,14 +245,11 @@ namespace TouhouCardEngine
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 eventArg.parent = currentEvent;
+            var record = new EventRecord(eventArg);
             _eventChainList.Add(eventArgItem);
-            _eventRecordList.Add(eventArgItem);
+            _eventRecordList.Add(record);
             eventArg.isCanceled = false;
             eventArg.repeatTime = 0;
-            eventArg.action = arg =>
-            {
-                return action?.Invoke((T)arg);
-            };
 
             // 获取事件前触发器。
             var beforeNames = eventArg.beforeNames;
@@ -264,7 +263,7 @@ namespace TouhouCardEngine
             await doEventBefore<T>(beforeTriggers, eventArg);
 
             // 执行事件
-            await doEventFunc(eventArg);
+            await doEventFunc(eventArg, record);
 
             // 获取事件后触发器。
             var afterNames = eventArg.afterNames;
@@ -279,12 +278,20 @@ namespace TouhouCardEngine
 
             flushAfterEventQueue(eventArgItem, eventArg);
 
-            beforeNames = null;
             _eventChainList.Remove(eventArgItem);
             if (eventArg.isCanceled)
                 return default;
             else
                 return eventArg;
+        }
+
+        public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
+        {
+            eventArg.action = arg =>
+            {
+                return action?.Invoke((T)arg);
+            };
+            return await doEvent(eventArg);
         }
         #endregion
 
@@ -326,7 +333,7 @@ namespace TouhouCardEngine
                 logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
             }
         }
-        private async Task doEventFunc(IEventArg eventArg)
+        private async Task doEventFunc(IEventArg eventArg, EventRecord record)
         {
             int repeatTime = 0;
             do
@@ -346,6 +353,10 @@ namespace TouhouCardEngine
                 repeatTime++;
             }
             while (repeatTime <= eventArg.repeatTime);
+
+            record.isCanceled = eventArg.isCanceled;
+            eventArg.Record(game, record);
+            record.isCompleted = true;
         }
         private async Task doEventAfter<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T : IEventArg
         {
@@ -439,6 +450,10 @@ namespace TouhouCardEngine
             }
             argItem.triggerList.Clear();
         }
+        private IEnumerable<EventRecord> getRecords(bool includeCanceled, bool includeUncompleted)
+        {
+            return _eventRecordList.Where(r => (includeCanceled || !r.isCanceled) && (includeUncompleted || r.isCompleted));
+        }
         #endregion
         #region 内置类
         [Serializable]
@@ -500,6 +515,7 @@ namespace TouhouCardEngine
         public event Action<IEventArg> onEventAfter;
         #endregion
         #region 属性字段
+        public IGame game { get; set; }
         public Shared.ILogger logger { get; set; } = null;
         public IEventArg currentEvent => _eventChainList.Count > 0 ? _eventChainList[_eventChainList.Count - 1].eventArg : null;
         [SerializeField]
@@ -507,7 +523,7 @@ namespace TouhouCardEngine
         [SerializeField]
         List<EventArgItem> _eventChainList = new List<EventArgItem>();
         [SerializeField]
-        List<EventArgItem> _eventRecordList = new List<EventArgItem>();
+        List<EventRecord> _eventRecordList = new List<EventRecord>();
         private const int MAX_EVENT_TIMES = 30;
         #endregion
     }
@@ -606,6 +622,9 @@ namespace TouhouCardEngine
         public void setVar(string varName, object value)
         {
             varDict[varName] = value;
+        }
+        public void Record(IGame game, EventRecord record)
+        {
         }
         public string[] beforeNames { get; set; } = new string[0];
         public string[] afterNames { get; set; } = new string[0];

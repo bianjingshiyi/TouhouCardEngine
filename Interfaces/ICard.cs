@@ -9,6 +9,7 @@ namespace TouhouCardEngine.Interfaces
         ITimeManager time { get; }
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
+        CardSnapshot snapshotCard(Card card);
         Task runActions(Flow flow, ControlInput port);
         Task runActions(Flow flow, ControlOutput port);
         Task<object> getValue(Flow flow, ValueInput port);
@@ -30,6 +31,7 @@ namespace TouhouCardEngine.Interfaces
         T getProp<T>(IGame game, string propName);
         object getProp(IGame game, string propName);
         Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
+        Buff[] getBuffs();
     }
     public interface IPropChangeEventArg : IEventArg
     {

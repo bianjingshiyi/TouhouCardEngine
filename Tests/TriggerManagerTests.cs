@@ -467,6 +467,9 @@ namespace Tests
             {
                 varDict[varName] = value;
             }
+            public void Record(IGame game, EventRecord record)
+            {
+            }
             public int intValue { get; set; } = 0;
             public bool isCanceled { get; set; } = false;
             public int repeatTime { get; set; } = 0;

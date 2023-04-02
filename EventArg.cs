@@ -5,7 +5,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class EventArg : IEventArg
+    public abstract class EventArg : IEventArg
     {
         public IEventArg[] getChildEvents()
         {
@@ -45,6 +45,7 @@ namespace TouhouCardEngine
         {
             return null;
         }
+        public abstract void Record(IGame game, EventRecord record);
         #region 动作定义
         [ActionNodeMethod("GetVariable", "Event")]
         [return: ActionNodeParam("Value")]
@@ -58,7 +59,6 @@ namespace TouhouCardEngine
             eventArg.setVar(varName, value);
         }
         #endregion
-        public IGame game;
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
         public object[] args { get; set; }

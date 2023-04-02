@@ -89,6 +89,13 @@ namespace TouhouCardEngine
                 setVar(VAR_VALUE, value);
                 setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
             }
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setVar(VAR_BUFF, buff);
+                record.setVar(VAR_PROPERTY_NAME, propName);
+                record.setVar(VAR_VALUE, value);
+                record.setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
+            }
             public Buff buff
             {
                 get { return getVar<Buff>(VAR_BUFF); }

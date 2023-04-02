@@ -91,6 +91,7 @@ namespace TouhouCardEngine
                 }
                 //更换define
                 card.define = define;
+                card.addHistory(new CardSetDefineHistory(arg.beforeDefine, arg.afterDefine));
                 //激活被动
                 Pile pile = card.getPile(game as CardEngine);
                 foreach (var effect in card.define.getEffects())
@@ -111,7 +112,7 @@ namespace TouhouCardEngine
         {
             public CardDefine beforeDefine;
             public Card card;
-            public CardDefine afterDefine;//TODO:卡牌快照
+            public CardDefine afterDefine;
             public ICard getCard(IGame game, IPlayer viewer)
             {
                 return card;
@@ -120,7 +121,12 @@ namespace TouhouCardEngine
             {
                 return null;
             }
-
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setVar(VAR_BEFORE_DEFINE, beforeDefine);
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_AFTER_DEFINE, afterDefine);
+            }
             public object[] localizeStringArgs(IGame game, IPlayer viewer)
             {
                 return new object[] { card.getFormatString() };
@@ -137,6 +143,9 @@ namespace TouhouCardEngine
                 //TODO:可见性问题
                 return string.Format(TEXT_TEMPLATE, localizeStringArgs(game, viewer));
             }
+            public const string VAR_BEFORE_DEFINE = "beforeDefine";
+            public const string VAR_CARD = "card";
+            public const string VAR_AFTER_DEFINE = "afterDefine";
         }
         public PropModifier[] getModifiers()
         {
@@ -146,7 +155,7 @@ namespace TouhouCardEngine
         {
             if (game != null && game.triggers != null)
             {
-                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg() { game = game, card = this, modifier = modifier, valueBefore = getProp(game, modifier.getPropName()) }, async arg =>
+                return game.triggers.doEvent<IAddModiEventArg>(new AddModiEventArg() { card = this, modifier = modifier, valueBefore = getProp(game, modifier.getPropName()) }, async arg =>
                 {
                     Card card = arg.card as Card;
                     modifier = arg.modifier as PropModifier;
@@ -159,9 +168,10 @@ namespace TouhouCardEngine
                     object value = card.getProp(game, modifier.getPropName());
                     (arg as AddModiEventArg).valueAfter = value;
                     game?.logger?.logTrace(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + StringHelper.propToString(value));
-                    await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value }, arg2 =>
+                    await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value }, arg2 =>
                     {
-                        arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
+                        card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value));
+                        game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                         return Task.CompletedTask;
                     });
                 }); 
@@ -188,6 +198,17 @@ namespace TouhouCardEngine
             IPropModifier IAddModiEventArg.modifier => modifier;
             object IAddModiEventArg.valueBefore => valueBefore;
             object IAddModiEventArg.valueAfter => valueAfter;
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_MODIFIER, modifier);
+                record.setVar(VAR_VALUE_BEFORE, valueBefore);
+                record.setVar(VAR_VALUE_AFTER, valueAfter);
+            }
+            public const string VAR_CARD = "card";
+            public const string VAR_VALUE_BEFORE = "valueBefore";
+            public const string VAR_MODIFIER = "modifier";
+            public const string VAR_VALUE_AFTER = "valueAfter";
         }
         public async Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier)
         {
@@ -204,10 +225,11 @@ namespace TouhouCardEngine
                         await modifier.afterRemove(game, card);
                         object value = card.getProp(game, modifier.getPropName());
                         game?.logger?.logTrace("PropModifier", card + "移除属性修正" + modifier + "=>" + StringHelper.propToString(value));
-                        await game.triggers.doEvent(new PropChangeEventArg() { game = game, card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value },
+                        await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value },
                         arg2 =>
                         {
-                            arg2.game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
+                            card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value));
+                            game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                             return Task.CompletedTask;
                         });
                     });
@@ -232,6 +254,13 @@ namespace TouhouCardEngine
             ICard IRemoveModiEventArg.card => card;
 
             IPropModifier IRemoveModiEventArg.modifier => modifier;
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_MODIFIER, modifier);
+            }
+            public const string VAR_CARD = "card";
+            public const string VAR_MODIFIER = "modifier";
         }
         public async Task addBuff(IGame game, Buff buff)
         {
@@ -328,6 +357,29 @@ namespace TouhouCardEngine
                 generatedBuff.defineRef.cardPoolId == buffDefine.cardPoolId &&
                 generatedBuff.defineRef.defineId == buffDefine.id);
         }
+        public int addHistory(CardHistory history)
+        {
+            _history.Add(history);
+            return _history.Count - 1;
+        }
+        public int getCurrentHistory()
+        {
+            return _history.Count - 1;
+        }
+        public CardHistory getHistory(int index)
+        {
+            if (index < 0 || index >= _history.Count)
+                return null;
+            return _history[index];
+        }
+        public void revertToHistory(ITrackableCard trackable, int historyIndex)
+        {
+            for (int i = _history.Count - 1; i >= historyIndex; i--)
+            {
+                var history = _history[i];
+                history.revert(trackable);
+            }
+        }
         #region 动作定义
         [ActionNodeMethod("AddIntModifier", "Card")]
         [return: ActionNodeParam("Modifier")]
@@ -356,6 +408,7 @@ namespace TouhouCardEngine
                     Card card = arg.card as Card;
                     propName = arg.propName;
                     var v = arg.value;
+                    card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value));
                     propDic[propName] = v;
                     game.logger?.logTrace("Game", card + "的属性" + propName + "=>" + StringHelper.propToString(v));
                     return Task.CompletedTask;
@@ -376,6 +429,17 @@ namespace TouhouCardEngine
             string IPropChangeEventArg.propName => propName;
             object IPropChangeEventArg.beforeValue => beforeValue;
             object IPropChangeEventArg.value => value;
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_PROP_NAME, propName);
+                record.setVar(VAR_VALUE_BEFORE, beforeValue);
+                record.setVar(VAR_VALUE_AFTER, value);
+            }
+            public const string VAR_CARD = "card";
+            public const string VAR_VALUE_BEFORE = "beforeValue";
+            public const string VAR_PROP_NAME = "propName";
+            public const string VAR_VALUE_AFTER = "value";
         }
         public T getProp<T>(IGame game, string propName, bool raw)
         {
@@ -474,5 +538,6 @@ namespace TouhouCardEngine
             else
                 return new Card[0];
         }
+        private List<CardHistory> _history = new List<CardHistory>();
     }
 }

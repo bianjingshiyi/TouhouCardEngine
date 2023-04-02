@@ -29,7 +29,9 @@ namespace TouhouCardEngine.Interfaces
         event Action<IEventArg> onEventAfter;
         IEventArg currentEvent { get; }
         IEventArg[] getEventChain();
-        IEventArg[] getRecordedEvents();
+        IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = false);
+        EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = false);
+        EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = false);
     }
     public interface ITrigger
     {
@@ -65,6 +67,7 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="varName">环境变量名</param>
         /// <param name="value">环境变量值</param>
         void setVar(string varName, object value);
+        void Record(IGame game, EventRecord record);
     }
     public interface IDescribableEventArg : IEventArg
     {

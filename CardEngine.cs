@@ -214,6 +214,10 @@ namespace TouhouCardEngine
         {
             return ids.Select(id => getCard(id)).ToArray();
         }
+        public CardSnapshot snapshotCard(Card card)
+        {
+            return snapshoter?.snapshot(this, card);
+        }
         #endregion
         #region Props
         public T getProp<T>(string varName)
@@ -337,6 +341,7 @@ namespace TouhouCardEngine
         #region 管理器
         public ITimeManager time { get; set; } = null;
         public ITriggerManager triggers { get; set; } = null;
+        public ISnapshoter snapshoter { get; set; } = null;
         //public SyncTriggerSystem trigger { get; }
         IAnswerManager _answers;
         public IAnswerManager answers
@@ -387,6 +392,9 @@ namespace TouhouCardEngine
             public int playerId;
             public string commandName;
             public object[] commandArgs;
+            public override void Record(IGame game, EventRecord record)
+            {
+            }
         }
         #endregion
     }
