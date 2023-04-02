@@ -425,6 +425,35 @@ namespace TouhouCardEngine
         {
             return getProp(game, propName, false);
         }
+        /// <summary>
+        /// 获取所有相对于卡牌定义进行变更的属性名称。
+        /// </summary>
+        /// <param name="game">游戏对象。</param>
+        /// <param name="raw">是否忽略属性修改器修改的属性？</param>
+        /// <returns></returns>
+        public Dictionary<string, object> getAllProps(IGame game, bool raw = false)
+        {
+            Dictionary<string, object> props = new Dictionary<string, object>(propDic);
+            if (!raw)
+            {
+                foreach (var modifier in modifierList.OfType<PropModifier>())
+                {
+                    if (game != null && !modifier.checkCondition(game, this))
+                        continue;
+                    var propName = modifier.getPropName();
+                    if (props.TryGetValue(propName, out var value))
+                    {
+                        props[propName] = modifier.calc(game, this, value);
+                    }
+                    else
+                    {
+                        value = define.getProp<object>(propName);
+                        props.Add(propName, modifier.calc(game, this, value));
+                    }
+                }
+            }
+            return props;
+        }
         internal Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         #endregion
         public override string ToString()
