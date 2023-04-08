@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
-using MongoDB.Bson;
 
 namespace TouhouCardEngine
 {
@@ -229,109 +226,7 @@ namespace TouhouCardEngine
 
         public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
         {
-            if (eventArg == null)
-                throw new ArgumentNullException(nameof(eventArg));
-            // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
-            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
-            {
-                string eventName = getName<T>();
-                Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
-                logger?.logError("Trigger", $"事件{eventName}的执行次数超出上限！不再执行新的事件。");
-                return default;
-            }
-            //加入事件链
-            EventArgItem eventArgItem = new EventArgItem(eventArg);
-            if (currentEvent != null)
-                eventArg.parent = currentEvent;
-            _eventChainList.Add(eventArgItem);
-            _eventRecordList.Add(eventArgItem);
-            try
-            {
-                onEventBefore?.Invoke(eventArg);
-            }
-            catch (Exception e)
-            {
-                logger?.logError("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
-            }
-            //获取事件名
-            doEventNames = eventArg.afterNames;
-            if (doEventNames == null)
-                doEventNames = new string[] { getName<T>() };
-            else
-                doEventNames = doEventNames.Concat(new string[] { getName<T>() }).Distinct().ToArray();
-            //对注册事件进行排序
-            List<ITrigger> triggerList = new List<ITrigger>();
-            foreach (string eventName in doEventNames)
-            {
-                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-                if (eventItem == null)
-                    continue;
-                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                triggerList.AddRange(eventItem.triggerList.Select(ti => ti.trigger));
-            }
-            triggerList.Sort((a, b) => a.compare(b, eventArg));
-            //执行注册事件
-            while (triggerList.Count > 0)
-            {
-                ITrigger trigger = triggerList[0];
-                triggerList.RemoveAt(0);
-                if (trigger is ITrigger<T> triggerT)
-                {
-                    logger?.log("Trigger", "运行触发器" + triggerT);
-                    try
-                    {
-                        await triggerT.invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
-                    }
-                }
-                else
-                {
-                    logger?.log("Trigger", "运行触发器" + trigger);
-                    try
-                    {
-                        await trigger.invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
-                    }
-                }
-                if (_insertEventList.Count > 0)
-                {
-                    foreach (string eventName in doEventNames)
-                    {
-                        EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == eventName);
-                        if (insertEventItem == null)
-                            continue;
-                        if (insertEventItem.triggerList.Count > 0)
-                        {
-                            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-                            if (eventItem != null)
-                                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                            triggerList.AddRange(insertEventItem.triggerList.Select(ti => ti.trigger));
-                            logger?.log("运行中插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
-                            triggerList.Sort((a, b) => a.compare(b, eventArg));
-                            _insertEventList.Remove(insertEventItem);
-                        }
-                    }
-                    _insertEventList.Clear();
-                }
-            }
-            doEventNames = null;
-            try
-            {
-                onEventAfter?.Invoke(eventArg);
-            }
-            catch (Exception e)
-            {
-                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
-            }
-            //移出事件链
-            _eventChainList.Remove(eventArgItem);
-            return eventArg;
+            return await doEvent(eventArg, null);
         }
 
         public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
@@ -339,13 +234,8 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
-            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
-            {
-                string eventName = getName<T>();
-                Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
-                logger?.logError("Trigger", $"事件{eventName}的执行次数超出上限！不再执行新的事件。");
+            if (eventOutOfLimit<T>())
                 return default;
-            }
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 eventArg.parent = currentEvent;
@@ -355,58 +245,42 @@ namespace TouhouCardEngine
             eventArg.repeatTime = 0;
             eventArg.action = arg =>
             {
-                return action.Invoke((T)arg);
+                return action?.Invoke((T)arg);
             };
+            List<ITrigger> triggerList = new List<ITrigger>();
             //Before
+            await doEventBefore<T>(eventArg);
+
+            //Event
+            await doEventFunc(eventArg);
+
+            //After
+            await doEventAfter<T>(eventArg);
+
+            doEventNames = null;
+            _eventChainList.Remove(eventArgItem);
+            if (eventArg.isCanceled)
+                return default;
+            else
+                return eventArg;
+        }
+        #endregion
+
+        #endregion
+        #region 私有方法
+        private async Task doEventBefore<T>(IEventArg eventArg) where T: IEventArg
+        {
             doEventNames = eventArg.beforeNames;
             if (doEventNames == null)
                 doEventNames = new string[] { getNameBefore<T>() };
             else
                 doEventNames = doEventNames.Concat(new string[] { getNameBefore<T>() }).Distinct().ToArray();
-            List<ITrigger> triggerList = new List<ITrigger>();
-            foreach (string eventName in doEventNames)
+            var triggers =getEventTriggerList(eventArg);
+            foreach (var trigger in triggers)
             {
-                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-                if (eventItem == null)
-                    continue;
-                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                foreach (TriggerListItem item in eventItem.triggerList)
-                {
-                    if (item.trigger.checkCondition(eventArg))
-                        triggerList.Add(item.trigger);
-                }
-            }
-            triggerList.Sort((a, b) => a.compare(b, eventArg));
-            while (triggerList.Count > 0)
-            {
-                ITrigger trigger = triggerList[0];
-                triggerList.RemoveAt(0);
                 if (eventArg.isCanceled)
                     break;
-                if (trigger is ITrigger<T> triggerT)
-                {
-                    logger?.log("Trigger", "运行触发器" + triggerT);
-                    try
-                    {
-                        await triggerT.invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
-                    }
-                }
-                else
-                {
-                    logger?.log("Trigger", "运行触发器" + trigger);
-                    try
-                    {
-                        await trigger.invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
-                    }
-                }
+                await runTrigger<T>(trigger, eventArg);
             }
             doEventNames = null;
             //Callback
@@ -418,26 +292,30 @@ namespace TouhouCardEngine
             {
                 logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
             }
-            //Event
+        }
+        private async Task doEventFunc(IEventArg eventArg)
+        {
             int repeatTime = 0;
             do
             {
                 if (eventArg.isCanceled)
                     break;
-                if (eventArg.action != null)
+                if (eventArg.action == null)
+                    break;
+                try
                 {
-                    try
-                    {
-                        await eventArg.action.Invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.log("Error", "执行" + eventArg + "逻辑发生异常：" + e);
-                    }
+                    await eventArg.action.Invoke(eventArg);
+                }
+                catch (Exception e)
+                {
+                    logger?.log("Error", "执行" + eventArg + "逻辑发生异常：" + e);
                 }
                 repeatTime++;
             }
             while (repeatTime <= eventArg.repeatTime);
+        }
+        private async Task doEventAfter<T>(IEventArg eventArg) where T : IEventArg
+        {
             //Callback
             try
             {
@@ -447,13 +325,64 @@ namespace TouhouCardEngine
             {
                 logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
             }
-            //After
+            // Event.
             doEventNames = eventArg.afterNames;
             if (doEventNames == null)
                 doEventNames = new string[] { getNameAfter<T>() };
             else
                 doEventNames = doEventNames.Concat(new string[] { getNameAfter<T>() }).Distinct().ToArray();
-            triggerList.Clear();
+            var triggerList = new List<ITrigger>(getEventTriggerList(eventArg));
+            while (triggerList.Count > 0)
+            {
+                ITrigger trigger = triggerList[0];
+                triggerList.RemoveAt(0);
+                if (eventArg.isCanceled)
+                    break;
+                await runTrigger<T>(trigger, eventArg);
+                flushInsertedEvents(triggerList, eventArg);
+            }
+        }
+        private bool eventOutOfLimit<T>() where T : IEventArg
+        {
+            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
+            {
+                string eventName = getName<T>();
+                Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
+                logger?.logError("Trigger", $"事件{eventName}的执行次数超出上限！不再执行新的事件。");
+                return true;
+            }
+            return false;
+        }
+        private async Task runTrigger<T>(ITrigger trigger, IEventArg eventArg) where T:IEventArg
+        {
+            if (trigger is ITrigger<T> triggerT)
+            {
+                logger?.log("Trigger", "运行触发器" + triggerT);
+                try
+                {
+                    await triggerT.invoke(eventArg);
+                }
+                catch (Exception e)
+                {
+                    logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                }
+            }
+            else
+            {
+                logger?.log("Trigger", "运行触发器" + trigger);
+                try
+                {
+                    await trigger.invoke(eventArg);
+                }
+                catch (Exception e)
+                {
+                    logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
+                }
+            }
+        }
+        private ITrigger[] getEventTriggerList(IEventArg eventArg)
+        {
+            List<ITrigger> triggerList = new List<ITrigger>();
             foreach (string eventName in doEventNames)
             {
                 EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
@@ -467,72 +396,38 @@ namespace TouhouCardEngine
                 }
             }
             triggerList.Sort((a, b) => a.compare(b, eventArg));
-            while (triggerList.Count > 0)
+            return triggerList.ToArray();
+        }
+        private void flushInsertedEvents(List<ITrigger> triggerList, IEventArg eventArg, Func<ITrigger, bool> triggerPredicate = null)
+        {
+            if (_insertEventList.Count > 0)
             {
-                ITrigger trigger = triggerList[0];
-                triggerList.RemoveAt(0);
-                if (eventArg.isCanceled)
-                    break;
-                if (trigger is ITrigger<T> triggerT)
+                foreach (string eventName in doEventNames)
                 {
-                    logger?.log("Trigger", "运行触发器" + triggerT);
-                    try
+                    EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == eventName);
+                    if (insertEventItem == null)
+                        continue;
+                    if (insertEventItem.triggerList.Count <= 0)
+                        continue;
+
+                    EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
+                    if (eventItem != null)
                     {
-                        await triggerT.invoke(eventArg);
+                        eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
                     }
-                    catch (Exception e)
+                    var insertedTriggers = insertEventItem.triggerList.Select(ti => ti.trigger);
+                    if (triggerPredicate != null)
                     {
-                        logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                        insertedTriggers = insertedTriggers.Where(triggerPredicate);
                     }
+                    logger?.log("Trigger", "运行中插入触发器" + string.Join("，", insertedTriggers));
+                    triggerList.AddRange(insertedTriggers);
+                    triggerList.Sort((a, b) => a.compare(b, eventArg));
                 }
-                else
-                {
-                    logger?.log("Trigger", "运行触发器" + trigger);
-                    try
-                    {
-                        await trigger.invoke(eventArg);
-                    }
-                    catch (Exception e)
-                    {
-                        logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
-                    }
-                }
-                if (_insertEventList.Count > 0)
-                {
-                    foreach (string afterName in doEventNames)
-                    {
-                        EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == afterName);
-                        if (insertEventItem == null)
-                            continue;
-                        if (insertEventItem.triggerList.Count > 0)
-                        {
-                            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == afterName);
-                            if (eventItem != null)
-                                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                            logger?.log("Trigger", "插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
-                            foreach (TriggerListItem item in eventItem.triggerList)
-                            {
-                                if (item.trigger.checkCondition(eventArg))
-                                    triggerList.Add(item.trigger);
-                            }
-                            triggerList.Sort((a, b) => a.compare(b, eventArg));
-                            _insertEventList.Remove(insertEventItem);
-                        }
-                    }
-                    _insertEventList.Clear();
-                }
+                _insertEventList.Clear();
             }
-            doEventNames = null;
-            _eventChainList.Remove(eventArgItem);
-            if (eventArg.isCanceled)
-                return default;
-            else
-                return eventArg;
         }
         #endregion
-
-        #endregion
-
         #region 内置类
         [Serializable]
         public class EventArgItem
