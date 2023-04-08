@@ -12,38 +12,14 @@ namespace TouhouCardEngine
 {
     public class TriggerManager : MonoBehaviour, ITriggerManager, IDisposable
     {
-        public Shared.ILogger logger { get; set; } = null;
-        [Serializable]
-        public class EventListItem
+        #region 公共方法
+        public void Dispose()
         {
-            [SerializeField]
-            string _eventName;
-            public string eventName
-            {
-                get { return _eventName; }
-            }
-            [SerializeField]
-            List<TriggerListItem> _triggerList = new List<TriggerListItem>();
-            public List<TriggerListItem> triggerList
-            {
-                get { return _triggerList; }
-            }
-            public EventListItem(string eventName)
-            {
-                _eventName = eventName;
-            }
+            Destroy(gameObject);
         }
-        [Serializable]
-        public class TriggerListItem
-        {
-            public ITrigger trigger { get; }
-            public TriggerListItem(ITrigger trigger)
-            {
-                this.trigger = trigger;
-            }
-        }
-        [SerializeField]
-        List<EventListItem> _eventList = new List<EventListItem>();
+
+        #region 触发器
+        #region 注册
         /// <summary>
         /// 注册触发器
         /// </summary>
@@ -84,8 +60,29 @@ namespace TouhouCardEngine
             else
                 throw new RepeatRegistrationException(eventName, trigger);
         }
-        [SerializeField]
-        List<EventListItem> _insertEventList = new List<EventListItem>();
+
+        public void register<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            register(getName<T>(), trigger);
+        }
+
+        public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            register(getNameBefore<T>(), trigger);
+        }
+
+        public void registerAfter<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            register(getNameAfter<T>(), trigger);
+        }
+
+        public void registerAfter<T>(Trigger<T> trigger) where T : IEventArg
+        {
+            registerAfter(trigger as ITrigger<T>);
+        }
+        #endregion
+
+        #region 移除
         public bool remove(string eventName, ITrigger trigger)
         {
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
@@ -99,6 +96,23 @@ namespace TouhouCardEngine
             else
                 return false;
         }
+        public bool remove<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            return remove(getName<T>(), trigger);
+        }
+
+        public bool removeBefore<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            return remove(getNameBefore<T>(), trigger);
+        }
+
+        public bool removeAfter<T>(ITrigger<T> trigger) where T : IEventArg
+        {
+            return remove(getNameAfter<T>(), trigger);
+        }
+        #endregion 移除
+
+        #region 获取
         public ITrigger[] getTriggers(string eventName)
         {
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
@@ -106,18 +120,49 @@ namespace TouhouCardEngine
                 return new ITrigger[0];
             return eventItem.triggerList.Select(ti => ti.trigger).ToArray();
         }
+        public ITrigger<T>[] getTriggers<T>() where T : IEventArg
+        {
+            return getTriggers(getName<T>()).OfType<ITrigger<T>>().ToArray();
+        }
+        public ITrigger<T>[] getTriggersBefore<T>() where T : IEventArg
+        {
+            return getTriggers(getNameBefore<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
+        }
+
+        public ITrigger<T>[] getTriggersAfter<T>() where T : IEventArg
+        {
+            return getTriggers(getNameAfter<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
+        }
+        #endregion
+        #endregion
+
+        #region 事件
+
+        public IEventArg[] getEventChain()
+        {
+            return _eventChainList.Select(ei => ei.eventArg).ToArray();
+        }
+
+        public IEventArg[] getRecordedEvents()
+        {
+            return _eventRecordList.Select(ei => ei.eventArg).ToArray();
+        }
+
         public IEventArg getEventArg(string[] eventNames, object[] args)
         {
             return new GeneratedEventArg(eventNames, args);
         }
+
         public string getName<T>() where T : IEventArg
         {
             return getName(typeof(T));
         }
+
         public string getName(IEventArg eventArg)
         {
             return getName(eventArg.GetType());
         }
+
         public string getName(Type type)
         {
             string name = type.Name;
@@ -125,84 +170,55 @@ namespace TouhouCardEngine
                 name = string.Intern(name.Substring(0, name.Length - 3));
             return name;
         }
-        public void register<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getName<T>(), trigger);
-        }
-        public bool remove<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getName<T>(), trigger);
-        }
-        public ITrigger<T>[] getTriggers<T>() where T : IEventArg
-        {
-            return getTriggers(getName<T>()).OfType<ITrigger<T>>().ToArray();
-        }
+
         public string getNameBefore<T>() where T : IEventArg
         {
             return getNameBefore(getName<T>());
         }
+
         public string getNameBefore(IEventArg eventArg)
         {
             return getNameBefore(getName(eventArg));
         }
+
         public string getNameBefore(string eventName)
         {
             return string.Intern("Before" + eventName);
         }
+
         public string getNameAfter<T>() where T : IEventArg
         {
             return getNameAfter(getName<T>());
         }
+
         public string getNameAfter(IEventArg eventArg)
         {
             return getNameAfter(getName(eventArg));
         }
+
         public string getNameAfter(string eventName)
         {
             return string.Intern("After" + eventName);
         }
-        public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getNameBefore<T>(), trigger);
-        }
-        public void registerAfter<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getNameAfter<T>(), trigger);
-        }
-        public void registerAfter<T>(Trigger<T> trigger) where T : IEventArg
-        {
-            registerAfter(trigger as ITrigger<T>);
-        }
-        public bool removeBefore<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getNameBefore<T>(), trigger);
-        }
-        public bool removeAfter<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getNameAfter<T>(), trigger);
-        }
-        public ITrigger<T>[] getTriggersBefore<T>() where T : IEventArg
-        {
-            return getTriggers(getNameBefore<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
-        }
-        public ITrigger<T>[] getTriggersAfter<T>() where T : IEventArg
-        {
-            return getTriggers(getNameAfter<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
-        }
+
+
         public Task<T> doEvent<T>(string[] eventNames, T eventArg, params object[] args) where T : IEventArg
         {
             eventArg.afterNames = eventNames;
             eventArg.args = args;
             return doEvent(eventArg);
         }
+
         public Task doEvent(string[] eventNames, object[] args)
         {
             return doEvent(getEventArg(eventNames, args));
         }
+
         public Task doEvent(string eventName, params object[] args)
         {
             return doEvent(new string[] { eventName }, args);
         }
+
         public Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, params object[] args) where T : IEventArg
         {
             eventArg.beforeNames = beforeNames;
@@ -210,6 +226,7 @@ namespace TouhouCardEngine
             eventArg.args = args;
             return doEvent(eventArg, action);
         }
+
         public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
         {
             if (eventArg == null)
@@ -316,7 +333,7 @@ namespace TouhouCardEngine
             _eventChainList.Remove(eventArgItem);
             return eventArg;
         }
-        string[] doEventNames { get; set; } = null;
+
         public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
         {
             if (eventArg == null)
@@ -389,30 +406,6 @@ namespace TouhouCardEngine
                     {
                         logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
                     }
-                }
-                if (_insertEventList.Count > 0)
-                {
-                    foreach (string beforeName in doEventNames)
-                    {
-                        EventListItem insertEventItem = _insertEventList.FirstOrDefault(ei => ei.eventName == beforeName);
-                        if (insertEventItem == null)
-                            continue;
-                        if (insertEventItem.triggerList.Count > 0)
-                        {
-                            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == beforeName);
-                            if (eventItem != null)
-                                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                            foreach (TriggerListItem item in eventItem.triggerList)
-                            {
-                                if (item.trigger.checkCondition(eventArg))
-                                    triggerList.Add(item.trigger);
-                            }
-                            logger?.log("运行中插入触发器" + string.Join("，", insertEventItem.triggerList.Select(ti => ti.trigger)));
-                            triggerList.Sort((a, b) => a.compare(b, eventArg));
-                            _insertEventList.Remove(insertEventItem);
-                        }
-                    }
-                    _insertEventList.Clear();
                 }
             }
             doEventNames = null;
@@ -536,8 +529,11 @@ namespace TouhouCardEngine
             else
                 return eventArg;
         }
-        public event Action<IEventArg> onEventBefore;
-        public event Action<IEventArg> onEventAfter;
+        #endregion
+
+        #endregion
+
+        #region 内置类
         [Serializable]
         public class EventArgItem
         {
@@ -558,24 +554,57 @@ namespace TouhouCardEngine
 #endif
             }
         }
-        private const int MAX_EVENT_TIMES = 30;
+
+        [Serializable]
+        public class EventListItem
+        {
+            [SerializeField]
+            string _eventName;
+            public string eventName
+            {
+                get { return _eventName; }
+            }
+            [SerializeField]
+            List<TriggerListItem> _triggerList = new List<TriggerListItem>();
+            public List<TriggerListItem> triggerList
+            {
+                get { return _triggerList; }
+            }
+            public EventListItem(string eventName)
+            {
+                _eventName = eventName;
+            }
+        }
+
+        [Serializable]
+        public class TriggerListItem
+        {
+            public ITrigger trigger { get; }
+            public TriggerListItem(ITrigger trigger)
+            {
+                this.trigger = trigger;
+            }
+        }
+
+        #endregion
+        #region 事件
+        public event Action<IEventArg> onEventBefore;
+        public event Action<IEventArg> onEventAfter;
+        #endregion
+        #region 属性字段
+        public Shared.ILogger logger { get; set; } = null;
+        public IEventArg currentEvent => _eventChainList.Count > 0 ? _eventChainList[_eventChainList.Count - 1].eventArg : null;
+        [SerializeField]
+        List<EventListItem> _eventList = new List<EventListItem>();
+        [SerializeField]
+        List<EventListItem> _insertEventList = new List<EventListItem>();
         [SerializeField]
         List<EventArgItem> _eventChainList = new List<EventArgItem>();
-        public IEventArg currentEvent => _eventChainList.Count > 0 ? _eventChainList[_eventChainList.Count - 1].eventArg : null;
-        public IEventArg[] getEventChain()
-        {
-            return _eventChainList.Select(ei => ei.eventArg).ToArray();
-        }
         [SerializeField]
         List<EventArgItem> _eventRecordList = new List<EventArgItem>();
-        public IEventArg[] getRecordedEvents()
-        {
-            return _eventRecordList.Select(ei => ei.eventArg).ToArray();
-        }
-        public void Dispose()
-        {
-            Destroy(gameObject);
-        }
+        string[] doEventNames { get; set; } = null;
+        private const int MAX_EVENT_TIMES = 30;
+        #endregion
     }
     public class Trigger : Trigger<IEventArg>
     {
