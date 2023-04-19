@@ -29,22 +29,8 @@ namespace TouhouCardEngine
                 throw new ArgumentException(nameof(eventName) + "不能为空字符串", nameof(eventName));
             if (trigger == null)
                 throw new ArgumentNullException(nameof(trigger));
-
-            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-            if (eventItem == null)
-            {
-                eventItem = new EventListItem(eventName);
-                _eventList.Add(eventItem);
-            }
-
-            if (!eventItem.triggerList.Any(ti => ti.trigger == trigger))
-            {
-                TriggerListItem item = new TriggerListItem(trigger);
-                eventItem.triggerList.Add(item);
-                logger?.log("Trigger", "注册触发器" + trigger);
-            }
-            else
-                throw new RepeatRegistrationException(eventName, trigger);
+            // 添加触发器。
+            addTrigger(eventName, trigger);
         }
 
         public void register<T>(ITrigger<T> trigger) where T : IEventArg
@@ -66,6 +52,35 @@ namespace TouhouCardEngine
         {
             registerAfter(trigger as ITrigger<T>);
         }
+        #region 延迟
+        /// <summary>
+        /// 注册触发器。如果在执行流程中，并且处于目标事件内部，则改为延迟注册直到该事件结束。用来防止某些效果因为其外部的效果而触发。
+        /// </summary>
+        /// <param name="eventName"></param>
+        /// <param name="trigger"></param>
+        public void registerDelayed(string eventName, ITrigger trigger)
+        {
+            //传入不能为空
+            if (string.IsNullOrEmpty(eventName))
+                throw new ArgumentException(nameof(eventName) + "不能为空字符串", nameof(eventName));
+            if (trigger == null)
+                throw new ArgumentNullException(nameof(trigger));
+
+            // 如果正在执行事件，并且是“XX后”事件，将触发器加入到队列中，并在之后刷新队列。
+            if (_eventChainList.Count > 0)
+            {
+                var argItem = _eventChainList.LastOrDefault(e => eventName == getNameAfter(e.eventArg));
+                if (argItem != null)
+                {
+                    argItem.triggerList.Add(new TriggerListItem(trigger));
+                    return;
+                }
+            }
+
+            // 正常添加触发器。
+            addTrigger(eventName, trigger);
+        }
+        #endregion
         #endregion
 
         #region 移除
@@ -237,7 +252,6 @@ namespace TouhouCardEngine
                 return action?.Invoke((T)arg);
             };
 
-            // 在执行事件前，先获取所有符合条件的触发器。
             // 获取事件前触发器。
             var beforeNames = eventArg.beforeNames;
             if (beforeNames == null)
@@ -245,6 +259,12 @@ namespace TouhouCardEngine
             else
                 beforeNames = beforeNames.Concat(new string[] { getNameBefore<T>() }).Distinct().ToArray();
             IEnumerable<ITrigger> beforeTriggers = getEventTriggerList(beforeNames, eventArg);
+
+            // 事件前
+            await doEventBefore<T>(beforeTriggers, eventArg);
+
+            // 执行事件
+            await doEventFunc(eventArg);
 
             // 获取事件后触发器。
             var afterNames = eventArg.afterNames;
@@ -254,17 +274,10 @@ namespace TouhouCardEngine
                 afterNames = afterNames.Concat(new string[] { getNameAfter<T>() }).Distinct().ToArray();
             IEnumerable<ITrigger> afterTriggers = getEventTriggerList(afterNames, eventArg);
 
-            // 事件前
-            await doEventBefore<T>(beforeTriggers, eventArg);
-
-            // 执行事件
-            await doEventFunc(eventArg);
-
             // 事件后
-            // 只有事件前和事件后都合法的“事件后”触发器才会执行。
-            var newAfterTriggers = getEventTriggerList(afterNames, eventArg);
-            afterTriggers = afterTriggers.Intersect(newAfterTriggers);
             await doEventAfter<T>(afterTriggers, eventArg);
+
+            flushAfterEventQueue(eventArgItem, eventArg);
 
             beforeNames = null;
             _eventChainList.Remove(eventArgItem);
@@ -277,6 +290,24 @@ namespace TouhouCardEngine
 
         #endregion
         #region 私有方法
+        private void addTrigger(string eventName, ITrigger trigger)
+        {
+            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
+            if (eventItem == null)
+            {
+                eventItem = new EventListItem(eventName);
+                _eventList.Add(eventItem);
+            }
+
+            if (!eventItem.triggerList.Any(ti => ti.trigger == trigger))
+            {
+                TriggerListItem item = new TriggerListItem(trigger);
+                eventItem.triggerList.Add(item);
+                logger?.log("Trigger", "注册触发器" + trigger);
+            }
+            else
+                throw new RepeatRegistrationException(eventName, trigger);
+        }
         private async Task doEventBefore<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T: IEventArg
         {
             foreach (var trigger in triggers)
@@ -391,6 +422,24 @@ namespace TouhouCardEngine
             triggerList.Sort((a, b) => a.compare(b, eventArg));
             return triggerList.ToArray();
         }
+        /// <summary>
+        /// 刷新事件项中的所有触发器队列。
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="eventArg"></param>
+        private void flushAfterEventQueue<T>(EventArgItem argItem, T eventArg) where T : IEventArg
+        {
+            var eventName = getNameAfter<T>();
+            var triggers = argItem.triggerList;
+            foreach (var item in triggers)
+            {
+                if (item == null)
+                    continue;
+                if (item.trigger.checkCondition(eventArg))
+                    addTrigger(eventName, item.trigger);
+            }
+            argItem.triggerList.Clear();
+        }
         #endregion
         #region 内置类
         [Serializable]
@@ -404,6 +453,7 @@ namespace TouhouCardEngine
             string _string;
 #endif
             public IEventArg eventArg { get; }
+            public List<TriggerListItem> triggerList { get; } = new List<TriggerListItem>();
             public EventArgItem(IEventArg eventArg)
             {
                 this.eventArg = eventArg;

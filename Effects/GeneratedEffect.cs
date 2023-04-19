@@ -49,7 +49,7 @@ namespace TouhouCardEngine
                         return game.runActions(flow, entryNode.getActionOutputPort());
                     }, name: triggerName);
                 await card.setProp(game, triggerName, trigger);
-                game.triggers.register(entryNode.eventName, trigger);
+                game.triggers.registerDelayed(entryNode.eventName, trigger);
             }
             // 设置该Effect已被启用。
             string disableName = getEffectName(card, buff, "Disabled");

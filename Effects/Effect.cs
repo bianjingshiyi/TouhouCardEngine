@@ -144,7 +144,7 @@ namespace TouhouCardEngine
                         return Task.CompletedTask;
                 });
                 await card.setProp(game, getTriggerName(game, card, buff, time), trigger);
-                game.triggers.register(time.getEventName(game.triggers), trigger);
+                game.triggers.registerDelayed(time.getEventName(game.triggers), trigger);
             }
         }
         public Task onDisable(IGame game, ICard card, IBuff buff)
