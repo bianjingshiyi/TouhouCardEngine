@@ -38,6 +38,13 @@ namespace TouhouCardEngine
             }
             return false;
         }
+        public override int GetHashCode()
+        {
+            var hashCode = type.GetHashCode();
+            hashCode = (hashCode * 33) ^ name.GetHashCode();
+            hashCode = (hashCode * 33) ^ displayName.GetHashCode();
+            return hashCode;
+        }
 
         public static PortDefine Control(string name)
         {

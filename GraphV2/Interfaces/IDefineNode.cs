@@ -1,6 +1,4 @@
-﻿using TouhouCardEngine.Interfaces;
-
-namespace TouhouCardEngine
+﻿namespace TouhouCardEngine
 {
     public interface IDefineNode<TDefine>
     {

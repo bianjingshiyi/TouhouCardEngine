@@ -85,7 +85,7 @@ namespace TouhouCardEngine
                 Card card = arg.card;
                 define = arg.afterDefine;
                 //禁用被动
-                foreach (var effect in card.define.getEffects().OfType<IEffect>())
+                foreach (var effect in card.define.getEffects())
                 {
                     await effect.onDisable(game, card, null);
                 }
@@ -93,7 +93,7 @@ namespace TouhouCardEngine
                 card.define = define;
                 //激活被动
                 Pile pile = card.getPile(game as CardEngine);
-                foreach (var effect in card.define.getEffects().OfType<IEffect>())
+                foreach (var effect in card.define.getEffects())
                 {
                     if (effect is IPileRangedEffect pileEffect)
                     {

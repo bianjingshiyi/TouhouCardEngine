@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
 
-namespace TouhouCardEngine.Interfaces
+namespace TouhouCardEngine
 {
     public abstract class Node : ITraversable
     {
@@ -201,11 +202,6 @@ namespace TouhouCardEngine.Interfaces
         public float posX { get; set; }
         public float posY { get; set; }
         public ActionGraph graph { get; set; }
-    }
-    public interface IDefineNode<TDefine>
-    {
-        TDefine define { get; set; }
-        void Define();
     }
     public interface ISerializableNode
     {

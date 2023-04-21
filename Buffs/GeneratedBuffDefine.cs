@@ -31,7 +31,7 @@ namespace TouhouCardEngine
         {
             for (int i = 0; i < effectList.Count; i++)
             {
-                await effectList[i].onEnable(game, card, buff);
+                await effectList[i].onDisable(game, card, buff);
             }
         }
         public void setId(int id)
