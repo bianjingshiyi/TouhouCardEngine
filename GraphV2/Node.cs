@@ -182,7 +182,29 @@ namespace TouhouCardEngine
             yield break;
         }
         #endregion
-
+        #region 设置端口
+        public void setConst(string name, object value)
+        {
+            if (!constList.ContainsKey(name))
+            {
+                constList.Add(name, value);
+            }
+            else
+            {
+                constList[name] = value;
+            }
+        }
+        public ValueInput extendParamsPort(string name)
+        {
+            var ports = getParamInputPorts(name);
+            var portDefine = ports.Select(p => p.define).FirstOrDefault();
+            var count = ports.Count();
+            count++;
+            var valueInput = new ValueInput(this, portDefine, count);
+            inputList.Add(valueInput);
+            return valueInput;
+        }
+        #endregion
         /// <summary>
         /// 该动作的输出端口。
         /// </summary>

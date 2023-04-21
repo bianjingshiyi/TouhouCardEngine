@@ -114,17 +114,6 @@ namespace TouhouCardEngine
             DefinitionInputs(define);
             DefinitionOutputs(define);
         }
-        public void setConst(string name, object value)
-        {
-            if (!constList.ContainsKey(name))
-            {
-                constList.Add(name, value);
-            }
-            else
-            {
-                constList[name] = value;
-            }
-        }
         public ControlInput getEnterPort()
         {
             return getInputPort<ControlInput>(enterControlName);
@@ -132,16 +121,6 @@ namespace TouhouCardEngine
         public ControlOutput getExitPort()
         {
             return getOutputPort<ControlOutput>(exitControlName);
-        }
-        public ValueInput extendParamsPort(string name)
-        {
-            var ports = getParamInputPorts(name);
-            var portDefine = ports.Select(p => p.define).FirstOrDefault();
-            var count = ports.Count();
-            count++;
-            var valueInput = new ValueInput(this, portDefine, count);
-            inputList.Add(valueInput);
-            return valueInput;
         }
         public override ISerializableNode ToSerializableNode()
         {
