@@ -185,19 +185,19 @@ namespace TouhouCardEngine.Interfaces
         /// <summary>
         /// 该动作的输出端口。
         /// </summary>
-        internal List<IPort> outputList = new List<IPort>();
+        protected List<IPort> outputList = new List<IPort>();
         /// <summary>
         /// 该动作的输入端口。
         /// </summary>
-        internal List<IPort> inputList = new List<IPort>();
+        protected List<IPort> inputList = new List<IPort>();
         /// <summary>
         /// 该动作的常量列表。
         /// </summary>
-        internal Dictionary<string, object> constList = new Dictionary<string, object>();
+        protected Dictionary<string, object> constList = new Dictionary<string, object>();
         public IEnumerable<IPort> outputPorts => outputList;
         public IEnumerable<IPort> inputPorts => inputList;
         public IDictionary<string, object> consts => constList;
-        public int id { get; internal set; }
+        public int id { get; set; }
         public float posX { get; set; }
         public float posY { get; set; }
         public ActionGraph graph { get; set; }

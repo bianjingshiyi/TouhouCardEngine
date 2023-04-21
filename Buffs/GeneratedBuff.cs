@@ -52,7 +52,7 @@ namespace TouhouCardEngine
             }
             return _propertyModifiers;
         }
-        public override IPassiveEffect[] getEffects(CardEngine game)
+        public override IEffect[] getEffects(CardEngine game)
         {
             GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
             return buffDefine.effectList.ToArray();

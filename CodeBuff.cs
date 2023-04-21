@@ -66,7 +66,7 @@ namespace TouhouCardEngine
 
         private readonly IPassiveEffect[] effects = new IPassiveEffect[0];
 
-        public override IPassiveEffect[] getEffects(CardEngine game)
+        public override IEffect[] getEffects(CardEngine game)
         {
             return effects;
         }

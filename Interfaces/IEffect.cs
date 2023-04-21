@@ -5,12 +5,11 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface IEffect
     {
+        Task onEnable(IGame game, ICard card, IBuff buff);
+        Task onDisable(IGame game, ICard card, IBuff buff);
     }
     public interface IPassiveEffect : IEffect
     {
-        string[] piles { get; }
-        Task onEnable(IGame game, ICard card, IBuff buff);
-        Task onDisable(IGame game, ICard card, IBuff buff);
     }
     public interface ITriggerEffect : IPassiveEffect
     {
@@ -23,11 +22,15 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface IActiveEffect : IEffect
     {
-        bool checkCondition(IGame game, ICard card, object[] vars);
-        Task execute(IGame game, ICard card, object[] vars, object[] targets);
+        bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg);
+        Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg);
     }
     public interface ITargetEffect : IActiveEffect
     {
         bool checkTargets(IGame game, ICard card, object[] vars, object[] targets);
+    }
+    public interface IPileRangedEffect : IPassiveEffect
+    {
+        string[] piles { get; }
     }
 }

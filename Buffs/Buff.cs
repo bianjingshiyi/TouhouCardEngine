@@ -70,7 +70,7 @@ namespace TouhouCardEngine
             }
         }
         public abstract PropModifier[] getPropertyModifiers(CardEngine game);
-        public abstract IPassiveEffect[] getEffects(CardEngine game);
+        public abstract IEffect[] getEffects(CardEngine game);
         public abstract Buff clone();
         #endregion
         #region 属性字段

@@ -241,7 +241,7 @@ namespace TouhouCardEngine
             defineName = actionNode.defineName;
             posX = actionNode.posX;
             posY = actionNode.posY;
-            constDict = actionNode.constList;
+            constDict = new Dictionary<string, object>(actionNode.consts);
         }
         #endregion
 
@@ -255,7 +255,7 @@ namespace TouhouCardEngine
             node.graph = graph;
             foreach (var pair in constDict)
             {
-                node.constList.Add(pair.Key, pair.Value);
+                node.setConst(pair.Key, pair.Value);
             }
             return node;
         }

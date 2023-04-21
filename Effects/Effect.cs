@@ -1,8 +1,4 @@
-﻿using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.Conventions;
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,14 +56,6 @@ namespace TouhouCardEngine
                 eventList.Add(triggerTime.getEventName(manager));
             }
             return eventList.ToArray();
-        }
-        /// <summary>
-        /// 效果的作用域
-        /// </summary>
-        public abstract string pile { get; }
-        string[] IPassiveEffect.piles
-        {
-            get { return new string[] { pile }; }
         }
         /// <summary>
         /// 检查效果能否发动

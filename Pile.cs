@@ -62,10 +62,10 @@ namespace TouhouCardEngine
                             {
                                 foreach (var effect in card.define.getEffects())
                                 {
-                                    if (effect is IPassiveEffect passiveEffect)
+                                    if (effect is IPileRangedEffect pileEffect)
                                     {
-                                        if (passiveEffect.piles.Contains(from.name) && (to == null || !passiveEffect.piles.Contains(to.name)))
-                                            passiveEffect.onDisable(game, card, null);
+                                        if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
+                                            pileEffect.onDisable(game, card, null);
                                     }
                                 }
                             }
@@ -87,10 +87,10 @@ namespace TouhouCardEngine
                                 {
                                     foreach (var effect in card.define.getEffects())
                                     {
-                                        if (effect is IPassiveEffect passiveEffect)
+                                        if (effect is IPileRangedEffect pileEffect)
                                         {
-                                            if ((from == null || !passiveEffect.piles.Contains(from.name)) && passiveEffect.piles.Contains(to.name))
-                                                passiveEffect.onEnable(game, card, null);
+                                            if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
+                                                pileEffect.onEnable(game, card, null);
                                         }
                                     }
                                 }
@@ -122,10 +122,10 @@ namespace TouhouCardEngine
                             {
                                 foreach (var effect in card.define.getEffects())
                                 {
-                                    if (effect is IPassiveEffect passiveEffect)
+                                    if (effect is IPileRangedEffect pileEffect)
                                     {
-                                        if (passiveEffect.piles.Contains(to.name))
-                                            passiveEffect.onEnable(game, card, null);
+                                        if (pileEffect.piles.Contains(to.name))
+                                            pileEffect.onEnable(game, card, null);
                                     }
                                 }
                             }

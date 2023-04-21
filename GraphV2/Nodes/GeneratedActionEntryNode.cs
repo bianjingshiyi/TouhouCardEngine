@@ -32,7 +32,7 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    if (outerNode.constList.TryGetValue(input.name, out object value))
+                    if (outerNode.consts.TryGetValue(input.name, out object value))
                         flow.setValue(input, value);
                 }
             }
