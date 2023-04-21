@@ -42,27 +42,6 @@ namespace TouhouCardEngine
             }
             return node;
         }
-        public TriggerEntryNode createTriggerEntryNode(string eventName, float posX = 0, float posY = 0)
-        {
-            int id = getUniqueNodeId();
-            var node = new TriggerEntryNode(id, eventName);
-            node.posX = posX;
-            node.posY = posY;
-            node.graph = this;
-            addNode(node);
-            updateSize();
-            return node;
-        }
-        public TriggerEntryNode createTriggerEntryNode(EventDefine eventInfo, float posX = 0, float posY = 0)
-        {
-            var node = createTriggerEntryNode(eventInfo?.eventName, posX, posY);
-            if (eventInfo != null)
-            {
-                node.define = eventInfo;
-                node.Define();
-            }
-            return node;
-        }
         public GeneratedActionEntryNode createActionDefineEntryNode(GeneratedActionDefine define, float posX = 0, float posY = 0)
         {
             int id = getUniqueNodeId();
@@ -186,10 +165,6 @@ namespace TouhouCardEngine
         public ActionNode findActionNode(string defineName)
         {
             return nodes.OfType<ActionNode>().FirstOrDefault(n => n.defineName == defineName);
-        }
-        public TriggerEntryNode findTriggerEntryNode(string eventName)
-        {
-            return nodes.OfType<TriggerEntryNode>().FirstOrDefault(n => n.eventName == eventName);
         }
         #endregion 查找
 
