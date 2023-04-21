@@ -9,10 +9,7 @@ namespace TouhouCardEngine
         public GeneratedEffectData() : base(defName)
         {
             _inputs = new PortDefine[0];
-            _consts = new PortDefine[]
-            {
-                PortDefine.Value(typeof(PileNameCollection), pileListName, "PileList")
-            };
+            _consts = new PortDefine[0];
             _outputs = new PortDefine[2]
             {
                 PortDefine.Control(enableActionName, "EnableAction"),
@@ -30,7 +27,6 @@ namespace TouhouCardEngine
         private PortDefine[] _inputs;
         private PortDefine[] _consts;
         private PortDefine[] _outputs;
-        public const string pileListName = "pileList";
         public const string enableActionName = "enableAction";
         public const string disableActionName = "disableAction";
         public const string defName = "GeneratedEffectData";

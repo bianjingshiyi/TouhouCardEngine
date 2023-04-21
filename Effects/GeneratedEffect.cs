@@ -94,7 +94,7 @@ namespace TouhouCardEngine
         }
         public virtual void Init()
         {
-            graph.createActionNode(GeneratedEffectData.defName);
+            graph.createActionNode(GeneratedEffectData.defName, -600, 0);
         }
         public abstract bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg);
         public abstract Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg);
