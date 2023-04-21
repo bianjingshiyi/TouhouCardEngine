@@ -127,6 +127,10 @@ namespace TouhouCardEngine
             graph.createActionNode(GeneratedEffectData.defName, 0, 500);
             graph.createTriggerEntryNode("ActiveEvent", 0, 0);
         }
+        public virtual SerializableEffect Serialize()
+        {
+            throw new NotImplementedException();
+        }
         public ActionNode getDataNode()
         {
             return graph?.findActionNode(GeneratedEffectData.defName);
@@ -231,46 +235,30 @@ namespace TouhouCardEngine
     }
 
     [Serializable]
-    public class SerializableEffect
+    public abstract class SerializableEffect
     {
-        public SerializableEffect(GeneratedEffect effect)
-        {
-            name = effect.name;
-            typeName = effect.GetType().Name;
-            propDict = effect.propDict;
-            graph = new SerializableActionNodeGraph(effect.graph);
-        }
+        public abstract GeneratedEffect Deserialize(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder);
 
-        public GeneratedEffect toGeneratedEffect(ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder, TypeFinder typeFinder = null)
-        {
-            GeneratedEffect effect = !string.IsNullOrEmpty(typeName) && typeFinder != null && typeFinder(typeName) is Type type ? 
-                Activator.CreateInstance(type) as GeneratedEffect : 
-                null;
-            effect.name = name;
-            effect.propDict = propDict;
-            effect.graph = graph.toActionGraph(defineFinder, eventFinder);
-            return effect;
-        }
-        #region 属性字段
         public string name;
-        public string typeName;
         public Dictionary<string, object> propDict;
         public SerializableActionNodeGraph graph;
 
-        [Obsolete]
+    }
+    /// <summary>
+    /// 用于兼容老卡池的数据类。
+    /// </summary>
+    [Obsolete]
+    public class SerializableGeneratedEffect
+    {
+        public string name;
+        public string typeName;
+        public Dictionary<string, object> propDict;
         public PileNameCollection pileList;
-        [Obsolete]
         public int onEnableRootActionNodeId;
-        [Obsolete]
         public int onDisableRootActionNodeId;
-        [Obsolete]
         public List<SerializableActionNode> onEnableActionList = new List<SerializableActionNode>();
-        [Obsolete]
         public List<SerializableActionNode> onDisalbeActionList = new List<SerializableActionNode>();
-        [Obsolete]
         public List<SerializableTrigger> triggerList;
-        [Obsolete]
         public EffectTagCollection tagList;
-        #endregion
     }
 }

@@ -62,10 +62,8 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(buffDefine));
             id = buffDefine.id;
             propModifierList = buffDefine.propModifierList != null ? buffDefine.propModifierList : new List<PropModifier>();
-            effectList = buffDefine.effectList != null ?
-                buffDefine.effectList.ConvertAll(e => e != null ?
-                    new SerializableEffect(e) :
-                    null) :
+            effects = buffDefine.effectList != null ?
+                buffDefine.effectList.ConvertAll(e => e?.Serialize()) :
                 new List<SerializableEffect>();
         }
         #endregion
@@ -74,13 +72,13 @@ namespace TouhouCardEngine
             GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
             generatedBuffDefine.setId(id);
             generatedBuffDefine.propModifierList = propModifierList;
-            for (int i = 0; i < effectList.Count; i++)
+            for (int i = 0; i < effects.Count; i++)
             {
-                if (effectList[i] == null)
+                if (effects[i] == null)
                     continue;
                 try
                 {
-                    generatedBuffDefine.effectList.Add(effectList[i].toGeneratedEffect(defineFinder, eventFinder, typeFinder));
+                    generatedBuffDefine.effectList.Add(effects[i].Deserialize(defineFinder, eventFinder));
                 }
                 catch (Exception e)
                 {
@@ -93,7 +91,9 @@ namespace TouhouCardEngine
         #region 属性字段
         public int id;
         public List<PropModifier> propModifierList;
-        public List<SerializableEffect> effectList;
+        public List<SerializableEffect> effects;
+        [Obsolete]
+        public List<SerializableGeneratedEffect> effectList;
         #endregion
     }
 }

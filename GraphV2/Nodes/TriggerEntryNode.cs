@@ -7,7 +7,7 @@ using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class TriggerEntryNode : Node, IDefineNode<EventDefine>
+    public class TriggerEntryNode : Node, IDefineNode<EventDefine>, ITargetCheckerNode
     {
         #region 公有方法
         public TriggerEntryNode(int id, string eventName)
@@ -47,16 +47,20 @@ namespace TouhouCardEngine
         }
         public void AddTargetChecker(TargetChecker checker)
         {
-            checker.trigger = this;
+            checker.node = this;
             targetCheckerList.Add(checker);
             DefinitionConditions();
         }
         public void RemoveTargetChecker(int index)
         {
             var checker = targetCheckerList[index];
-            checker.trigger = null;
+            checker.node = null;
             targetCheckerList.Remove(checker);
             DefinitionConditions();
+        }
+        public int getTargetCheckerIndex(TargetChecker checker)
+        {
+            return targetCheckerList.IndexOf(checker);
         }
         public override ISerializableNode ToSerializableNode()
         {

@@ -17,7 +17,7 @@ namespace TouhouCardEngine
         }
         public int getIndex()
         {
-            return trigger.targetCheckerList.IndexOf(this);
+            return node.getTargetCheckerIndex(this);
         }
         public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
@@ -25,12 +25,12 @@ namespace TouhouCardEngine
                 return;
             if (traversedActionNodeSet == null)
                 traversedActionNodeSet = new HashSet<Node>();
-            var condition = trigger?.getTargetConditionPort(getIndex());
+            var condition = node?.getTargetConditionPort(getIndex());
             condition?.traverse(action, traversedActionNodeSet);
         }
         public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
         {
-            var condition = trigger?.getTargetConditionPort(getIndex());
+            var condition = node?.getTargetConditionPort(getIndex());
             if (condition == null || condition.getConnectedOutputPort() == null)
             {
                 invalidMsg = null;
@@ -58,9 +58,14 @@ namespace TouhouCardEngine
                 throw new InvalidOperationException("不能在条件中调用需要等待的动作");
         }
         #endregion
-        public TriggerEntryNode trigger;
+        public ITargetCheckerNode node;
         public string targetType;
         public string errorTip;
+    }
+    public interface ITargetCheckerNode
+    {
+        int getTargetCheckerIndex(TargetChecker checker);
+        ValueInput getTargetConditionPort(int index);
     }
     [Serializable]
     [BsonIgnoreExtraElements]

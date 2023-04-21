@@ -170,27 +170,27 @@ namespace TouhouCardEngine
             {
                 propDict.Add(propName, cardDefine.getProp<object>(propName));
             }
-            effectList.AddRange(Array.ConvertAll(cardDefine.getGeneratedEffects(), e => new SerializableEffect(e)));
+            effects.AddRange(Array.ConvertAll(cardDefine.getGeneratedEffects(), e => e?.Serialize()));
         }
         #endregion
-        public CardDefine toCardDefine(ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder, TypeFinder typeFinder = null)
+        public CardDefine toCardDefine(ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder)
         {
             CardDefine cardDefine = new CardDefine(id, type, propDict);
-            GeneratedEffect[] effects = new GeneratedEffect[effectList.Count];
-            for (int i = 0; i < effectList.Count; i++)
+            GeneratedEffect[] effectsList = new GeneratedEffect[effects.Count];
+            for (int i = 0; i < effects.Count; i++)
             {
-                if (effectList[i] == null)
+                if (effects[i] == null)
                     continue;
                 try
                 {
-                    effects[i] = effectList[i].toGeneratedEffect(defineFinder, eventFinder, typeFinder);
+                    effectsList[i] = effects[i].Deserialize(defineFinder, eventFinder);
                 }
                 catch (Exception e)
                 {
                     throw new FormatException("反序列化卡牌定义" + id + "的效果" + i + "失败", e);
                 }
             }
-            cardDefine.setEffects(effects);
+            cardDefine.setEffects(effectsList);
             return cardDefine;
         }
         #endregion
@@ -198,7 +198,9 @@ namespace TouhouCardEngine
         public int id;
         public string type;
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        public List<SerializableEffect> effectList = new List<SerializableEffect>();
+        public List<SerializableEffect> effects = new List<SerializableEffect>();
+        [Obsolete]
+        public List<SerializableGeneratedEffect> effectList = new List<SerializableGeneratedEffect>();
         #endregion
     }
     /// <summary>
