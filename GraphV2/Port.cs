@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
@@ -101,11 +100,23 @@ namespace TouhouCardEngine
                 connection.traverse(action, traversedActionNodeSet);
             }
         }
-        public override IEnumerable<NodeConnection> connections => node?.graph?.connections.OfType<NodeConnection>().Where(c => c.destination == this) ?? Enumerable.Empty<NodeConnection>();
+        public override IEnumerable<NodeConnection> connections => node?.graph?.connections.Where(c => c.destination == this) ?? Enumerable.Empty<NodeConnection>();
 
         public ValueOutput getConnectedOutputPort()
         {
-            return connections.FirstOrDefault()?.source as ValueOutput;
+            var connections = node?.graph?.connections;
+            if (connections == null)
+                return null;
+            foreach (var connection in connections)
+            {
+                if (connection == null)
+                    continue;
+                if (connection.destination == this && connection.source is ValueOutput result)
+                {
+                    return result;
+                }
+            }
+            return null;
         }
         public int paramIndex;
         public override bool isOutput => false;
@@ -127,7 +138,7 @@ namespace TouhouCardEngine
         {
             node.traverse(action, traversedActionNodeSet);
         }
-        public override IEnumerable<NodeConnection> connections => node?.graph?.connections.OfType<NodeConnection>().Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
+        public override IEnumerable<NodeConnection> connections => node?.graph?.connections.Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
 
         public override bool isOutput => true;
     }
@@ -146,7 +157,7 @@ namespace TouhouCardEngine
             node.traverse(action, traversedActionNodeSet);
         }
         public override IEnumerable<NodeConnection> connections =>
-            node?.graph?.connections.OfType<NodeConnection>().Where(c => c.destination == this) ?? Enumerable.Empty<NodeConnection>();
+            node?.graph?.connections.Where(c => c.destination == this) ?? Enumerable.Empty<NodeConnection>();
         public override bool isOutput => false;
     }
     public class ControlOutput : Port<ControlInput>
@@ -169,11 +180,23 @@ namespace TouhouCardEngine
             }
         }
         public override IEnumerable<NodeConnection> connections =>
-            node?.graph?.connections.OfType<NodeConnection>().Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
+            node?.graph?.connections.Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
 
         public ControlInput getConnectedInputPort()
         {
-            return connections.FirstOrDefault()?.destination as ControlInput;
+            var connections = node?.graph?.connections;
+            if (connections == null)
+                return null;
+            foreach (var connection in connections)
+            {
+                if (connection == null)
+                    continue;
+                if (connection.source == this && connection.destination is ControlInput result)
+                {
+                    return result;
+                }
+            }
+            return null;
         }
         public override bool isOutput => true;
     }

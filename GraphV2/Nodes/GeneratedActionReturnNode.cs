@@ -36,39 +36,33 @@ namespace TouhouCardEngine
         private void DefinitionInputs(GeneratedActionDefine actionDefine)
         {
             ControlInput controlInput(PortDefine def)
-                => _inputs.OfType<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
+                => getInputPorts<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
             ValueInput valueInput(PortDefine def)
-                => _inputs.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueInput(this, def, -1);
+                => getInputPorts<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueInput(this, def, -1);
 
-            List<IPort> inputList = new List<IPort>();
+            List<IPort> inputs = new List<IPort>();
 
             if (actionDefine.outputDefines != null)
             {
                 foreach (var def in actionDefine.outputDefines)
                 {
                     if (def.GetPortType() == PortType.Control)
-                        inputList.Add(controlInput(def));
+                        inputs.Add(controlInput(def));
                     else
-                        inputList.Add(valueInput(def));
+                        inputs.Add(valueInput(def));
                 }
             }
 
 
-            foreach (var lostPort in _inputs.Except(inputList))
+            foreach (var lostPort in inputList.Except(inputs))
             {
                 graph.disconnectAll(lostPort);
             }
 
-            _inputs.Clear();
-            _inputs.AddRange(inputList);
+            inputList.Clear();
+            inputList.AddRange(inputs);
         }
         public GeneratedActionDefine define { get; set; }
-        private List<IPort> _inputs = new List<IPort>();
-        private IPort[] _outputs = new IPort[0];
-        private Dictionary<string, object> _consts = new Dictionary<string, object>();
-        public override IEnumerable<IPort> outputPorts => _outputs;
-        public override IEnumerable<IPort> inputPorts => _inputs;
-        public override IDictionary<string, object> consts => _consts;
     }
 
     [Serializable]

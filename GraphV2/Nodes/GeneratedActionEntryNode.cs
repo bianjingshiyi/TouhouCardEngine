@@ -22,7 +22,7 @@ namespace TouhouCardEngine
         {
             var parentFlow = flow.parent;
             var outerNode = parentFlow.currentNode;
-            foreach (var input in outputPorts.OfType<ValueOutput>())
+            foreach (var input in getOutputPorts<ValueOutput>())
             {
                 var outerInput = outerNode.getInputPort<ValueInput>(input.name);
                 if (outerInput != null)
@@ -32,7 +32,7 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    if (outerNode.consts.TryGetValue(input.name, out object value))
+                    if (outerNode.constList.TryGetValue(input.name, out object value))
                         flow.setValue(input, value);
                 }
             }
@@ -56,44 +56,38 @@ namespace TouhouCardEngine
         private void DefinitionOutputs(GeneratedActionDefine actionDefine)
         {
             ValueOutput valueOutput(PortDefine def)
-                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
+                => getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
             ValueOutput valueConst(PortDefine def)
-                => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
+                => getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
             ControlOutput controlOutput(PortDefine def)
-                => _outputs.OfType<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
+                => getOutputPorts<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
 
 
-            List<IPort> outputList = new List<IPort>();
+            List<IPort> outputs = new List<IPort>();
 
 
             foreach (var def in actionDefine.inputDefines)
             {
                 if (def.GetPortType() == PortType.Control)
-                    outputList.Add(controlOutput(def));
+                    outputs.Add(controlOutput(def));
                 else
-                    outputList.Add(valueOutput(def));
+                    outputs.Add(valueOutput(def));
             }
             foreach (var def in actionDefine.constDefines)
             {
-                outputList.Add(valueConst(def));
+                outputs.Add(valueConst(def));
             }
 
 
-            foreach (var lostPort in _outputs.Except(outputList))
+            foreach (var lostPort in outputList.Except(outputs))
             {
                 graph.disconnectAll(lostPort);
             }
-            _outputs.Clear();
-            _outputs.AddRange(outputList);
+            outputList.Clear();
+            outputList.AddRange(outputs);
         }
 
         public GeneratedActionDefine define { get; set; }
-        private List<IPort> _outputs = new List<IPort>();
-        private List<IPort> _inputs = new List<IPort>();
-        private Dictionary<string, object> _consts = new Dictionary<string, object>();
-        public override IEnumerable<IPort> outputPorts => _outputs;
-        public override IEnumerable<IPort> inputPorts => _inputs;
-        public override IDictionary<string, object> consts => _consts;
     }
     [Serializable]
     public class SerializableGeneratedEntryNode : ISerializableNode

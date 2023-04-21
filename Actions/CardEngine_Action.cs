@@ -21,35 +21,29 @@ namespace TouhouCardEngine
             else
                 return null;
         }
-        public async Task runActions(Flow flow, ControlInput inputPort)
+        public Task runActions(Flow flow, ControlInput inputPort)
         {
-            await flow.Run(inputPort);
+            return flow.Run(inputPort);
         }
-        public async Task runActions(Flow flow, ControlOutput outputPort)
+        public Task runActions(Flow flow, ControlOutput outputPort)
         {
-            await flow.Run(outputPort);
+            return flow.Run(outputPort);
         }
-        public async Task<T> getValue<T>(Flow flow, ValueInput input)
+        public Task<T> getValue<T>(Flow flow, ValueInput input)
         {
-            var value = await flow.getValue(input);
-            if (value is T result)
-                return result;
-            return default;
+            return flow.getValue<T>(input);
         }
         public Task<object> getValue(Flow flow, ValueInput input)
         {
-            return getValue<object>(flow, input);
+            return flow.getValue(input);
         }
-        public async Task<T> getValue<T>(Flow flow, ValueOutput output)
+        public Task<T> getValue<T>(Flow flow, ValueOutput output)
         {
-            var value = await flow.getValue(output);
-            if (value is T result)
-                return result;
-            return default;
+            return flow.getValue<T>(output);
         }
         public Task<object> getValue(Flow flow, ValueOutput output)
         {
-            return getValue<object>(flow, output);
+            return flow.getValue(output);
         }
         #endregion
         Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();

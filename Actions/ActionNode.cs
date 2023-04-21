@@ -20,9 +20,6 @@ namespace TouhouCardEngine
         {
             this.id = id;
             this.defineName = defineName;
-            inputList = new List<IPort>();
-            outputList = new List<IPort>();
-            constList = new Dictionary<string, object>();
         }
         #endregion
         public override string ToString()
@@ -226,21 +223,6 @@ namespace TouhouCardEngine
 
         public string defineName;
         public ActionDefine define { get; set; }
-        /// <summary>
-        /// 该动作的输出端口。
-        /// </summary>
-        internal List<IPort> outputList;
-        /// <summary>
-        /// 该动作的输入端口。
-        /// </summary>
-        internal List<IPort> inputList;
-        /// <summary>
-        /// 该动作的常量列表。
-        /// </summary>
-        internal Dictionary<string, object> constList;
-        public override IEnumerable<IPort> outputPorts => outputList;
-        public override IEnumerable<IPort> inputPorts => inputList;
-        public override IDictionary<string, object> consts => constList;
 
         public const string enterControlName = "enter";
         public const string exitControlName = "exit";
@@ -271,7 +253,10 @@ namespace TouhouCardEngine
                 posY = posY,
             };
             node.graph = graph;
-            node.constList = constDict;
+            foreach (var pair in constDict)
+            {
+                node.constList.Add(pair.Key, pair.Value);
+            }
             return node;
         }
         Node ISerializableNode.ToActionNode(ActionGraph graph) => ToActionNode(graph);

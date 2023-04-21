@@ -15,18 +15,12 @@ namespace TouhouCardEngine
             this.id = id;
             this.eventName = eventName;
 
-            _conditions = new List<IPort>()
-            {
-                new ValueInput(this, triggerConditionPortDefine),
-            };
-            _outputs = new List<IPort>()
-            {
-                new ControlOutput(this, actionPortDefine),
-            };
+            inputList.Add(new ValueInput(this, triggerConditionPortDefine));
+            outputList.Add(new ControlOutput(this, actionPortDefine));
         }
         public override Task<ControlOutput> run(Flow flow)
         {
-            foreach (var output in outputPorts.OfType<ValueOutput>())
+            foreach (var output in getOutputPorts<ValueOutput>())
             {
                 flow.setValue(output, flow.env.eventArg.getVar(output.name));
             }
@@ -43,11 +37,13 @@ namespace TouhouCardEngine
         }
         public ControlOutput getActionOutputPort()
         {
-            return _outputs?.FirstOrDefault() as ControlOutput;
+            if (outputList.Count <= 0)
+                return null;
+            return outputList[0] as ControlOutput;
         }
         public ValueInput getTargetConditionPort(int index)
         {
-            return getInputPorts<ValueInput>().FirstOrDefault(p => p.name == targetConditionName && p.paramIndex == index);
+            return getParamInputPort(targetConditionName, index);
         }
         public void AddTargetChecker(TargetChecker checker)
         {
@@ -79,10 +75,10 @@ namespace TouhouCardEngine
         private void DefinitionConditions()
         {
             ValueInput valueCondition()
-                 => _conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(triggerConditionPortDefine)) ??
+                 => inputList.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(triggerConditionPortDefine)) ??
                  new ValueInput(this, triggerConditionPortDefine);
             ValueInput targetCondition(int paramIndex)
-                 => _conditions.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(targetConditionPortDefine) && d.paramIndex == paramIndex) ??
+                 => inputList.OfType<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(targetConditionPortDefine) && d.paramIndex == paramIndex) ??
                  new ValueInput(this, targetConditionPortDefine, paramIndex);
 
 
@@ -92,20 +88,20 @@ namespace TouhouCardEngine
                 inputs.Add(targetCondition(i));
             }
 
-            foreach (var lostPort in _conditions.Except(inputs))
+            foreach (var lostPort in inputList.Except(inputs))
             {
                 graph.disconnectAll(lostPort);
             }
-            _conditions.Clear();
-            _conditions.AddRange(inputs);
+            inputList.Clear();
+            inputList.AddRange(inputs);
         }
         private void DefinitionOutputs(EventDefine typeInfo)
         {
             ValueOutput valueOutput(EventVariableInfo info)
-                 => _outputs.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.type == info.type && d.define.name == info.name) ??
+                 => outputList.OfType<ValueOutput>().FirstOrDefault(d => d != null && d.define.type == info.type && d.define.name == info.name) ??
                  new ValueOutput(this, PortDefine.Value(info.type, info.name, info.name));
             ControlOutput controlOutput()
-                 => _outputs.OfType<ControlOutput>().FirstOrDefault() ??
+                 => outputList.OfType<ControlOutput>().FirstOrDefault() ??
                  new ControlOutput(this, actionPortDefine);
 
 
@@ -121,12 +117,12 @@ namespace TouhouCardEngine
                 }
             }
 
-            foreach (var lostPort in _outputs.Except(outputs))
+            foreach (var lostPort in outputList.Except(outputs))
             {
                 graph.disconnectAll(lostPort);
             }
-            _outputs.Clear();
-            _outputs.AddRange(outputs);
+            outputList.Clear();
+            outputList.AddRange(outputs);
         }
 
         #endregion
@@ -134,11 +130,6 @@ namespace TouhouCardEngine
         public string eventName;
         public bool hideEvents;
         public List<TargetChecker> targetCheckerList { get; private set; } = new List<TargetChecker>(); 
-        private List<IPort> _conditions;
-        private List<IPort> _outputs;
-        public override IEnumerable<IPort> outputPorts => _outputs;
-        public override IEnumerable<IPort> inputPorts => _conditions;
-        public override IDictionary<string, object> consts => targetCheckerList.ToDictionary(t => $"target[{t.getIndex()}]", t => (object)t);
 
         private const string targetConditionName = "targetCondition";
         private const string actionPortName = "action";

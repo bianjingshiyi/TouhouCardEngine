@@ -36,50 +36,42 @@ namespace TouhouCardEngine
         {
             scopeStack.Pop();
         }
-        public async Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
+        public Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
         {
-            var value = await getValue(input, scope);
-            if (value is T result)
-                return result;
-            return default;
-        }
-        public async Task<object> getValue(ValueInput input, FlowScope scope = null)
-        {
+
             if (scope == null)
                 scope = currentScope;
 
-            if (scope.tryGetLocalVar(input, out var value))
+            if (scope.tryGetLocalVar(input, out var value) && value is T result)
             {
-                return value;
+                return Task.FromResult(result);
             }
 
 
             var output = input.getConnectedOutputPort();
 
-            if (output != null)
-            {
-                return await getValue(output, scope);
-            }
-            return null;
-
+            return getValue<T>(output, scope);
         }
-        public async Task<T> getValue<T>(ValueOutput output, FlowScope scope = null)
+        public Task<object> getValue(ValueInput input, FlowScope scope = null)
         {
-            var value = await getValue(output, scope);
-            if (value is T result)
-                return result;
-            return default;
+            return getValue<object>(input, scope);
         }
-        public async Task<object> getValue(ValueOutput output, FlowScope scope = null)
+        public Task<T> getValue<T>(ValueOutput output, FlowScope scope = null)
         {
             if (scope == null)
                 scope = currentScope;
-            if (scope.tryGetLocalVar(output, out var value))
+            if (output == null)
+                return Task.FromResult<T>(default);
+            if (scope.tryGetLocalVar(output, out var value) && value is T result)
             {
-                return value;
+                return Task.FromResult(result);
             }
 
-            return await GetValueDelegate(output);
+            return GetValueDelegate<T>(output);
+        }
+        public Task<object> getValue(ValueOutput output, FlowScope scope = null)
+        {
+            return getValue<object>(output, scope);
         }
         public void setValue(IValuePort port, object value, FlowScope scope = null)
         {
@@ -111,23 +103,23 @@ namespace TouhouCardEngine
             }
         }
 
-        public async Task Run(ControlInput input)
+        public Task Run(ControlInput input)
         {
-            await Invoke(input);
+            return Invoke(input);
         }
-        public async Task Run(ControlOutput outputPort)
+        public Task Run(ControlOutput outputPort)
         {
-            await Invoke(outputPort);
+            return Invoke(outputPort);
         }
-        public async Task Invoke(ControlOutput port)
+        public Task Invoke(ControlOutput port)
         {
             var input = port.getConnectedInputPort();
 
             if (input == null)
             {
-                return;
+                return Task.CompletedTask;
             }
-            await Invoke(input);
+            return Invoke(input);
         }
         public async Task Invoke(ControlInput input)
         {
@@ -147,17 +139,17 @@ namespace TouhouCardEngine
             Node node = port.node;
             return InvokeNode(node);
         }
-        private async Task<ControlOutput> InvokeNode(Node node)
+        private Task<ControlOutput> InvokeNode(Node node)
         {
 
             if (node == null)
             {
-                return null;
+                return Task.FromResult<ControlOutput>(null);
             }
             nodeStack.Push(node);
             try
             {
-                return await node.run(this);
+                return node.run(this);
             }
             catch (Exception e)
             {
@@ -172,17 +164,19 @@ namespace TouhouCardEngine
             }
         }
 
-        private async Task<object> GetValueDelegate(ValueOutput output)
+        private async Task<T> GetValueDelegate<T>(ValueOutput output)
         {
             if (output == null)
-                return null;
+                return default;
             var node = output.node;
             try
             {
                 await InvokeNode(node);
                 if (currentScope.tryGetLocalVar(output, out var value))
                 {
-                    return value;
+                    if (value is T result)
+                        return result;
+                    return default;
                 }
                 throw new KeyNotFoundException($"获取端口“{output}”的值失败。");
             }

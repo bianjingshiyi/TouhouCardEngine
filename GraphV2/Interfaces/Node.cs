@@ -20,9 +20,9 @@ namespace TouhouCardEngine.Interfaces
             traversedNodes.Add(this);
             action(this);
             //遍历输入
-            if (inputPorts != null)
+            if (inputList != null)
             {
-                foreach (var port in inputPorts)
+                foreach (var port in inputList)
                 {
                     if (port == null)
                         continue;
@@ -30,9 +30,9 @@ namespace TouhouCardEngine.Interfaces
                 }
             }
             //遍历常量
-            if (consts != null)
+            if (constList != null)
             {
-                foreach (var cst in consts.Values)
+                foreach (var cst in constList.Values)
                 {
                     if (cst == null)
                         continue;
@@ -43,9 +43,9 @@ namespace TouhouCardEngine.Interfaces
                 }
             }
             //遍历后续
-            if (outputPorts != null)
+            if (outputList != null)
             {
-                foreach (var port in outputPorts)
+                foreach (var port in outputList)
                 {
                     if (port == null)
                         continue;
@@ -61,25 +61,57 @@ namespace TouhouCardEngine.Interfaces
         }
         public T getConst<T>(string name)
         {
-            if (consts == null)
+            if (constList == null)
                 return default;
-            return consts.Where(p => p.Key == name).Select(p => p.Value).OfType<T>().FirstOrDefault();
+            if (!constList.TryGetValue(name, out object value))
+                return default;
+            if (!(value is T result))
+                return default;
+            return result;
         }
         public ValueInput getParamInputPort(string name, int index)
         {
-            return inputPorts.OfType<ValueInput>().Where(p => p.name == name).ElementAtOrDefault(index);
+            int curIndex = 0;
+            foreach (var port in inputList)
+            {
+                if (!(port.name == name && port is ValueInput valueInput))
+                    continue;
+                if (curIndex == index)
+                {
+                    return valueInput;
+                }
+                else
+                {
+                    curIndex++;
+                }
+            }
+            return null;
         }
         public ValueInput[] getParamInputPorts(string name)
         {
-            return inputPorts.OfType<ValueInput>().Where(p => p.name == name).ToArray();
+            return inputList.OfType<ValueInput>().Where(p => p.name == name).ToArray();
         }
         public IPort getInputPort(string name)
         {
-            return inputPorts.FirstOrDefault(p => p.name == name);
+            foreach (var port in inputList)
+            {
+                if (port.name == name)
+                {
+                    return port;
+                }
+            }
+            return null;
         }
         public IPort getOutputPort(string name)
         {
-            return outputPorts.FirstOrDefault(p => p.name == name);
+            foreach (var port in outputList)
+            {
+                if (port.name == name)
+                {
+                    return port;
+                }
+            }
+            return null;
         }
         public TPort getInputPort<TPort>(string name) where TPort : IPort
         {
@@ -99,11 +131,15 @@ namespace TouhouCardEngine.Interfaces
         }
         public IPort getInputPortAt(int index)
         {
-            return inputPorts.ElementAtOrDefault(index);
+            if (index < 0 || index >= inputList.Count)
+                return null;
+            return inputList[index];
         }
         public IPort getOutputPortAt(int index)
         {
-            return outputPorts.ElementAtOrDefault(index);
+            if (index < 0 || index >= outputList.Count)
+                return null;
+            return outputList[index];
         }
         public TPort getInputPortAt<TPort>(int index) where TPort : IPort
         {
@@ -124,17 +160,43 @@ namespace TouhouCardEngine.Interfaces
 
         public IEnumerable<TPort> getInputPorts<TPort>() where TPort : IPort
         {
-            return inputPorts.OfType<TPort>();
+            foreach (var port in inputList)
+            {
+                if (port is TPort result)
+                {
+                    yield return result;
+                }
+            }
+            yield break;
         }
         public IEnumerable<TPort> getOutputPorts<TPort>() where TPort : IPort
         {
-            return outputPorts.OfType<TPort>();
+            foreach (var port in outputList)
+            {
+                if (port is TPort result)
+                {
+                    yield return result;
+                }
+            }
+            yield break;
         }
         #endregion
 
-        public abstract IEnumerable<IPort> outputPorts { get; }
-        public abstract IEnumerable<IPort> inputPorts { get; }
-        public abstract IDictionary<string, object> consts { get; }
+        /// <summary>
+        /// 该动作的输出端口。
+        /// </summary>
+        internal List<IPort> outputList = new List<IPort>();
+        /// <summary>
+        /// 该动作的输入端口。
+        /// </summary>
+        internal List<IPort> inputList = new List<IPort>();
+        /// <summary>
+        /// 该动作的常量列表。
+        /// </summary>
+        internal Dictionary<string, object> constList = new Dictionary<string, object>();
+        public IEnumerable<IPort> outputPorts => outputList;
+        public IEnumerable<IPort> inputPorts => inputList;
+        public IDictionary<string, object> consts => constList;
         public int id { get; internal set; }
         public float posX { get; set; }
         public float posY { get; set; }
