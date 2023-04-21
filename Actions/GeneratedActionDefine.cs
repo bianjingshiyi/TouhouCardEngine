@@ -160,42 +160,18 @@ namespace TouhouCardEngine
             outputs.AddRange(generatedActionDefine.outputDefines.Where(d => d.name != ActionDefine.exitPortName).Select(d => new SerializablePortDefine(d)));
         }
         #endregion
-        public static GeneratedActionDefine[] toGeneratedActionDefines(IEnumerable<SerializableActionDefine> defines, ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder, TypeFinder typeFinder)
+        public GeneratedActionDefine toGeneratedActionDefine(TypeFinder typeFinder)
         {
-            Dictionary<SerializableActionDefine, GeneratedActionDefine> dict = new Dictionary<SerializableActionDefine, GeneratedActionDefine>();
             // 铺设节点。
-            foreach (var seri in defines)
-            {
-                var graph = new ActionGraph();
-                var nodes = seri.graph.GetNodes(graph);
-                graph.AddNodes(nodes);
+            var graph = new ActionGraph();
+            var nodes = this.graph.GetNodes(graph);
+            graph.AddNodes(nodes);
 
-                var define = new GeneratedActionDefine(graph, seri.id, seri.category, seri.name,
-                    seri.inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
-                    seri.consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
-                    seri.outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());
-
-                dict.Add(seri, define);
-            }
-            // 定义所有节点。
-            foreach (var define in dict.Values)
-            {
-                define.graph.DefineNodes(getActionDefine, eventFinder);
-                define.graph.DefineGeneratedActionDefine(define);
-            }
-            // 连接所有节点。
-            foreach (var pair in dict)
-            {
-                var graph = pair.Value.graph;
-                var nodes = pair.Key.graph.GetConnections(graph);
-                graph.AddConnections(nodes);
-            }
-            return dict.Values.ToArray();
-
-            ActionDefine getActionDefine(string name)
-            {
-                return defineFinder?.Invoke(name) ?? dict.Values.FirstOrDefault(a => a.defineName == name || (a.obsoleteNames != null && a.obsoleteNames.Contains(name)));
-            }
+            var define = new GeneratedActionDefine(graph, id, category, name,
+                inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
+                consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
+                outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());
+            return define;
         }
         #endregion
         #region 属性字段

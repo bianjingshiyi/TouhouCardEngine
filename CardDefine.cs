@@ -173,7 +173,7 @@ namespace TouhouCardEngine
             effects.AddRange(Array.ConvertAll(cardDefine.getGeneratedEffects(), e => e?.Serialize()));
         }
         #endregion
-        public CardDefine toCardDefine(ActionDefineFinder defineFinder, EventTypeInfoFinder eventFinder)
+        public CardDefine toCardDefine(INodeDefiner definer)
         {
             CardDefine cardDefine = new CardDefine(id, type, propDict);
             GeneratedEffect[] effectsList = new GeneratedEffect[effects.Count];
@@ -183,7 +183,7 @@ namespace TouhouCardEngine
                     continue;
                 try
                 {
-                    effectsList[i] = effects[i].Deserialize(defineFinder, eventFinder);
+                    effectsList[i] = effects[i].Deserialize(definer);
                 }
                 catch (Exception e)
                 {

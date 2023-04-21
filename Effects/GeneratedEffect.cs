@@ -237,7 +237,7 @@ namespace TouhouCardEngine
     [Serializable]
     public abstract class SerializableEffect
     {
-        public abstract GeneratedEffect Deserialize(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder);
+        public abstract GeneratedEffect Deserialize(INodeDefiner definer);
 
         public string name;
         public Dictionary<string, object> propDict;

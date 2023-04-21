@@ -15,8 +15,8 @@ namespace TouhouCardEngine
         #region 构造函数
         public ActionGraph()
         {
-            nodes = new List<Node>();
-            connections = new List<NodeConnection>();
+            _nodes = new List<Node>();
+            _connections = new List<NodeConnection>();
         }
         #endregion
 
@@ -28,7 +28,7 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            nodes.Add(node);
+            addNode(node);
             updateSize();
             return node;
         }
@@ -49,7 +49,7 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            nodes.Add(node);
+            addNode(node);
             updateSize();
             return node;
         }
@@ -70,7 +70,7 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            nodes.Add(node);
+            addNode(node);
             node.Define();
             updateSize();
             return node;
@@ -82,14 +82,21 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            nodes.Add(node);
+            addNode(node);
             node.Define();
             updateSize();
             return node;
         }
+        public void addNode(Node node)
+        {
+            if (!_nodes.Contains(node))
+            {
+                _nodes.Add(node);
+            }
+        }
         public bool removeNode(Node node)
         {
-            if (nodes.Remove(node))
+            if (_nodes.Remove(node))
             {
                 disconnectAll(node);
                 updateSize();
@@ -99,8 +106,8 @@ namespace TouhouCardEngine
         }
         public void Clear()
         {
-            nodes.Clear();
-            connections.Clear();
+            _nodes.Clear();
+            _connections.Clear();
         }
         #endregion
 
@@ -110,7 +117,7 @@ namespace TouhouCardEngine
             if (port1.canConnectTo(port2) && !isConnected(port1, port2))
             {
                 var connection = port1.connect(port2);
-                connections.Add(connection);
+                _connections.Add(connection);
                 UpdateParamsInputs(connection.destination.node as ActionNode);
                 return connection;
             }
@@ -120,7 +127,7 @@ namespace TouhouCardEngine
         {
             if (connection == null)
                 return false;
-            var connected = connections.Remove(connection);
+            var connected = _connections.Remove(connection);
             UpdateParamsInputs(connection.destination.node as ActionNode);
             return connected;
         }
@@ -131,7 +138,7 @@ namespace TouhouCardEngine
         }
         public int disconnectAll(IPort port)
         {
-            return connections.RemoveAll(c => c.source == port || c.destination == port);
+            return _connections.RemoveAll(c => c.source == port || c.destination == port);
         }
         public int disconnectAll(Node node)
         {
@@ -148,7 +155,7 @@ namespace TouhouCardEngine
         }
         public NodeConnection getConnection(IPort port1, IPort port2)
         {
-            return connections.SingleOrDefault(c => (c.source == port1 && c.destination == port2) || (c.source == port2 && c.destination == port1));
+            return connections.FirstOrDefault(c => (c.source == port1 && c.destination == port2) || (c.source == port2 && c.destination == port1));
         }
         public IEnumerable<NodeConnection> getNodeConnections(Node node)
         {
@@ -188,24 +195,14 @@ namespace TouhouCardEngine
 
         #region 定义节点
         /// <summary>
-        /// 使用动作定义/事件类型信息定义所有节点/触发器，以创建它们的端点和常量。
+        /// 使用节点定义器定义所有节点。
         /// </summary>
-        /// <param name="defineFinder"></param>
-        /// <param name="eventTypeInfoFinder"></param>
-        public void DefineNodes(ActionDefineFinder defineFinder, EventTypeInfoFinder eventTypeInfoFinder)
+        /// <param name="definer"></param>
+        public void DefineNodes(INodeDefiner definer)
         {
             foreach (var node in nodes)
             {
-                if (node is ActionNode action)
-                {
-                    action.define = defineFinder?.Invoke(action.defineName);
-                    action.Define();
-                }
-                if (node is TriggerEntryNode trigger)
-                {
-                    trigger.define = eventTypeInfoFinder?.Invoke(trigger.eventName);
-                    trigger.Define();
-                }
+                definer.Define(node);
             }
         }
         /// <summary>
@@ -225,27 +222,7 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        #endregion 公共方法
-
-        #region 内部方法
-        internal void AddNodes(IEnumerable<Node> nodes)
-        {
-            this.nodes.AddRange(nodes);
-        }
-        internal void AddConnections(IEnumerable<NodeConnection> connections)
-        {
-            this.connections.AddRange(connections);
-        }
-        #endregion 内部方法
-
-        #region 私有方法
-        private void UpdateParamsInputs(ActionNode node)
-        {
-            if (node == null)
-                return;
-            node.Define();
-        }
-        private void updateSize()
+        public void updateSize()
         {
             //计算输入的宽度
             float maxX = 0;
@@ -262,7 +239,7 @@ namespace TouhouCardEngine
             width = maxX - minX;
             height = maxY - minY;
         }
-        private int getUniqueNodeId()
+        public int getUniqueNodeId()
         {
             int id = 1;
             while (nodes.Count(n => n.id == id) > 0)
@@ -271,11 +248,38 @@ namespace TouhouCardEngine
             }
             return id;
         }
+        public void AddNodes(IEnumerable<Node> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                addNode(node);
+            }
+        }
+        public void AddConnections(IEnumerable<NodeConnection> connections)
+        {
+            foreach (var connection in connections)
+            {
+                if (_connections.Contains(connection))
+                    continue;
+                _connections.Add(connection);
+            }
+        }
+        #endregion 公共方法
+
+        #region 私有方法
+        private void UpdateParamsInputs(ActionNode node)
+        {
+            if (node == null)
+                return;
+            node.Define();
+        }
         #endregion 私有方法
         public float width { get; private set; }
         public float height { get; private set; }
-        public List<Node> nodes { get; private set; }
-        public List<NodeConnection> connections { get; private set; }
+        private List<Node> _nodes;
+        private List<NodeConnection> _connections;
+        public IEnumerable<Node> nodes => _nodes;
+        public IEnumerable<NodeConnection> connections => _connections;
     }
     [Serializable]
     public sealed class SerializableActionNodeGraph
@@ -285,14 +289,14 @@ namespace TouhouCardEngine
         {
             if (graph == null)
                 throw new ArgumentNullException(nameof(graph));
-            nodes.AddRange(graph.nodes.ConvertAll(n => n.ToSerializableNode()));
-            connections.AddRange(graph.connections.ConvertAll(c => new SerializableConnection(c)));
+            nodes.AddRange(graph.nodes.Select(n => n.ToSerializableNode()));
+            connections.AddRange(graph.connections.Select(c => new SerializableConnection(c)));
         }
-        public ActionGraph toActionGraph(ActionDefineFinder defineFinder, EventTypeInfoFinder eventInfoFinder)
+        public ActionGraph toActionGraph(INodeDefiner nodeDefiner)
         {
             ActionGraph graph = new ActionGraph();
             graph.AddNodes(GetNodes(graph));
-            graph.DefineNodes(defineFinder, eventInfoFinder);
+            graph.DefineNodes(nodeDefiner);
             graph.AddConnections(GetConnections(graph));
             return graph;
         }
