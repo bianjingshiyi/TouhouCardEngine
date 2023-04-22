@@ -15,7 +15,6 @@ namespace TouhouCardEngine
             this.id = id;
             this.category = category;
             _inputs.Add(enterPortDefine);
-            _outputs.Add(exitPortDefine);
             if (inputs != null)
                 _inputs.AddRange(inputs);
             if (consts != null)
