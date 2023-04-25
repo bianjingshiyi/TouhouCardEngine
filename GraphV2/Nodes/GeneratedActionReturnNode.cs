@@ -46,6 +46,8 @@ namespace TouhouCardEngine
             {
                 foreach (var def in actionDefine.outputDefines)
                 {
+                    if (def == ActionDefine.exitPortDefine)
+                        continue;
                     if (def.GetPortType() == PortType.Control)
                         inputs.Add(controlInput(def));
                     else
