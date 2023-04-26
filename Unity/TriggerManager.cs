@@ -435,8 +435,7 @@ namespace TouhouCardEngine
             {
                 if (item == null)
                     continue;
-                if (item.trigger.checkCondition(eventArg))
-                    addTrigger(eventName, item.trigger);
+                addTrigger(eventName, item.trigger);
             }
             argItem.triggerList.Clear();
         }
