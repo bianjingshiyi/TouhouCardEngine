@@ -41,7 +41,7 @@ namespace NitoriNetwork.Common
 
         string cookieFilePath { get; }
 
-        string baseUri { get; }
+        public string baseUri { get; private set; }
 
         Dictionary<int, PublicBasicUserInfo> userInfoCache = new Dictionary<int, PublicBasicUserInfo>();
 
@@ -73,6 +73,18 @@ namespace NitoriNetwork.Common
             client.UseSerializer(
                 () => new MongoDBJsonSerializer()
             );
+        }
+
+        public void SetClientBaseUri(string baseUri)
+        {
+            this.baseUri = baseUri;
+            var uri = new Uri(baseUri);
+            client.BaseUrl = uri;
+
+            // 重设信息
+            loadCookie();
+            UID = 0;
+            UserSession = "";
         }
 
         /// <summary>
