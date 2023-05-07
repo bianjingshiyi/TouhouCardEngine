@@ -280,7 +280,7 @@ namespace Tests
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(2, client2.room.playerDataList.Count);
             //client1修改房间属性
-            yield return client1.setRoomProp("randomSeed", 42);
+            yield return (client1 as IRoomClient).SetRoomProp("randomSeed", 42);
             //client1和client2都有这个属性
             Assert.AreEqual(42, client1.room.propDict["randomSeed"]);
             Assert.AreEqual(42, client2.room.propDict["randomSeed"]);
@@ -305,7 +305,7 @@ namespace Tests
             Assert.AreEqual(2, client1.room.playerDataList.Count);
             Assert.AreEqual(2, client2.room.playerDataList.Count);
             //client2修改自己的属性
-            yield return client2.setPlayerProp("deckCount", 1);
+            yield return (client2 as IRoomClient).SetPlayerProp("deckCount", 1);
             //client1和client2都能看到这个属性更改
             Assert.AreEqual(1, client1.room.playerDataList[1].propDict["deckCount"]);
             Assert.AreEqual(1, client2.room.playerDataList[1].propDict["deckCount"]);

@@ -274,7 +274,7 @@ namespace Tests
             int randomSeed = DateTime.Now.GetHashCode();
             yield return TestHelper.waitUntilEventTrig(clients[1],
                 (c, a) => c.LANNetwork.OnRoomDataChange += (rd) => a(),
-                () => clients[0].setRoomProp("randomSeed", randomSeed).wait());
+                () => (clients[0] as IRoomClient).SetRoomProp("randomSeed", randomSeed).wait());
             //所有人都会收到房间属性更改
             Assert.AreEqual(randomSeed, clients[1].room.getProp<int>("randomSeed"));
         }
@@ -296,7 +296,7 @@ namespace Tests
             //玩家2设置自己的属性，预期房间里的所有人都能收到属性改变
             yield return TestHelper.waitUntilEventTrig(clients[0],
                 (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
-                () => clients[1].setPlayerProp("deckCount", 30).wait());
+                () => (clients[1] as IRoomClient).SetPlayerProp("deckCount", 30).wait());
 
             for (int i = 0; i < 2; i++)
             {
