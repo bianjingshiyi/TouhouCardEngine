@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -113,6 +114,7 @@ namespace TouhouCardEngine
         public abstract void QuitRoom();
         public abstract Task SetPlayerProp(string name, object val);
         public abstract Task SetRoomProp(string name, object val);
+        public abstract Task SetRoomPropBatch(List<KeyValuePair<string, object>> values);
         public abstract int GetLatency();
         public abstract Task RefreshRoomList();
         public abstract Task AlterRoomInfo(LobbyRoomData newInfo);

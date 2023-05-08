@@ -156,6 +156,16 @@ namespace TouhouCardEngine
             return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomProp), key, ObjectProxy.TryProxy(value));
         }
 
+        public override Task SetRoomPropBatch(List<KeyValuePair<string, object>> values)
+        {
+            var objs = new List<KeyValuePair<string, object>>();
+            foreach (var item in values)
+            {
+                objs.Add(new KeyValuePair<string, object>(item.Key, ObjectProxy.TryProxy(item.Value)));
+            }
+            return invoke<object>(nameof(IRoomRPCMethodLobby.setRoomPropBatch), objs);
+        }
+
         public override Task SetPlayerProp(string key, object value)
         {
             return invoke<object>(nameof(IRoomRPCMethodLobby.setPlayerProp), key, ObjectProxy.TryProxy(value));

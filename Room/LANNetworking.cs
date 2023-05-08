@@ -180,6 +180,14 @@ namespace TouhouCardEngine
 
         public override Task SetRoomProp(string key, object value)
         {
+            value = handleRoomProp(key, value);
+
+            // 向房间中的其他玩家发送属性变化通知
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, ObjectProxy.TryProxy(value))));
+        }
+
+        private object handleRoomProp(string key, object value)
+        {
             // 对特殊Property做处理，需要更新外部的房间信息
             switch (key)
             {
@@ -197,11 +205,22 @@ namespace TouhouCardEngine
                     invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _roomInfo.ToMaskedData());
                     break;
                 default:
+                    // 对于房主而言，其他Property已经在调用此方法的外部更新了
+                    // 所以不需要手动在这里更新对应Property
                     break;
             }
 
+            return value;
+        }
+
+        public override Task SetRoomPropBatch(List<KeyValuePair<string, object>> values)
+        {
+            foreach (var item in values)
+            {
+                handleRoomProp(item.Key, item.Value);
+            }
             // 向房间中的其他玩家发送属性变化通知
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.onRoomPropChange), key, ObjectProxy.TryProxy(value))));
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.updateRoomData), ObjectProxy.TryProxy(_hostRoomData))));
         }
 
         /// <summary>

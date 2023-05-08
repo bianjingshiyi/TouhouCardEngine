@@ -255,9 +255,28 @@ namespace TouhouCardEngine
                 return curNetwork.SetRoomProp(propName, value);
             return Task.CompletedTask;
         }
+
+        Task IRoomClient.SetRoomPropBatch(List<KeyValuePair<string, object>> values)
+        {
+            if (curNetwork == LobbyNetwork && !isRoomOwner)
+            {
+                return Task.CompletedTask;
+            }
+
+            foreach (var item in values)
+            {
+                logger?.log("主机更改房间属性" + item.Key + "为" + item.Value);
+                room.setProp(item.Key, item.Value);
+            }
+
+            if (curNetwork != null)
+                return curNetwork.SetRoomPropBatch(values);
+            return Task.CompletedTask;
+        }
+
         async Task IRoomClient.SetPlayerProp(string propName, object value)
         {
-            logger?.log("玩家更改房间属性" + propName + "为" + value);
+            logger?.log("玩家更改玩家属性" + propName + "为" + value);
             room.setPlayerProp(localPlayer.id, propName, value);
             if (curNetwork != null)
                 await curNetwork.SetPlayerProp(propName, value);

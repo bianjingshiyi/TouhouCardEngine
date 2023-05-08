@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace TouhouCardEngine
@@ -130,6 +131,13 @@ namespace TouhouCardEngine
         /// <param name="val"></param>
         /// <returns></returns>
         Task SetRoomProp(string name, object val);
+
+        /// <summary>
+        /// 批量修改房间属性
+        /// </summary>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        Task SetRoomPropBatch(List<KeyValuePair<string, object>> values);
 
         /// <summary>
         /// 房间数据被修改后调用此方法
