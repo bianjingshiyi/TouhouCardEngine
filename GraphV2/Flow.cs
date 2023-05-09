@@ -139,17 +139,17 @@ namespace TouhouCardEngine
             Node node = port.node;
             return InvokeNode(node);
         }
-        private Task<ControlOutput> InvokeNode(Node node)
+        private async Task<ControlOutput> InvokeNode(Node node)
         {
 
             if (node == null)
             {
-                return Task.FromResult<ControlOutput>(null);
+                return null;
             }
             nodeStack.Push(node);
             try
             {
-                return node.run(this);
+                return await node.run(this);
             }
             catch (Exception e)
             {
