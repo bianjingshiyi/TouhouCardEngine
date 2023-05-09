@@ -99,7 +99,7 @@ namespace TouhouCardEngine
                         else
                         {
                             //用特性指定是输入
-                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams);
                             inputList.Add(valueDefine);
                         }
                     }
@@ -111,7 +111,7 @@ namespace TouhouCardEngine
                         !typeof(ActionNode).IsAssignableFrom(paramInfo.ParameterType))
                     {
                         //不是Game,Card,Buff,EventArg,Flow, ActionNode这种可以缺省的参数也一定是输入
-                        PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                        PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams);
                         inputList.Add(valueDefine);
                     }
                 }

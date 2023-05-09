@@ -145,16 +145,20 @@ namespace TouhouCardEngine
                     }
                     else
                     {
-                        if (define.isParams && portDefine == define.inputDefines.Last())
+                        if (portDefine.isParams && portDefine == define.inputDefines.LastOrDefault())
                         {
                             // 变长参数。
-                            var count = -1;
-                            var connectedInputs = getParamInputPorts(portDefine.name).Where(p => p.connections.Count() > 0);
-                            if (connectedInputs.Count() > 0)
+                            var count = 0;
+                            var connectedInputs = getParamInputPorts(portDefine.name);
+                            for (int ci = connectedInputs.Length - 1; ci >= 0; ci--)
                             {
-                                count = connectedInputs.Max(p => p.paramIndex);
+                                var connectedInput = connectedInputs[ci];
+                                if (connectedInput == null || !connectedInput.connections.Any())
+                                    continue;
+                                count = ci + 1;
+                                break;
                             }
-                            count = Math.Max(count, -1) + 2;
+                            count++;
                             for (int i = 0; i < count; i++)
                             {
                                 inputs.Add(valueInput(portDefine, i));

@@ -49,8 +49,9 @@ namespace TouhouCardEngine
 
 
             var output = input.getConnectedOutputPort();
-
-            return getValue<T>(output, scope);
+            var gotResult = getValue<T>(output, scope);
+            scope.setLocalVar(input, gotResult);
+            return gotResult;
         }
         public Task<object> getValue(ValueInput input, FlowScope scope = null)
         {
@@ -62,9 +63,13 @@ namespace TouhouCardEngine
                 scope = currentScope;
             if (output == null)
                 return Task.FromResult<T>(default);
-            if (scope.tryGetLocalVar(output, out var value) && value is T result)
+            if (scope.tryGetLocalVar(output, out var value))
             {
-                return Task.FromResult(result);
+                if (value is T result)
+                {
+                    return Task.FromResult(result);
+                }
+                return Task.FromResult<T>(default);
             }
 
             return GetValueDelegate<T>(output);

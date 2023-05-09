@@ -24,6 +24,18 @@ namespace TouhouCardEngine
             var outerNode = parentFlow.currentNode;
             foreach (var input in getOutputPorts<ValueOutput>())
             {
+                bool isParams = input.define != null && input.define.isParams;
+                if (isParams)
+                {
+                    var paramInputs = outerNode.getParamInputPorts(input.name);
+                    object[] array = new object[paramInputs.Length];
+                    for (int i = 0; i < paramInputs.Length; i++)
+                    {
+                        array[i] = await parentFlow.getValue(paramInputs[i]);
+                    }
+                    flow.setValue(input, array);
+                    continue;
+                }
                 var outerInput = outerNode.getInputPort<ValueInput>(input.name);
                 if (outerInput != null)
                 {
@@ -55,10 +67,16 @@ namespace TouhouCardEngine
 
         private void DefinitionOutputs(GeneratedActionDefine actionDefine)
         {
-            ValueOutput valueOutput(PortDefine def)
-                => getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
-            ValueOutput valueConst(PortDefine def)
-                => getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueOutput(this, def);
+            ValueOutput valueOutput(PortDefine inputDef)
+            {
+                if (inputDef.isParams && inputDef == actionDefine.inputDefines.LastOrDefault())
+                {
+                    inputDef = PortDefine.Value(inputDef.type.MakeArrayType(), inputDef.name, inputDef.displayName, true);
+                }
+                return getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(inputDef)) ?? new ValueOutput(this, inputDef);
+            }
+            ValueOutput valueConst(PortDefine constDef)
+                => getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(constDef)) ?? new ValueOutput(this, constDef);
             ControlOutput controlOutput(PortDefine def)
                 => getOutputPorts<ControlOutput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlOutput(this, def);
 

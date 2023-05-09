@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public abstract class ActionDefine
@@ -59,29 +58,21 @@ namespace TouhouCardEngine
         /// <returns></returns>
         public PortDefine getValueOutputAt(int index)
         {
-            var outputs = getValueOutputs().ToArray();
-            int count = 0;
-            for (int i = 0; i < outputs.Length; i++)
-            {
-                if (count == index)
-                {
-                    return outputs[i];
-                }
-                count++;
-            }
-            throw new IndexOutOfRangeException("索引" + index + "超出动作" + defineName + "的值输出数量上限或下限");
+            return getValueOutputs().ElementAtOrDefault(index);
         }
         public PortDefine getValueInputAt(int index)
-        {            var inputs = getValueInputs().ToArray();
-            if (inputs.Length <= 0)
+        {
+            var inputs = getValueInputs();
+            int count = inputs.Count();
+            if (count <= 0)
                 return null;
-            var lastInput = inputs[inputs.Length - 1];
-            if (lastInput != null && isParams && index >= inputs.Length)
+            var lastInput = inputs.LastOrDefault();
+            if (lastInput != null && lastInput.isParams && index >= count)
             {
                 //多参数，获取最后一个参数类型
                 return lastInput;
             }
-            return inputs[index];
+            return inputs.ElementAtOrDefault(index);
         }
         public IEnumerable<PortDefine> getValueInputs()
         {
@@ -97,15 +88,15 @@ namespace TouhouCardEngine
         }
         public PortDefine getInputDefine(string name)
         {
-            return inputDefines.SingleOrDefault(d => d.name == name);
+            return inputDefines.FirstOrDefault(d => d.name == name);
         }
         public PortDefine getConstDefine(string name)
         {
-            return constDefines.SingleOrDefault(d => d.name == name);
+            return constDefines.FirstOrDefault(d => d.name == name);
         }
         public PortDefine getOutputDefine(string name)
         {
-            return outputDefines.SingleOrDefault(d => d.name == name);
+            return outputDefines.FirstOrDefault(d => d.name == name);
         }
         public void setObsoleteMessage(string message)
         {
@@ -122,7 +113,6 @@ namespace TouhouCardEngine
         /// 节点过期提示。不为null则说明过期
         /// </summary>
         public string obsoleteMsg;
-        public bool isParams;
         /// <summary>
         /// 禁止玩家打开该节点的菜单。
         /// </summary>
