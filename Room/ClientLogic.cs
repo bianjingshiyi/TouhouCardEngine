@@ -143,18 +143,21 @@ namespace TouhouCardEngine
         public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
         private void roomPlayerDataChangeEvtHandler(RoomPlayerData[] obj)
         {
+            room.playerDataList = obj.ToList();
             OnRoomPlayerDataChanged?.Invoke(obj);
         }
 
         public event Action<RoomData> OnRoomDataChange;
         private void roomDataChangeEvtHandler(RoomData obj)
         {
+            room = obj;
             OnRoomDataChange?.Invoke(obj);
         }
 
         public event Action<string, object> PostRoomPropChange;
         private void roomPropChangeEvtHandler(string key, object value)
         {
+            room.setProp(key, value);
             PostRoomPropChange?.Invoke(key, value);
         }
 
