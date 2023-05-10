@@ -124,11 +124,11 @@ namespace TouhouCardEngine
             var count = 0;
             foreach (var input in node.inputPorts)
             {
-                count = disconnectAll(input);
+                count += disconnectAll(input);
             }
             foreach (var output in node.outputPorts)
             {
-                count = disconnectAll(output);
+                count += disconnectAll(output);
             }
             return count;
         }
@@ -213,6 +213,8 @@ namespace TouhouCardEngine
             }
             width = maxX - minX;
             height = maxY - minY;
+            centerX = minX + width * 0.5f;
+            centerY = minY + height * 0.5f;
         }
         public int getUniqueNodeId()
         {
@@ -251,6 +253,8 @@ namespace TouhouCardEngine
         #endregion 私有方法
         public float width { get; private set; }
         public float height { get; private set; }
+        public float centerX { get; private set; }
+        public float centerY { get; private set; }
         private List<Node> _nodes;
         private List<NodeConnection> _connections;
         public IEnumerable<Node> nodes => _nodes;

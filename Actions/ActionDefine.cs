@@ -113,18 +113,6 @@ namespace TouhouCardEngine
         /// 节点过期提示。不为null则说明过期
         /// </summary>
         public string obsoleteMsg;
-        /// <summary>
-        /// 禁止玩家打开该节点的菜单。
-        /// </summary>
-        public bool disableMenu;
-        /// <summary>
-        /// 该节点是否隐藏节点文档。
-        /// </summary>
-        public bool hideDocument;
-        /// <summary>
-        /// 禁止玩家创建该定义的节点。
-        /// </summary>
-        public bool disableCreate;
 
         public abstract IEnumerable<PortDefine> inputDefines { get; }
         public abstract IEnumerable<PortDefine> constDefines { get; }
