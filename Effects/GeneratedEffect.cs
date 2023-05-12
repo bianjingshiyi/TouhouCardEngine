@@ -46,10 +46,6 @@ namespace TouhouCardEngine
             string disableName = getEffectName(card, buff, "Disabled");
             return card.getProp<bool>(game, disableName);
         }
-        public ActionNode getDataNode()
-        {
-            return graph?.findActionNode(GeneratedEffectData.defName);
-        }
         public T getProp<T>(string name)
         {
             return (T)getProp(name);
@@ -94,7 +90,6 @@ namespace TouhouCardEngine
         }
         public virtual void Init()
         {
-            graph.createActionNode(GeneratedEffectData.defName, -600, 0);
         }
         public abstract bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg);
         public abstract Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg);
@@ -118,8 +113,8 @@ namespace TouhouCardEngine
         public string name;
         public ActionGraph graph { get; set; }
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        public ControlOutput onEnableAction => getDataNode()?.getOutputPort<ControlOutput>(GeneratedEffectData.enableActionName);
-        public ControlOutput onDisableAction => getDataNode()?.getOutputPort<ControlOutput>(GeneratedEffectData.disableActionName);
+        public virtual ControlOutput onEnableAction => null;
+        public virtual ControlOutput onDisableAction => null;
         #endregion
     }
 
