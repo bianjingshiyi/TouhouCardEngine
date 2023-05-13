@@ -21,19 +21,20 @@ namespace LiteNetLib
                 _ackPacket = new NetPacket(PacketProperty.Ack, 0) {ChannelId = id};
         }
 
-        public override void SendNextPackets()
+        protected override bool SendNextPackets()
         {
             if (_reliable && OutgoingQueue.Count == 0)
             {
                 long currentTime = DateTime.UtcNow.Ticks;
                 long packetHoldTime = currentTime - _lastPacketSendTime;
-                if (packetHoldTime < Peer.ResendDelay * TimeSpan.TicksPerMillisecond)
-                    return;
-                var packet = _lastPacket;
-                if (packet != null)
+                if (packetHoldTime >= Peer.ResendDelay * TimeSpan.TicksPerMillisecond)
                 {
-                    _lastPacketSendTime = currentTime;
-                    Peer.SendUserData(packet);
+                    var packet = _lastPacket;
+                    if (packet != null)
+                    {
+                        _lastPacketSendTime = currentTime;
+                        Peer.SendUserData(packet);
+                    }
                 }
             }
             else
@@ -55,7 +56,7 @@ namespace LiteNetLib
                         }
                         else
                         {
-                            Peer.NetManager.NetPacketPool.Recycle(packet);
+                            Peer.NetManager.PoolRecycle(packet);
                         }
                     }
                 }
@@ -67,6 +68,8 @@ namespace LiteNetLib
                 _ackPacket.Sequence = _remoteSequence;
                 Peer.SendUserData(_ackPacket);
             }
+
+            return _lastPacket != null;
         }
 
         public override bool ProcessPacket(NetPacket packet)
@@ -83,15 +86,28 @@ namespace LiteNetLib
             bool packetProcessed = false;
             if (packet.Sequence < NetConstants.MaxSequence && relative > 0)
             {
-                Peer.Statistics.PacketLoss += (ulong)(relative - 1);
+                if (Peer.NetManager.EnableStatistics)
+                {
+                    Peer.Statistics.AddPacketLoss(relative - 1);
+                    Peer.NetManager.Statistics.AddPacketLoss(relative - 1);
+                }
+
                 _remoteSequence = packet.Sequence;
                 Peer.NetManager.CreateReceiveEvent(
-                    packet, 
-                    _reliable ? DeliveryMethod.ReliableSequenced : DeliveryMethod.Sequenced, 
+                    packet,
+                    _reliable ? DeliveryMethod.ReliableSequenced : DeliveryMethod.Sequenced,
+                    (byte)(packet.ChannelId / NetConstants.ChannelTypeCount),
+                    NetConstants.ChanneledHeaderSize,
                     Peer);
                 packetProcessed = true;
             }
-            _mustSendAck = true;
+
+            if (_reliable)
+            {
+                _mustSendAck = true;
+                AddToPeerChannelSendQueue();
+            }
+
             return packetProcessed;
         }
     }

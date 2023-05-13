@@ -27,6 +27,7 @@
 
         /// <summary>
         /// Reliable only last packet. Packets can be dropped (except the last one), won't be duplicated, will arrive in order.
+        /// Cannot be fragmented
         /// </summary>
         ReliableSequenced = 3
     }
@@ -49,12 +50,14 @@
         public const ushort HalfMaxSequence = MaxSequence / 2;
 
         //protocol
-        internal const int ProtocolId = 10;
+        internal const int ProtocolId = 13;
         internal const int MaxUdpHeaderSize = 68;
+        internal const int ChannelTypeCount = 4;
 
         internal static readonly int[] PossibleMtu =
         {
-            576  - MaxUdpHeaderSize, //minimal
+            576  - MaxUdpHeaderSize, //minimal (RFC 1191)
+            1024,                    //most games standard
             1232 - MaxUdpHeaderSize,
             1460 - MaxUdpHeaderSize, //google cloud
             1472 - MaxUdpHeaderSize, //VPN
@@ -62,11 +65,11 @@
             1500 - MaxUdpHeaderSize  //Ethernet II (RFC 1191)
         };
 
-        internal static readonly int MaxPacketSize = PossibleMtu[PossibleMtu.Length - 1];
+        //Max possible single packet size
+        public static readonly int MaxPacketSize = PossibleMtu[PossibleMtu.Length - 1];
+        public static readonly int MaxUnreliableDataSize = MaxPacketSize - HeaderSize;
 
         //peer specific
         public const byte MaxConnectionNumber = 4;
-
-        public const int PacketPoolSize = 1000;
     }
 }
