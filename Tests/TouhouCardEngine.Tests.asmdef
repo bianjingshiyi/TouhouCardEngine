@@ -6,14 +6,17 @@
         "TouhouCardEngine.Shared",
         "TouhouCardEngine.Library",
         "BJSYGameCore",
-        "BJSYGameCore.Editor"
+        "BJSYGameCore.Editor",
+        "MessagePack",
+        "MessagePack.Annotations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "System.Memory.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [
