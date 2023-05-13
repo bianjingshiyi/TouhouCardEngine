@@ -1,9 +1,11 @@
 ﻿using System;
+using MessagePack;
 using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
     [Serializable]
+    [MessagePackObject]
     public class DefineReference
     {
         public DefineReference(long cardPoolId, int defineId)
@@ -54,7 +56,9 @@ namespace TouhouCardEngine
             return !r1.Equals(r2);
         }
 
+        [Key(0)]
         public long cardPoolId;
+        [Key(1)]
         public int defineId;
 
         public static DefineReference Empty = new DefineReference(0, 0);

@@ -60,7 +60,7 @@ namespace TouhouCardEngine
         {
             OnGameStart?.Invoke();
         }
-        protected async Task invokeOnReceive(int clientID, object data)
+        protected async Task invokeOnReceive(int clientID, byte[] data)
         {
             log?.logTrace($"接收到来自{clientID}的数据{data}");
             if (onReceive != null)
@@ -145,7 +145,14 @@ namespace TouhouCardEngine
         void IRoomRPCMethodClient.onRoomPropChange(string name, object val)
         {
             if (val is ObjectProxy proxy)
+            {
+                var json = MessagePack.MessagePackSerializer.ConvertToJson(proxy.Content);
+                
+                log?.logTrace($"{proxy.Type}: {json}");
+                log?.logTrace($"{Convert.ToBase64String(proxy.Content)}");
+
                 val = proxy.ConvertBack();
+            }
 
             log?.logTrace($"{this.name} 收到房间属性改变事件。Key: {name}, Value: {val}");
             cachedRoomData.setProp(name, val);
@@ -356,14 +363,14 @@ namespace TouhouCardEngine
         /// <param name="peer"></param>
         /// <param name="obj"></param>
         /// <returns></returns>
-        protected Task<T> sendTo<T>(NetPeer peer, object obj)
+        protected Task<byte[]> sendTo(NetPeer peer, byte[] data)
         {
-            if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
             if (peer == null)
                 throw new ArgumentNullException(nameof(peer));
 
-            SendOperation<T> op = new SendOperation<T>();
+            SendOperation<byte[]> op = new SendOperation<byte[]>();
             startOperation(op, () =>
             {
                 log?.logWarn($"客户端{name}发送请求超时。");
@@ -373,14 +380,13 @@ namespace TouhouCardEngine
             writer.Put((int)PacketType.sendRequest);
             writer.Put(op.id);
             writer.Put(clientID);
-            writer.Put(obj.GetType().FullName);
-            writer.Put(obj.ToJson());
+            writer.PutBytesWithLength(data);
             peer.Send(writer, DeliveryMethod.ReliableOrdered);
 
             return op.task;
         }
 
-        public abstract Task<T> Send<T>(object obj);
+        public abstract Task<byte[]> Send(byte[] data);
         #endregion
     }
 

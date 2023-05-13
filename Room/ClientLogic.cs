@@ -162,9 +162,9 @@ namespace TouhouCardEngine
         }
 
         public event ResponseHandler OnReceiveData;
-        private Task roomReceiveEvtHandler(int clientID, object obj)
+        private Task roomReceiveEvtHandler(int clientID, byte[] data)
         {
-            return OnReceiveData?.Invoke(clientID, obj);
+            return OnReceiveData?.Invoke(clientID, data);
         }
 
         public event Action<ChatMsg> OnRecvChat;

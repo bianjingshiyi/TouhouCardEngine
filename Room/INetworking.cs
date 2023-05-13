@@ -91,7 +91,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        Task<T> Send<T>(object obj);
+        Task<byte[]> Send(byte[] data);
 
         /// <summary>
         /// 收到GameResponse
@@ -239,5 +239,5 @@ namespace TouhouCardEngine
     /// <param name="clientID">发送者ID</param>
     /// <param name="obj">发送的数据</param>
     /// <returns></returns>
-    public delegate Task ResponseHandler(int clientID, object obj);
+    public delegate Task ResponseHandler(int clientID, byte[] obj);
 }

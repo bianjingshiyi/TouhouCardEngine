@@ -438,17 +438,17 @@ namespace TouhouCardEngine
             return ResClient.ResourceExistsBatchAsync(res);
         }
 
-        public override async Task<T> Send<T>(object obj)
+        public override async Task<byte[]> Send(byte[] data)
         {
             if (isHost)
             {
-                this.SendRequest(_playerInfoDict.Values.Select(i => i.peer), _playerData.id, -1, obj);
-                await invokeOnReceive(_playerData.id, obj);
-                return (T)obj;
+                this.SendRequest(_playerInfoDict.Values.Select(i => i.peer), _playerData.id, -1, data);
+                await invokeOnReceive(_playerData.id, data);
+                return data;
             }
             else
             {
-                return await sendTo<T>(hostPeer, obj);
+                return await sendTo(hostPeer, data);
             }
         }
 

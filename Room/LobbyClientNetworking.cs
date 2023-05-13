@@ -176,9 +176,9 @@ namespace TouhouCardEngine
             return invoke<object>(nameof(IRoomRPCMethodLobby.gameStart));
         }
 
-        public override Task<T> Send<T>(object obj)
+        public override Task<byte[]> Send(byte[] data)
         {
-            return sendTo<T>(hostPeer, obj);
+            return sendTo(hostPeer, data);
         }
 
         public override Task SendChat(int channel, string message)

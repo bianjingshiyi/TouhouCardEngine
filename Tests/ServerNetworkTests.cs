@@ -105,8 +105,8 @@ namespace Tests
 
             Assert.AreEqual(latest.Version, spec.Version);
             Assert.AreEqual(latest.Date, spec.Date);
-            Assert.AreEqual(latest.DeltaPackageUrl, spec.DeltaPackageUrl);
-            Assert.AreEqual(latest.FullPackageUrl, spec.FullPackageUrl);
+            Assert.AreEqual(latest.Android?.PackageUrl, spec.Android?.PackageUrl);
+            Assert.AreEqual(latest.Win64?.PackageUrl, spec.Win64?.PackageUrl);
 
             // 版本列表
             var list = serverClient.GetUpdateDeltaByVersion(spec.Version);
