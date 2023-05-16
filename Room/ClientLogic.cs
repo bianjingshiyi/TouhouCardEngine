@@ -143,7 +143,10 @@ namespace TouhouCardEngine
         public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
         private void roomPlayerDataChangeEvtHandler(RoomPlayerData[] obj)
         {
-            room.playerDataList = obj.ToList();
+            if (room == null)
+                return;
+            
+            room.playerDataList = obj?.ToList();
             OnRoomPlayerDataChanged?.Invoke(obj);
         }
 
@@ -157,7 +160,10 @@ namespace TouhouCardEngine
         public event Action<string, object> PostRoomPropChange;
         private void roomPropChangeEvtHandler(string key, object value)
         {
-            room.setProp(key, value);
+            if (room == null)
+                return;
+
+            room?.setProp(key, value);
             PostRoomPropChange?.Invoke(key, value);
         }
 
