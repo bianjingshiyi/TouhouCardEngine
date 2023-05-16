@@ -199,7 +199,6 @@ namespace TouhouCardEngine
             var ports = getParamInputPorts(name);
             var portDefine = ports.Select(p => p.define).FirstOrDefault();
             var count = ports.Count();
-            count++;
             var valueInput = new ValueInput(this, portDefine, count);
             inputList.Add(valueInput);
             return valueInput;

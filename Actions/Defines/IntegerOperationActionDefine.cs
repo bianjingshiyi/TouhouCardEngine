@@ -12,7 +12,7 @@ namespace TouhouCardEngine
             inputs = new PortDefine[]
             {
                 enterPortDefine,
-                PortDefine.Value(typeof(int), paramName, "Value")
+                PortDefine.Value(typeof(int), paramName, "Value", isParams: true)
             };
             consts = new PortDefine[]
             {
