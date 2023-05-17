@@ -75,9 +75,12 @@ namespace TouhouCardEngine
                 curNetwork.OnGameStart -= roomGameStartEvtHandler;
                 curNetwork.onReceive -= roomReceiveEvtHandler;
                 curNetwork.OnRoomDataChange -= roomDataChangeEvtHandler;
+                curNetwork.PostRoomPropChange -= roomPropChangeEvtHandler;
                 curNetwork.OnRoomPlayerDataChanged -= roomPlayerDataChangeEvtHandler;
                 curNetwork.onConfirmJoinAck -= onConfirmJoinAck;
                 curNetwork.OnRecvChat -= onRecvChat;
+                curNetwork.OnSuggestCardPools -= onSuggestCardPools;
+                curNetwork.OnCardPoolsSuggestionAnwsered -= onCardPoolsSuggestionAnwsered;
 
                 if (curNetwork == LANNetwork)
                 {
