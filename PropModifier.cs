@@ -81,7 +81,9 @@ namespace TouhouCardEngine
         }
         public sealed override object calc(IGame game, Card card, object value)
         {
-            if (value is T t)
+            if (value == null)
+                return calc(game, card, default);
+            else if (value is T t)
                 return calc(game, card, t);
             else
                 return value;
