@@ -37,7 +37,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        int ICard.id => id;
+        int ICardData.id => id;
         /// <summary>
         /// 卡片的id
         /// </summary>
@@ -49,10 +49,6 @@ namespace TouhouCardEngine
         /// </summary>
         public Pile pile { get; internal set; } = null;
         public CardDefine define { get; private set; } = null;
-        ICardDefine ICard.define
-        {
-            get { return define; }
-        }
         List<PropModifier> modifierList { get; } = new List<PropModifier>();
         List<Buff> buffList { get; } = new List<Buff>();
         int _lastBuffId = 0;
@@ -374,7 +370,7 @@ namespace TouhouCardEngine
         }
         public void revertToHistory(ITrackableCard trackable, int historyIndex)
         {
-            for (int i = _history.Count - 1; i >= historyIndex; i--)
+            for (int i = _history.Count - 1; i > historyIndex; i--)
             {
                 var history = _history[i];
                 history.revert(trackable);

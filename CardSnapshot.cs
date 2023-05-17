@@ -4,7 +4,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class CardSnapshot : ITrackableCard
+    public class CardSnapshot : ICardData, ITrackableCard
     {
         public CardSnapshot()
         {
@@ -61,7 +61,7 @@ namespace TouhouCardEngine
         public void moveTo(Pile to, int toPos)
         {
             pile = to;
-            owner = pile.owner;
+            owner = pile?.owner;
             position = toPos;
         }
         public Buff[] getBuffs()
@@ -80,5 +80,7 @@ namespace TouhouCardEngine
         public int position { get; private set; }
         private Dictionary<string, object> propDic = new Dictionary<string, object>();
         private Buff[] buffs = Array.Empty<Buff>();
+        T ICardData.getProp<T>(IGame game, string propName) => getProp<T>(propName);
+        object ICardData.getProp(IGame game, string propName) => getProp(propName);
     }
 }

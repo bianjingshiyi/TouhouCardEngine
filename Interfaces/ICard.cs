@@ -22,15 +22,21 @@ namespace TouhouCardEngine.Interfaces
     {
         int id { get; }
     }
-    public interface ICard
+    public interface ICard : ICardData
     {
-        int id { get; }
-        ICardDefine define { get; }
+        T getProp<T>(IGame game, string propName, bool raw);
+        object getProp(IGame game, string propName, bool raw);
         Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier);
         Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier);
+        Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
+    }
+    public interface ICardData
+    {
+        int id { get; }
+        Player owner { get; }
+        CardDefine define { get; }
         T getProp<T>(IGame game, string propName);
         object getProp(IGame game, string propName);
-        Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
         Buff[] getBuffs();
     }
     public interface IPropChangeEventArg : IEventArg
@@ -58,11 +64,5 @@ namespace TouhouCardEngine.Interfaces
     public interface IBuff
     {
         int instanceID { get; set; }
-    }
-    public interface ICardDefine
-    {
-        int id { get; }
-
-        IEffect[] getEffects();
     }
 }

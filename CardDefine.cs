@@ -9,7 +9,7 @@ namespace TouhouCardEngine
     /// 卡片定义，包含了一张卡的静态数据和效果逻辑。
     /// </summary>
     [Serializable]
-    public class CardDefine : ICardDefine
+    public class CardDefine
     {
         #region 方法
         public CardDefine(int id, string type, Dictionary<string, object> props, GeneratedEffect[] effects = null)
