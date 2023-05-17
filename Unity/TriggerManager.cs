@@ -317,12 +317,6 @@ namespace TouhouCardEngine
         }
         private async Task doEventBefore<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T: IEventArg
         {
-            foreach (var trigger in triggers)
-            {
-                if (eventArg.isCanceled)
-                    break;
-                await runTrigger<T>(trigger, eventArg);
-            }
             //Callback
             try
             {
@@ -331,6 +325,12 @@ namespace TouhouCardEngine
             catch (Exception e)
             {
                 logger?.log("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
+            }
+            foreach (var trigger in triggers)
+            {
+                if (eventArg.isCanceled)
+                    break;
+                await runTrigger<T>(trigger, eventArg);
             }
         }
         private async Task doEventFunc(IEventArg eventArg, EventRecord record)
