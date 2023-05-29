@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
     /// <summary>
@@ -225,10 +226,27 @@ namespace TouhouCardEngine
                         }
                         else
                         {
-                            ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
-                            if (port != null)
+                            if (paramAttr.isParams)
                             {
-                                param = await flow.getValue(port);
+                                var ports = node.getParamInputPorts(paramInfo.Name);
+                                var array = new object[ports.Length];
+                                for (int paramIndex = 0; paramIndex < array.Length; paramIndex++)
+                                {
+                                    var port = ports[paramIndex];
+                                    if (port != null)
+                                    {
+                                        array[paramIndex] = await flow.getValue(port);
+                                    }
+                                }
+                                param = array;
+                            }
+                            else
+                            {
+                                ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
+                                if (port != null)
+                                {
+                                    param = await flow.getValue(port);
+                                }
                             }
                         }
                         if (isObjectNeedToPackForType(param, paramInfo.ParameterType))
