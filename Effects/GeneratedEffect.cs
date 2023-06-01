@@ -48,7 +48,12 @@ namespace TouhouCardEngine
         }
         public T getProp<T>(string name)
         {
-            return (T)getProp(name);
+            var value = getProp(name);
+            if (value is T result)
+            {
+                return result;
+            }
+            return default;
         }
         public virtual object getProp(string name)
         {
@@ -60,6 +65,18 @@ namespace TouhouCardEngine
         public virtual void setProp(string name, object value)
         {
             propDict[name] = value;
+        }
+        public virtual bool hasProp(string name)
+        {
+            return propDict.ContainsKey(name);
+        }
+        public virtual bool removeProp(string name)
+        {
+            return propDict.Remove(name);
+        }
+        public virtual string[] getPropNames()
+        {
+            return propDict.Keys.ToArray();
         }
         /// <summary>
         /// 遍历效果中的动作节点
@@ -91,6 +108,9 @@ namespace TouhouCardEngine
         public virtual void Init()
         {
         }
+        public abstract void setTags(params string[] tags);
+        public abstract string[] getTags();
+        public abstract bool hasTag(string tag);
         public abstract bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg);
         public abstract Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg);
         public abstract SerializableEffect Serialize();
