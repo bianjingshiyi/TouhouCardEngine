@@ -71,7 +71,7 @@ namespace TouhouCardEngine
             {
                 if (inputDef.isParams && inputDef == actionDefine.inputDefines.LastOrDefault())
                 {
-                    inputDef = PortDefine.Value(inputDef.type.MakeArrayType(), inputDef.name, inputDef.displayName, true);
+                    inputDef = PortDefine.Value(inputDef.type.MakeArrayType(), inputDef.name, inputDef.displayName);
                 }
                 return getOutputPorts<ValueOutput>().FirstOrDefault(d => d != null && d.define.Equals(inputDef)) ?? new ValueOutput(this, inputDef);
             }

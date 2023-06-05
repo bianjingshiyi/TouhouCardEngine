@@ -21,7 +21,7 @@ namespace TouhouCardEngine
             outputs = new PortDefine[]
             {
                 exitPortDefine,
-                PortDefine.Value(typeof(bool), "result", true)
+                PortDefine.Value(typeof(bool), "result")
             };
         }
         public override async Task<ControlOutput> run(Flow flow, Node node)
