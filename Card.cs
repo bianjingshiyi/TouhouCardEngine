@@ -87,7 +87,7 @@ namespace TouhouCardEngine
                 }
                 //更换define
                 card.define = define;
-                card.addHistory(new CardSetDefineHistory(arg.beforeDefine, arg.afterDefine));
+                card.addHistory(new CardSetDefineHistory(arg.beforeDefine, arg.afterDefine, arg));
                 //激活被动
                 Pile pile = card.getPile(game as CardEngine);
                 foreach (var effect in card.define.getEffects())
@@ -166,7 +166,7 @@ namespace TouhouCardEngine
                     game?.logger?.logTrace(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + StringHelper.propToString(value));
                     await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value }, arg2 =>
                     {
-                        card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value));
+                        card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value, arg2));
                         game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                         return Task.CompletedTask;
                     });
@@ -224,7 +224,7 @@ namespace TouhouCardEngine
                         await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value },
                         arg2 =>
                         {
-                            card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value));
+                            card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value, arg2));
                             game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
                             return Task.CompletedTask;
                         });
@@ -368,6 +368,10 @@ namespace TouhouCardEngine
                 return null;
             return _history[index];
         }
+        public CardHistory[] getHistories()
+        {
+            return _history.ToArray();
+        }
         public void revertToHistory(ITrackableCard trackable, int historyIndex)
         {
             for (int i = _history.Count - 1; i > historyIndex; i--)
@@ -404,7 +408,7 @@ namespace TouhouCardEngine
                     Card card = arg.card as Card;
                     propName = arg.propName;
                     var v = arg.value;
-                    card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value));
+                    card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value, arg));
                     propDic[propName] = v;
                     game.logger?.logTrace("Game", card + "的属性" + propName + "=>" + StringHelper.propToString(v));
                     return Task.CompletedTask;

@@ -142,7 +142,7 @@ namespace TouhouCardEngine
                             card.owner = null;
                         }
                     }
-                    card.addHistory(new CardMoveHistory(from, to, fromPosition, position));
+                    card.addHistory(new CardMoveHistory(from, to, fromPosition, position, arg));
                     return Task.CompletedTask;
                 });
             else

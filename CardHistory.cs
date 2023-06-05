@@ -1,4 +1,6 @@
-﻿namespace TouhouCardEngine
+﻿using TouhouCardEngine.Interfaces;
+
+namespace TouhouCardEngine
 {
     public interface ITrackableCard
     {
@@ -8,6 +10,11 @@
     }
     public abstract class CardHistory
     {
+        public IEventArg eventArg;
+        public CardHistory(IEventArg eventArg)
+        {
+            this.eventArg = eventArg;
+        }
         public abstract void apply(ITrackableCard trackable);
         public abstract void revert(ITrackableCard trackable);
 
@@ -17,7 +24,7 @@
         public string propName;
         public object beforeValue;
         public object value;
-        public CardPropHistory(string propName, object beforeValue, object value)
+        public CardPropHistory(string propName, object beforeValue, object value, IEventArg eventArg) : base(eventArg)
         {
             this.propName = propName;
             this.beforeValue = beforeValue;
@@ -37,7 +44,7 @@
     {
         public CardDefine beforeDefine;
         public CardDefine define;
-        public CardSetDefineHistory(CardDefine beforeDefine, CardDefine define)
+        public CardSetDefineHistory(CardDefine beforeDefine, CardDefine define, IEventArg eventArg) : base(eventArg)
         {
             this.beforeDefine = beforeDefine;
             this.define = define;
@@ -58,7 +65,7 @@
         public int fromPos;
         public Pile to;
         public int toPos;
-        public CardMoveHistory(Pile from, Pile to, int fromPos, int toPos)
+        public CardMoveHistory(Pile from, Pile to, int fromPos, int toPos, IEventArg eventArg) : base(eventArg)
         {
             this.from = from;
             this.to = to;
