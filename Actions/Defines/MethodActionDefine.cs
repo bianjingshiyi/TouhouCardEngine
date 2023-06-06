@@ -159,23 +159,36 @@ namespace TouhouCardEngine
         /// <returns></returns>
         private bool isObjectNeedToPackForType(object obj, Type type)
         {
-            return !(obj is Array) && (type == typeof(Array) || type.IsArray);
+            return !(obj is Array) && //值不是数组
+                (type == typeof(Array) || type.IsArray); //类型是数组
         }
-        private bool isObjectNeedToUnpackForType(object array, Type type)
+        private bool isObjectNeedToUnpackForType(object obj, Type type)
         {
-            return array is Array && !(type.IsAssignableFrom(array.GetType()) || type == typeof(Array) || type.IsArray);
+            return obj is Array && //值是数组
+                !(type == typeof(Array) || type.IsArray || type.IsAssignableFrom(obj.GetType())); //类型不是数组
         }
+        /// <summary>
+        /// 是否需要将数组转换为目标类型的数组？
+        /// </summary>
+        /// <param name="array">要转换的数组。</param>
+        /// <param name="type">目标类型。</param>
+        /// <returns></returns>
         private bool isArrayNeedToCastForType(Array array, Type type)
         {
-            if (array == null)
+            if (array == null) // 数组为null。
                 return false;
-            if (type != typeof(Array) && !type.IsArray)
+            if (type != typeof(Array) && !type.IsArray) // 类型不是数组。
                 return false;
-            if (type.IsAssignableFrom(array.GetType()))
+            if (!type.HasElementType)// 目标类型数组没有元素类型。
+                return false; 
+
+            Type arrayType = array.GetType();
+            if (type.IsAssignableFrom(arrayType)) // 该数组可以直接转换到目标数组的类型。
                 return false;
-            return type.HasElementType && type.GetElementType() is Type elementType &&
-                (elementType.IsAssignableFrom(array.GetType().GetElementType()) ||
-                array.GetType().GetElementType().IsAssignableFrom(elementType));
+
+            Type arrayElementType = arrayType.GetElementType();
+            Type elementType = type.GetElementType();
+            return Flow.canConvertTo(arrayElementType, elementType) || Flow.canConvertTo(elementType, arrayElementType); // 目标类型数组的元素可以和数组的元素类型相转换。
         }
         private object packObjectToArray(object obj, Type elementType)
         {
@@ -187,14 +200,29 @@ namespace TouhouCardEngine
         {
             return array.GetValue(0);
         }
-        private object castArrayToTargetTypeArray(Array array, Type elementType)
+        private object castArrayToTargetTypeArray(Flow flow, Array array, Type elementType)
         {
             Array targetArray = Array.CreateInstance(elementType, array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                targetArray.SetValue(array.GetValue(i), i);
+                var value = array.GetValue(i);
+                value = flow.convertTo(value, elementType);
+                targetArray.SetValue(value, i);
             }
             return targetArray;
+        }
+        private object processType(Flow flow, object param, Type type)
+        {
+            if (isObjectNeedToPackForType(param, type))
+                param = packObjectToArray(param, type.GetElementType());
+            else if (isObjectNeedToUnpackForType(param, type))
+                param = unpackArrayToObject(param as Array);
+            else if (param is Array array && isArrayNeedToCastForType(array, type))
+                param = castArrayToTargetTypeArray(flow, array, type.GetElementType());
+
+            param = flow.convertTo(param, type);
+
+            return param;
         }
 
         private async Task<object[]> getParameters(Flow flow, Node node)
@@ -250,12 +278,7 @@ namespace TouhouCardEngine
                                 }
                             }
                         }
-                        if (isObjectNeedToPackForType(param, paramInfo.ParameterType))
-                            param = packObjectToArray(param, paramInfo.ParameterType.GetElementType());
-                        else if (isObjectNeedToUnpackForType(param, paramInfo.ParameterType))
-                            param = unpackArrayToObject(param as Array);
-                        else if (param is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
-                            param = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
+                        param = processType(flow, param, paramInfo.ParameterType);
                         parameters[i] = param;
                     }
                 }
@@ -311,12 +334,7 @@ namespace TouhouCardEngine
                         if (port != null)
                         {
                             object param = await flow.getValue(port);
-                            if (isObjectNeedToPackForType(param, paramInfo.ParameterType))
-                                param = packObjectToArray(param, paramInfo.ParameterType.GetElementType());
-                            else if (isObjectNeedToUnpackForType(param, paramInfo.ParameterType))
-                                param = unpackArrayToObject(param as Array);
-                            else if (param is Array array && isArrayNeedToCastForType(array, paramInfo.ParameterType))
-                                param = castArrayToTargetTypeArray(array, paramInfo.ParameterType.GetElementType());
+                            param = processType(flow, param, paramInfo.ParameterType);
                             parameters[i] = param;
                         }
                     }

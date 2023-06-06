@@ -42,9 +42,13 @@ namespace TouhouCardEngine
             if (scope == null)
                 scope = currentScope;
 
-            if (scope.tryGetLocalVar(input, out var value) && value is T result)
+            if (scope.tryGetLocalVar(input, out object value))
             {
-                return Task.FromResult(result);
+                if (tryConvertTo(value, out T result))
+                {
+                    return Task.FromResult(result);
+                }
+                return Task.FromResult<T>(default);
             }
 
 
@@ -63,9 +67,9 @@ namespace TouhouCardEngine
                 scope = currentScope;
             if (output == null)
                 return Task.FromResult<T>(default);
-            if (scope.tryGetLocalVar(output, out var value))
+            if (scope.tryGetLocalVar(output, out object value))
             {
-                if (value is T result)
+                if (tryConvertTo(value, out T result))
                 {
                     return Task.FromResult(result);
                 }
@@ -136,7 +140,103 @@ namespace TouhouCardEngine
             }
         }
 
-
+        #region 类型转换
+        public static void addConversion(ParamConversion conversion)
+        {
+            _conversions.Add(conversion);
+        }
+        public static bool removeConversion(ParamConversion conversion)
+        {
+            return _conversions.Remove(conversion);
+        }
+        public static bool canConvertTo(Type from, Type to)
+        {
+            if (to.IsAssignableFrom(from))
+            {
+                return true;
+            }
+            foreach (ParamConversion conv in _conversions)
+            {
+                if (conv == null)
+                    continue;
+                if (conv.canConvert(from, to))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public object convertTo(object input, Type to)
+        {
+            if (input == null)
+                return null;
+            Type from = input.GetType();
+            if (to.IsAssignableFrom(from))
+            {
+                return input;
+            }
+            foreach (ParamConversion conv in _conversions)
+            {
+                if (conv == null)
+                    continue;
+                if (conv.canConvert(input.GetType(), to))
+                {
+                    return conv.convert(this, input, to);
+                }
+            }
+            return input;
+        }
+        public bool tryConvertTo(object input, Type to, out object output)
+        {
+            output = default;
+            if (input == null)
+            {
+                return false;
+            }
+            Type from = input.GetType();
+            if (to.IsAssignableFrom(from))
+            {
+                output = input;
+                return true;
+            }
+            foreach (ParamConversion conv in _conversions)
+            {
+                if (conv == null)
+                    continue;
+                if (conv.canConvert(input.GetType(), to))
+                {
+                    output = conv.convert(this, input, to);
+                    return true;
+                }
+            }
+            return false;
+        }
+        public bool tryConvertTo<T>(object input, out T output)
+        {
+            output = default;
+            if (input == null)
+            {
+                return false;
+            }
+            if (input is T result)
+            {
+                output = result;
+                return true;
+            }
+            Type to = typeof(T);
+            foreach (ParamConversion conv in _conversions)
+            {
+                if (conv == null)
+                    continue;
+                if (conv.canConvert(input.GetType(), to))
+                {
+                    output = (T)conv.convert(this, input, to);
+                    return true;
+                }
+            }
+            return false;
+        }
+        #endregion
         #endregion
 
         private Task<ControlOutput> InvokeDelegate(ControlInput port)
@@ -179,7 +279,7 @@ namespace TouhouCardEngine
                 await InvokeNode(node);
                 if (currentScope.tryGetLocalVar(output, out var value))
                 {
-                    if (value is T result)
+                    if (tryConvertTo<T>(value, out var result))
                         return result;
                     return default;
                 }
@@ -203,6 +303,7 @@ namespace TouhouCardEngine
         private Stack<Node> nodeStack;
         private Stack<FlowScope> scopeStack;
         private Dictionary<string, object> flowVariables = new Dictionary<string, object>();
+        private static List<ParamConversion> _conversions = new List<ParamConversion>();
         #endregion
     }
 
@@ -243,11 +344,11 @@ namespace TouhouCardEngine
                 arguments.Add(name, value);
             }
         }
-        public T GetArgument<T>(string name)
+        public object GetArgument(string name)
         {
-            if (arguments.TryGetValue(name, out object value) && value is T result)
+            if (arguments.TryGetValue(name, out object value))
             {
-                return result;
+                return value;
             }
             return default;
         }
