@@ -21,7 +21,7 @@ namespace TouhouCardEngine
         {
             if (onEnableAction != null)
             {
-                var flow = new Flow(game, card, buff, null);
+                var flow = new Flow(game, card, buff, null, this);
                 await game.runActions(flow, onEnableAction);
             }
 
@@ -37,7 +37,7 @@ namespace TouhouCardEngine
 
             if (onDisableAction != null)
             {
-                var flow = new Flow(game, card, buff, null);
+                var flow = new Flow(game, card, buff, null, this);
                 await game.runActions(flow, onDisableAction);
             }
         }

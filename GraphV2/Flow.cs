@@ -22,7 +22,7 @@ namespace TouhouCardEngine
         {
             this.parent = parent;
         }
-        public Flow(IGame game, ICard card, IBuff buff, IEventArg eventArg) : this(new FlowEnv(game, card, buff, eventArg))
+        public Flow(IGame game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
         {
         }
         #endregion
@@ -212,13 +212,15 @@ namespace TouhouCardEngine
         public ICard card { get; private set; }
         public IBuff buff { get; private set; }
         public IEventArg eventArg { get; private set; }
+        public IEffect effect { get; private set; }
         private Dictionary<string, object> arguments;
-        public FlowEnv(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        public FlowEnv(IGame game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect)
         {
             this.game = game;
             this.card = card;
             this.buff = buff;
             this.eventArg = eventArg;
+            this.effect = effect;
             arguments = new Dictionary<string, object>();
         }
         public FlowEnv(FlowEnv other)
@@ -227,6 +229,7 @@ namespace TouhouCardEngine
             card = other.card;
             buff = other.buff;
             eventArg = other.eventArg;
+            effect = other.effect;
             arguments = new Dictionary<string, object>(other.arguments);
         }
         public void SetArgument(string name, object value)

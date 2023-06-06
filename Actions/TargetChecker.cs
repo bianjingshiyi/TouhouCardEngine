@@ -28,7 +28,7 @@ namespace TouhouCardEngine
             var condition = node?.getTargetConditionPort(getIndex());
             condition?.traverse(action, traversedActionNodeSet);
         }
-        public bool isValidTarget(IGame game, ICard card, IBuff buff, IEventArg eventArg, out string invalidMsg)
+        public bool isValidTarget(FlowEnv env, out string invalidMsg)
         {
             var condition = node?.getTargetConditionPort(getIndex());
             if (condition == null || condition.getConnectedOutputPort() == null)
@@ -36,8 +36,8 @@ namespace TouhouCardEngine
                 invalidMsg = null;
                 return true;
             }
-            var flow = new Flow(game, card, buff, eventArg);
-            var task = game.getValue<bool>(flow, condition);
+            var flow = new Flow(env);
+            var task = env.game.getValue<bool>(flow, condition);
             if (task.IsCompleted)
             {
                 bool returnValue = task.Result;

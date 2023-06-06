@@ -24,7 +24,7 @@ namespace Tests
             actionNode1.setConst("value", 2);
             var constOutput = actionNode1.getOutputPort<ValueOutput>("result");
 
-            Assert.AreEqual(2, game.getValue<int>(new Flow(game, null, null, null), constOutput).Result);
+            Assert.AreEqual(2, game.getValue<int>(new Flow(game, null, null, null, null), constOutput).Result);
 
 
 
@@ -35,7 +35,7 @@ namespace Tests
             graph.connect(constOutput, actionNode2.getParamInputPort("Value", 1));
             var intOpOutput = actionNode2.getOutputPort<ValueOutput>("result");
 
-            Assert.AreEqual(4, game.getValue<int>(new Flow(game, null, null, null), intOpOutput).Result);
+            Assert.AreEqual(4, game.getValue<int>(new Flow(game, null, null, null, null), intOpOutput).Result);
 
 
 
@@ -46,7 +46,7 @@ namespace Tests
             graph.connect(constOutput, actionNode2.getParamInputPort("Value", 1));
             var intOp2Output = actionNode3.getOutputPort<ValueOutput>("result");
 
-            Assert.AreEqual(2, game.getValue<int>(new Flow(game, null, null, null), intOp2Output).Result);
+            Assert.AreEqual(2, game.getValue<int>(new Flow(game, null, null, null, null), intOp2Output).Result);
         }
         [Test]
         public void doActionWithGeneratedActionDefineTest()
@@ -103,7 +103,7 @@ namespace Tests
             constNode2.setConst("Value", 2);
 
             action.setConst("C", 2);
-            var task = game.getValue(new Flow(game, null, null, null), action.getOutputPort<ValueOutput>("Result"));
+            var task = game.getValue(new Flow(game, null, null, null, null), action.getOutputPort<ValueOutput>("Result"));
             Assert.AreEqual(8, task.Result);
         }
         [Test]
@@ -121,7 +121,7 @@ namespace Tests
             action.setConst("operator", IntegerOperator.add);
             const1.setConst("value", 2);
             const1.setConst("value", 2);
-            int result = engine.getValue<int>(new Flow(engine, null, null, null), action.getOutputPort<ValueOutput>("result")).Result;
+            int result = engine.getValue<int>(new Flow(engine, null, null, null, null), action.getOutputPort<ValueOutput>("result")).Result;
             Assert.AreEqual(4, result);
         }
     }
