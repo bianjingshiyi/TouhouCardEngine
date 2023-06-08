@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public class BooleanConstActionDefine : ActionDefine
     {
-        public BooleanConstActionDefine() : base("BooleanConst")
+        public BooleanConstActionDefine() : base("BooleanConst", "BooleanConst")
         {
             inputs = new PortDefine[]
             {

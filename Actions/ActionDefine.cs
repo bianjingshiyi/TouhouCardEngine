@@ -9,9 +9,10 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionDefine(string defineName, params string[] obsoleteNames)
+        public ActionDefine(string defineName, string editorName, params string[] obsoleteNames)
         {
             this.defineName = defineName;
+            this.editorName = editorName;
             this.obsoleteNames = obsoleteNames;
         }
         #endregion
@@ -107,6 +108,7 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         public string defineName;
+        public string editorName;
         public string category { get; protected set; }
         public string[] obsoleteNames;
         /// <summary>

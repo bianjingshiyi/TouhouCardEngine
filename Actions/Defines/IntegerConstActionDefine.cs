@@ -5,7 +5,7 @@ namespace TouhouCardEngine
 {
     public class IntegerConstActionDefine : ActionDefine
     {
-        public IntegerConstActionDefine() : base("IntegerConst")
+        public IntegerConstActionDefine() : base("IntegerConst", "IntegerConst")
         {
             inputs = new PortDefine[]
             {

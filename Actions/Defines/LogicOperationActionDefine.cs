@@ -7,7 +7,7 @@ namespace TouhouCardEngine
 {
     public class LogicOperationActionDefine : ActionDefine
     {
-        public LogicOperationActionDefine() : base("LogicOperation")
+        public LogicOperationActionDefine() : base("LogicOperation", "LogicOperation")
         {
             inputs = new PortDefine[]
             {

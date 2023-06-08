@@ -41,7 +41,7 @@ namespace TouhouCardEngine
         /// 
         /// </summary>
         /// <param name="methodInfo">必须是静态方法</param>
-        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo) : base(attribute.methodName, attribute.obsoleteNames)
+        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo) : base(attribute.defineName, attribute.editorName, attribute.obsoleteNames)
         {
             if (!methodInfo.IsStatic)
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));
@@ -390,7 +390,6 @@ namespace TouhouCardEngine
         }
         #endregion
         private const string returnValueName = "return";
-        public string methodName => defineName;
         MethodInfo _methodInfo;
         ParameterInfo[] _paramsInfo;
 

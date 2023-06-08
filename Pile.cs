@@ -154,15 +154,6 @@ namespace TouhouCardEngine
                 record.setCardState(VAR_CARD, card);
                 record.setVar(VAR_POSITION, position);
             }
-            #region 动作定义
-            [ActionNodeMethod("IsPlayerPileChanged", "Pile")]
-            [return: ActionNodeParam("IsChanged")]
-            public static bool isPlayerPileChanged(MoveCardEventArg moveCardEvent, [ActionNodeParam("Player")] Player player, [ActionNodeParam("PileName")] string pileName)
-            {
-                return (moveCardEvent.from.owner == player && moveCardEvent.from.name == pileName) ||
-                    (moveCardEvent.to.owner == player && moveCardEvent.to.name == pileName);
-            }
-            #endregion
             public Pile from;
             public Pile to;
             public Card card;

@@ -7,7 +7,7 @@ namespace TouhouCardEngine
 {
     public class IntegerOperationActionDefine : ActionDefine
     {
-        public IntegerOperationActionDefine() : base("IntegerOperation")
+        public IntegerOperationActionDefine() : base("IntegerOperation", "IntegerOperation")
         {
             inputs = new PortDefine[]
             {

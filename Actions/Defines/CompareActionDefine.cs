@@ -6,7 +6,7 @@ namespace TouhouCardEngine
 {
     public class CompareActionDefine : ActionDefine
     {
-        public CompareActionDefine() : base("Compare")
+        public CompareActionDefine() : base("Compare", "Compare")
         {
             inputs = new PortDefine[]
             {

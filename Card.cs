@@ -550,25 +550,6 @@ namespace TouhouCardEngine
                 history.revert(trackable);
             }
         }
-        #region 动作定义
-        [ActionNodeMethod("AddIntModifier", "Card")]
-        [return: ActionNodeParam("Modifier")]
-        public static IntPropModifier addIntModifier(IGame game, [ActionNodeParam("Card")] Card card,
-                                                     [ActionNodeParam("PropertyName")] string propName,
-                                                     [ActionNodeParam("Value")] int value,
-                                                     [ActionNodeParam("isSet")] bool isSet)
-        {
-            IntPropModifier modifier = new IntPropModifier(propName, value, isSet);
-            card.addModifier(game, modifier);
-            return modifier;
-        }
-        [ActionNodeMethod("RemoveModifier", "Card")]
-        [return: ActionNodeParam("RemoveModifierEvent")]
-        public static Task<IRemoveModiEventArg> removeModifier(IGame game, [ActionNodeParam("Card")] Card card, [ActionNodeParam("Modifier")] PropModifier modifier)
-        {
-            return card.removeModifier(game, modifier);
-        }
-        #endregion   
         #region 属性
         public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
