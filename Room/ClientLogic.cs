@@ -263,7 +263,7 @@ namespace TouhouCardEngine
             
             logger?.log("主机更改房间属性" + propName + "为" + value);
             room.setProp(propName, value);
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SetRoomProp(propName, value);
             return Task.CompletedTask;
         }
@@ -281,7 +281,7 @@ namespace TouhouCardEngine
                 room.setProp(item.Key, item.Value);
             }
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SetRoomPropBatch(values);
             return Task.CompletedTask;
         }
@@ -290,7 +290,7 @@ namespace TouhouCardEngine
         {
             logger?.log("玩家更改玩家属性" + propName + "为" + value);
             room.setPlayerProp(localPlayer.id, propName, value);
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 await curNetwork.SetPlayerProp(propName, value);
         }
         public Task quitRoom()
@@ -305,7 +305,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"[{channel}] 玩家: " + message);
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SendChat(channel, message);
             return Task.CompletedTask;
         }
@@ -313,7 +313,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"玩家提议加入卡池: " + cardPools.ToString());
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SuggestCardPools(cardPools);
             return Task.CompletedTask;
         }
@@ -321,7 +321,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"回应来自玩家{playerId}的加入卡池提议:{agree}。");
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.AnwserCardPoolsSuggestion(playerId, suggestion, agree);
             return Task.CompletedTask;
         }
@@ -329,7 +329,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"获取类型为{type.GetString()}，id为{id}的资源。");
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.GetResourceAsync(type, id);
             return Task.FromResult<byte[]>(null);
         }
@@ -337,7 +337,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"上传类型为{type.GetString()}，id为{id}的资源。");
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.UploadResourceAsync(type, id, bytes);
             return Task.CompletedTask;
         }
@@ -345,7 +345,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"检查类型为{type.GetString()}，id为{id}的资源是否存在。");
 
-            if (curNetwork != null)
+            if (curNetwork != null && !isLocalRoom)
                 return curNetwork.ResourceExistsAsync(type, id);
             return Task.FromResult(false);
         }
@@ -353,7 +353,7 @@ namespace TouhouCardEngine
         {
             logger?.log($"批量检查{res.Length}个资源是否存在");
 
-            if (curNetwork == null)
+            if (curNetwork == null || isLocalRoom)
                 return Task.FromResult(new bool[res.Length]);
             return curNetwork.ResourceBatchExistsAsync(res);
         }
