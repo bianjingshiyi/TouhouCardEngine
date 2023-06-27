@@ -72,6 +72,33 @@ namespace TouhouCardEngine
         {
             return Value(type, name, displayName);
         }
+
+        public static bool CanTypeConvert(Type inputType, Type outputType)
+        {
+            if (inputType == null || outputType == null)
+                return false;
+            //如果输入类型是ActionValueRef，那么无论输出类型是什么都可以，至少暂时还不方便做ActionValueRef的类型检查
+            if (inputType == typeof(ActionValueRef))
+            {
+                return true;
+            }
+            //类型之间可以相互转化
+            if (outputType.IsAssignableFrom(inputType) || inputType.IsAssignableFrom(outputType))
+            {
+                return true;
+            }
+            //在包装成数组之后可以相互转化
+            if (inputType.IsArray && (outputType.IsAssignableFrom(inputType.GetElementType()) || inputType.GetElementType().IsAssignableFrom(outputType)))
+            {
+                return true;
+            }
+            //在拆包成对象之后可以相互转化
+            if (outputType.IsArray && (outputType.GetElementType().IsAssignableFrom(inputType) || inputType.IsAssignableFrom(outputType.GetElementType())))
+            {
+                return true;
+            }
+            return false;
+        }
         #endregion
         #region 属性字段
         public Type type { get; set; }
