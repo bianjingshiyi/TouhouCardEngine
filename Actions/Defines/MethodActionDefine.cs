@@ -67,6 +67,10 @@ namespace TouhouCardEngine
                 bool isOut = paramAttr != null ? paramAttr.isOut : false;
 
                 Type paramType = paramInfo.ParameterType;
+                if (paramType.IsByRef)
+                {
+                    paramType = paramType.GetElementType();
+                }
                 if (isParams)
                 {
                     if (paramType.IsArray)
@@ -362,8 +366,7 @@ namespace TouhouCardEngine
             for (int i = 0; i < _paramsInfo.Length; i++)
             {
                 var paramInfo = _paramsInfo[i];
-                var attr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
-                if (paramInfo.IsOut || (attr != null && attr.isOut))
+                if (paramInfo.IsOut)
                 {
                     var name = paramInfo.Name;
                     ValueOutput port = node.getOutputPort<ValueOutput>(name);
