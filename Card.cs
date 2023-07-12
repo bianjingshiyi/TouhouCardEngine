@@ -281,9 +281,17 @@ namespace TouhouCardEngine
             }
             if (effects != null)
             {
-                foreach (var efffect in effects)
+                foreach (var effect in effects)
                 {
-                    await efffect.onEnable(game, this, buff);
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if (pileEffect.piles.Contains(pile?.name))
+                            await effect.onEnable(game, this, buff);
+                    }
+                    else
+                    {
+                        await effect.onEnable(game, this, buff);
+                    }
                 }
             }
         }

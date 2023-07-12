@@ -55,61 +55,25 @@ namespace TouhouCardEngine
                     card = arg.card;
                     var fromPosition = -1;
                     position = arg.position;
+
+                    bool moveSuccess = true;
                     if (from != null)
                     {
                         fromPosition = from.indexOf(card);
                         if (from.cardList.Remove(card))
                         {
-                            try
-                            {
-                                foreach (var effect in card.define.getEffects())
-                                {
-                                    if (effect is IPileRangedEffect pileEffect)
-                                    {
-                                        if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
-                                            pileEffect.onDisable(game, card, null);
-                                    }
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时禁用被动效果引发异常：" + e);
-                            }
-                            if (to != null)
-                            {
-                                if (position < 0)
-                                    position = 0;
-                                if (position < to.cardList.Count)
-                                    to.cardList.Insert(position, card);
-                                else
-                                    to.cardList.Add(card);
-                                card.pile = to;
-                                card.owner = to.owner;
-                                try
-                                {
-                                    foreach (var effect in card.define.getEffects())
-                                    {
-                                        if (effect is IPileRangedEffect pileEffect)
-                                        {
-                                            if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
-                                                pileEffect.onEnable(game, card, null);
-                                        }
-                                    }
-                                }
-                                catch (Exception e)
-                                {
-                                    game.logger.logError("将" + card + "从" + from + "移动到" + to + "时激活被动效果引发异常：" + e);
-                                }
-                            }
-                            else
-                            {
-                                card.pile = null;
-                                card.owner = null;
-                            }
+                            disableCardEffects(game, card, from, to);
+                        }
+                        else
+                        {
+                            moveSuccess = false;
                         }
                     }
-                    else
+
+                    if (moveSuccess)
                     {
+                        card.pile = to;
+                        card.owner = to?.owner;
                         if (to != null)
                         {
                             if (position < 0)
@@ -118,28 +82,7 @@ namespace TouhouCardEngine
                                 to.cardList.Insert(position, card);
                             else
                                 to.cardList.Add(card);
-                            card.pile = to;
-                            card.owner = to.owner;
-                            try
-                            {
-                                foreach (var effect in card.define.getEffects())
-                                {
-                                    if (effect is IPileRangedEffect pileEffect)
-                                    {
-                                        if (pileEffect.piles.Contains(to.name))
-                                            pileEffect.onEnable(game, card, null);
-                                    }
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                game.logger.logError("将" + card + "从" + from + "中移除时激活被动效果引发异常：" + e);
-                            }
-                        }
-                        else
-                        {
-                            card.pile = null;
-                            card.owner = null;
+                            enableCardEffects(game, card, from, to);
                         }
                     }
                     card.addHistory(new CardMoveHistory(from, to, fromPosition, position, arg));
@@ -328,6 +271,70 @@ namespace TouhouCardEngine
                 Card card = cardList[i];
                 cardList[i] = cardList[index];
                 cardList[index] = card;
+            }
+        }
+        private static void enableCardEffects(IGame game, Card card, Pile from, Pile to)
+        {
+            if (to == null)
+                return;
+
+            try
+            {
+                foreach (var effect in card.define.getEffects())
+                {
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
+                            pileEffect.onEnable(game, card, null);
+                    }
+                }
+                foreach (var buff in card.getBuffs())
+                {
+                    foreach (var effect in buff.getEffects(game as CardEngine))
+                    {
+                        if (effect is IPileRangedEffect pileEffect)
+                        {
+                            if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
+                                pileEffect.onEnable(game, card, null);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时激活效果引发异常：" + e);
+            }
+        }
+        private static void disableCardEffects(IGame game, Card card, Pile from, Pile to)
+        {
+            if (from == null)
+                return;
+
+            try
+            {
+                foreach (var effect in card.define.getEffects())
+                {
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
+                            pileEffect.onDisable(game, card, null);
+                    }
+                }
+                foreach (var buff in card.getBuffs())
+                {
+                    foreach (var effect in buff.getEffects(game as CardEngine))
+                    {
+                        if (effect is IPileRangedEffect pileEffect)
+                        {
+                            if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
+                                pileEffect.onDisable(game, card, null);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时禁用效果引发异常：" + e);
             }
         }
         /// <summary>
