@@ -35,6 +35,18 @@ namespace TouhouCardEngine
             }
             return null;
         }
+        public void enableEffect(IBuff buff, IEffect effect)
+        {
+            disabledEffects.Remove((buff, effect));
+        }
+        public void disableEffect(IBuff buff, IEffect effect)
+        {
+            disabledEffects.Add((buff, effect));
+        }
+        public bool isEffectDisabled(IBuff buff, IEffect effect)
+        {
+            return disabledEffects.Contains((buff, effect));
+        }
         #endregion
         #region 属性字段
         int ICardData.id => id;
@@ -42,6 +54,7 @@ namespace TouhouCardEngine
         /// 卡片的id
         /// </summary>
         public int id = 0;
+        private List<(IBuff buff, IEffect effect)> disabledEffects = new List<(IBuff buff, IEffect effect)>();
         #endregion
         public Player owner { get; internal set; } = null;
         /// <summary>

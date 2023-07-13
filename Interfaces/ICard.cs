@@ -29,6 +29,9 @@ namespace TouhouCardEngine.Interfaces
         Task<IAddModiEventArg> addModifier(IGame game, PropModifier modifier);
         Task<IRemoveModiEventArg> removeModifier(IGame game, PropModifier modifier);
         Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
+        void enableEffect(IBuff buff, IEffect effect);
+        void disableEffect(IBuff buff, IEffect effect);
+        bool isEffectDisabled(IBuff buff, IEffect effect);
     }
     public interface ICardData
     {

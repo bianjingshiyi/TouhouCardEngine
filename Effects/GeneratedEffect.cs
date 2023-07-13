@@ -19,6 +19,9 @@ namespace TouhouCardEngine
         #endregion
         public virtual async Task onEnable(IGame game, ICard card, IBuff buff)
         {
+            if (!isDisabled(game, card, buff))
+                return;
+
             if (onEnableAction != null)
             {
                 var flow = new Flow(game, card, buff, null, this);
@@ -26,14 +29,15 @@ namespace TouhouCardEngine
             }
 
             // 设置该Effect已被启用。
-            string disableName = getEffectName(card, buff, "Disabled");
-            await card.setProp(game, disableName, false);
+            card.enableEffect(buff, this);
         }
         public virtual async Task onDisable(IGame game, ICard card, IBuff buff)
         {
+            if (isDisabled(game, card, buff))
+                return;
+
             // 设置该Effect已被禁用。
-            string disableName = getEffectName(card, buff, "Disabled");
-            await card.setProp(game, disableName, true);
+            card.disableEffect(buff, this);
 
             if (onDisableAction != null)
             {
@@ -43,8 +47,7 @@ namespace TouhouCardEngine
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
         {
-            string disableName = getEffectName(card, buff, "Disabled");
-            return card.getProp<bool>(game, disableName);
+            return card.isEffectDisabled(buff, this);
         }
         public T getProp<T>(string name)
         {
