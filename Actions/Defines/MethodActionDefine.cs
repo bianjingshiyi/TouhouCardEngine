@@ -217,15 +217,17 @@ namespace TouhouCardEngine
         }
         private object processType(Flow flow, object param, Type type)
         {
+            if (flow.tryConvertTo(param, type, out var output))
+            {
+                return output;
+            }
+
             if (isObjectNeedToPackForType(param, type))
                 param = packObjectToArray(param, type.GetElementType());
             else if (isObjectNeedToUnpackForType(param, type))
                 param = unpackArrayToObject(param as Array);
             else if (param is Array array && isArrayNeedToCastForType(array, type))
                 param = castArrayToTargetTypeArray(flow, array, type.GetElementType());
-
-            param = flow.convertTo(param, type);
-
             return param;
         }
 
