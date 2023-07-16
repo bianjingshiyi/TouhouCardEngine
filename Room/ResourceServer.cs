@@ -128,7 +128,13 @@ namespace TouhouCardEngine
             {
                 try
                 {
-                    var resItems = BsonSerializer.Deserialize<ResourceItem[]>(ctx.Request.InputStream);
+                    string json;
+                    using (var stream = new MemoryStream())
+                    {
+                        ctx.Request.InputStream.CopyTo(stream);
+                        json = Encoding.UTF8.GetString(stream.ToArray());
+                    }
+                    var resItems = BsonSerializer.Deserialize<ResourceItem[]>(json);
                     var results = new bool[resItems.Length];
 
                     for (int i = 0; i < resItems.Length; i++)
@@ -361,7 +367,8 @@ namespace TouhouCardEngine
     /// <summary>
     /// 资源服务器的项目
     /// </summary>
-    struct ResourceItem
+    [Serializable]
+    class ResourceItem
     {
         /// <summary>
         /// 资源类型
