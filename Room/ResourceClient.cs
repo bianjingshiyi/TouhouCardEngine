@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
 using MongoDB.Bson;
@@ -93,7 +94,7 @@ namespace TouhouCardEngine
             UnityWebRequestAsyncOperation op = requestGet(type, id);
 
             while (!op.isDone) ;
-            return parseResponse(op);
+            return parseFileResponse(op);
         }
 
         /// <summary>
@@ -111,7 +112,7 @@ namespace TouhouCardEngine
             {
                 try
                 {
-                    completeSource.SetResult(parseResponse(op));
+                    completeSource.SetResult(parseFileResponse(op));
                 }
                 catch (Exception e)
                 {
@@ -131,6 +132,10 @@ namespace TouhouCardEngine
         /// <returns></returns>
         private UnityWebRequestAsyncOperation requestPost(ResourceType type, string id, byte[] data)
         {
+            // 压缩上传资源
+            if (type == ResourceType.CardDefine)
+                data = compressRequest(data);
+
             var form = new MultipartFormFileSection("file", data, id, "application/octet-stream");
             var list = new List<IMultipartFormSection>() { form };
             var req = UnityWebRequest.Post(resourceUri(type, id), list);
@@ -366,6 +371,54 @@ namespace TouhouCardEngine
                 }
             }
             return op.webRequest.downloadHandler.data;
+        }
+
+        private static byte[] parseFileResponse(UnityWebRequestAsyncOperation op)
+        {
+            var data = parseResponse(op);
+            return tryDecompressRequest(data);
+        }
+
+        private static byte[] compressRequest(byte[] data)
+        {
+            using (var ms = new MemoryStream())
+            {
+                using (var gz = new GZipStream(ms, CompressionMode.Compress))
+                {
+                    gz.Write(data, 0, data.Length);
+                }
+                return ms.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// 尝试解压内容。如果不是GZip压缩则不会解压
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="maxSize">最大大小</param>
+        /// <returns></returns>
+        /// <exception cref="OutOfMemoryException">超过最大大小</exception>
+        private static byte[] tryDecompressRequest(byte[] data, uint maxSize = 10 * 1024 * 1024)
+        {
+            // 不是GZip压缩文件，直接返回
+            if (data[0] != 0x1f || data[1] != 0x8b)
+                return data;
+
+            UInt32 fileSize = BitConverter.ToUInt32(data, data.Length - 4);
+            if (fileSize >= maxSize)
+                throw new OutOfMemoryException("Data to be decompress is too long");
+
+            using (var originalStream = new MemoryStream(data))
+            {
+                using (var decompressedStream = new MemoryStream())
+                {
+                    using (var decompressionStream = new GZipStream(originalStream, CompressionMode.Decompress))
+                    {
+                        decompressionStream.CopyTo(decompressedStream);
+                    }
+                    return decompressedStream.ToArray();
+                }
+            }
         }
     }
 }
