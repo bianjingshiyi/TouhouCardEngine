@@ -117,7 +117,7 @@ namespace TouhouCardEngine
                 }
             });
         }
-        public class SetDefineEventArg : EventArg, IDescribableEventArg
+        public class SetDefineEventArg : EventArg, IDescribableEventArg, ICardEventArg
         {
             public CardDefine beforeDefine;
             public Card card;
@@ -129,6 +129,10 @@ namespace TouhouCardEngine
             public ICard[] getTargets(IGame game, IPlayer viewer)
             {
                 return null;
+            }
+            ICard ICardEventArg.getCard()
+            {
+                return card;
             }
             public override void Record(IGame game, EventRecord record)
             {
@@ -156,7 +160,7 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "card";
             public const string VAR_AFTER_DEFINE = "afterDefine";
         }
-        public class AddBuffEventArg : EventArg
+        public class AddBuffEventArg : EventArg, ICardEventArg
         {
             public Card card
             {
@@ -183,6 +187,10 @@ namespace TouhouCardEngine
             public ICard[] getTargets(IGame game, IPlayer viewer)
             {
                 return null;
+            }
+            ICard ICardEventArg.getCard()
+            {
+                return card;
             }
             public override void Record(IGame game, EventRecord record)
             {
@@ -218,7 +226,7 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "卡牌";
             public const string VAR_BUFF = "增益";
         }
-        public class RemoveBuffEventArg : EventArg
+        public class RemoveBuffEventArg : EventArg, ICardEventArg
         {
             public Card card
             {
@@ -250,6 +258,10 @@ namespace TouhouCardEngine
             public ICard[] getTargets(IGame game, IPlayer viewer)
             {
                 return null;
+            }
+            ICard ICardEventArg.getCard()
+            {
+                return card;
             }
             public override void Record(IGame game, EventRecord record)
             {

@@ -257,6 +257,12 @@ namespace TouhouCardEngine
             eventArg.isCanceled = false;
             eventArg.repeatTime = 0;
 
+            // 为事件保存当前执行流的节点ID，以得知是哪个节点创建了这个事件。
+            if (game is CardEngine engine)
+            {
+                eventArg.flowNodeId = engine.currentFlow?.currentNode?.id ?? -1;
+            }
+
             // 获取事件前触发器。
             var beforeNames = eventArg.beforeNames;
             if (beforeNames == null)
@@ -637,6 +643,7 @@ namespace TouhouCardEngine
         public object[] args { get; set; }
         public bool isCanceled { get; set; } = false;
         public int repeatTime { get; set; } = 0;
+        public int flowNodeId { get; set; } = 0;
         public Func<IEventArg, Task> action { get; set; }
         public IEventArg parent
         {

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
+using UnityEngine;
+
 namespace TouhouCardEngine
 {
     public partial class CardEngine
@@ -39,30 +41,61 @@ namespace TouhouCardEngine
         }
         public Task runActions(Flow flow, ControlInput inputPort)
         {
-            return flow.Run(inputPort);
+            pushFlow(flow);
+            var task = flow.Run(inputPort);
+            popFlow();
+            return task;
         }
         public Task runActions(Flow flow, ControlOutput outputPort)
         {
-            return flow.Run(outputPort);
+            pushFlow(flow);
+            var task = flow.Run(outputPort);
+            popFlow();
+            return task;
         }
         public Task<T> getValue<T>(Flow flow, ValueInput input)
         {
-            return flow.getValue<T>(input);
+            pushFlow(flow);
+            var task = flow.getValue<T>(input);
+            popFlow();
+            return task;
         }
         public Task<object> getValue(Flow flow, ValueInput input)
         {
-            return flow.getValue(input);
+            pushFlow(flow);
+            var task = flow.getValue(input);
+            popFlow();
+            return task;
         }
         public Task<T> getValue<T>(Flow flow, ValueOutput output)
         {
-            return flow.getValue<T>(output);
+            pushFlow(flow);
+            var task = flow.getValue<T>(output);
+            popFlow();
+            return task;
         }
         public Task<object> getValue(Flow flow, ValueOutput output)
         {
-            return flow.getValue(output);
+            pushFlow(flow);
+            var task = flow.getValue(output);
+            popFlow();
+            return task;
         }
         #endregion
+
+        #region 私有方法
+        private void pushFlow(Flow flow)
+        {
+            _flowStack.Push(flow);
+        }
+        private void popFlow()
+        {
+            _flowStack.Pop();
+        }
+        #endregion
+        public Flow currentFlow => _flowStack.Count > 0 ? _flowStack.Peek() : null;
         Dictionary<long, Dictionary<int, ActionDefine>> actionDefineDict { get; } = new Dictionary<long, Dictionary<int, ActionDefine>>();
+        Stack<Flow> _flowStack = new Stack<Flow>();
     }
     [Serializable]
     public class Scope

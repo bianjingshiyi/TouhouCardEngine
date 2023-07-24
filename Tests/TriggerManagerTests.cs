@@ -477,6 +477,7 @@ namespace Tests
             public string[] afterNames { get; set; }
             public object[] args { get; set; }
             public string[] beforeNames { get; set; }
+            public int flowNodeId { get; set; }
             List<IEventArg> childEventList { get; } = new List<IEventArg>();
             public IEventArg parent
             {

@@ -52,6 +52,7 @@ namespace TouhouCardEngine.Interfaces
         object[] args { get; set; }
         bool isCanceled { get; set; }
         int repeatTime { get; set; }
+        int flowNodeId { get; set; }
         Func<IEventArg, Task> action { get; set; }
         IEventArg parent { get; set; }
         IEventArg[] getChildEvents();
@@ -77,5 +78,9 @@ namespace TouhouCardEngine.Interfaces
 
         object[] localizeStringArgs(IGame game, IPlayer viewer);
         string localizeTemplateString(IGame game, IPlayer viewer);
+    }
+    public interface ICardEventArg : IEventArg
+    {
+        ICard getCard();
     }
 }
