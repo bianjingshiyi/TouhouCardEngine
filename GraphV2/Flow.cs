@@ -36,7 +36,7 @@ namespace TouhouCardEngine
         {
             scopeStack.Pop();
         }
-        public Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
+        public async Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
         {
 
             if (scope == null)
@@ -46,14 +46,14 @@ namespace TouhouCardEngine
             {
                 if (tryConvertTo(value, out T result))
                 {
-                    return Task.FromResult(result);
+                    return result;
                 }
-                return Task.FromResult<T>(default);
+                return default;
             }
 
 
             var output = input.getConnectedOutputPort();
-            var gotResult = getValue<T>(output, scope);
+            var gotResult = await getValue<T>(output, scope);
             scope.setLocalVar(input, gotResult);
             return gotResult;
         }
