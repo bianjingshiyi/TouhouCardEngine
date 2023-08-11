@@ -218,6 +218,42 @@ namespace TouhouCardEngine
         {
             return snapshoter?.snapshot(this, card);
         }
+        /// <summary>
+        /// 获取某张卡牌在某事件发生后的快照。
+        /// </summary>
+        /// <param name="card">目标卡牌。</param>
+        /// <param name="record">事件记录。</param>
+        /// <returns>卡牌快照。</returns>
+        public CardSnapshot getCardSnapshotOfEvent(Card card, EventRecord record)
+        {
+            var records = triggers.getEventRecords();
+            var recordIndex = Array.IndexOf(records, record);
+            var histories = card.getHistories();
+            int historyIndex = -1;
+            for (int i = 0; i < histories.Length; i++)
+            {
+                var history = histories[i];
+                var rec = triggers.getEventRecord(history.eventArg);
+                if (rec == null)
+                    continue;
+                var historyRecIndex = Array.IndexOf(records, rec);
+                if (historyRecIndex <= recordIndex) // 还没到，或者刚好是指定事件
+                {
+                    historyIndex = i;
+                }
+                if (historyRecIndex >= recordIndex) // 超过了指定事件
+                {
+                    break;
+                }
+            }
+            if (historyIndex < 0)
+            {
+                return snapshotCard(card);
+            }
+            var snapshot = snapshotCard(card);
+            card.revertToHistory(snapshot, historyIndex);
+            return snapshot;
+        }
         #endregion
         #region Props
         public T getProp<T>(string varName)

@@ -156,6 +156,137 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "card";
             public const string VAR_AFTER_DEFINE = "afterDefine";
         }
+        public class AddBuffEventArg : EventArg
+        {
+            public Card card
+            {
+                get => getVar<Card>(VAR_CARD);
+                set => setVar(VAR_CARD, value);
+            }
+            public Buff buff
+            {
+                get => getVar<Buff>(VAR_BUFF);
+                set => setVar(VAR_BUFF, value);
+            }
+            public AddBuffEventArg()
+            {
+            }
+            public AddBuffEventArg(Card card, Buff buff)
+            {
+                this.card = card;
+                this.buff = buff;
+            }
+            public ICard getCard(IGame game, IPlayer viewer)
+            {
+                return card;
+            }
+            public ICard[] getTargets(IGame game, IPlayer viewer)
+            {
+                return null;
+            }
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_BUFF, buff);
+            }
+            public object[] localizeStringArgs(IGame game, IPlayer viewer)
+            {
+                return new object[] { card.getFormatString() };
+            }
+            const string TEXT_TEMPLATE = "卡牌{0}添加增益";
+            public string toString(IGame game, IPlayer viewer)
+            {
+                //TODO:可见性问题
+                return string.Format(TEXT_TEMPLATE, localizeStringArgs(game, viewer));
+            }
+            public override EventVariableInfo[] getBeforeEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_BUFF, type = typeof(Buff) },
+                };
+            }
+            public override EventVariableInfo[] getAfterEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_BUFF, type = typeof(Buff) },
+                };
+            }
+            public const string VAR_CARD = "卡牌";
+            public const string VAR_BUFF = "增益";
+        }
+        public class RemoveBuffEventArg : EventArg
+        {
+            public Card card
+            {
+                get => getVar<Card>(VAR_CARD);
+                set => setVar(VAR_CARD, value);
+            }
+            public Buff buff
+            {
+                get => getVar<Buff>(VAR_BUFF);
+                set => setVar(VAR_BUFF, value);
+            }
+            public bool removed
+            {
+                get => getVar<bool>(VAR_REMOVED);
+                set => setVar(VAR_REMOVED, value);
+            }
+            public RemoveBuffEventArg()
+            {
+            }
+            public RemoveBuffEventArg(Card card, Buff buff)
+            {
+                this.card = card;
+                this.buff = buff;
+            }
+            public ICard getCard(IGame game, IPlayer viewer)
+            {
+                return card;
+            }
+            public ICard[] getTargets(IGame game, IPlayer viewer)
+            {
+                return null;
+            }
+            public override void Record(IGame game, EventRecord record)
+            {
+                record.setCardState(VAR_CARD, card);
+                record.setVar(VAR_BUFF, buff);
+            }
+            public object[] localizeStringArgs(IGame game, IPlayer viewer)
+            {
+                return new object[] { card.getFormatString() };
+            }
+            const string TEXT_TEMPLATE = "卡牌{0}移除增益";
+            public string toString(IGame game, IPlayer viewer)
+            {
+                //TODO:可见性问题
+                return string.Format(TEXT_TEMPLATE, localizeStringArgs(game, viewer));
+            }
+            public override EventVariableInfo[] getBeforeEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_BUFF, type = typeof(Buff) },
+                };
+            }
+            public override EventVariableInfo[] getAfterEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_BUFF, type = typeof(Buff) },
+                    new EventVariableInfo() { name = VAR_REMOVED, type = typeof(bool) },
+                };
+            }
+            public const string VAR_CARD = "卡牌";
+            public const string VAR_BUFF = "增益";
+            public const string VAR_REMOVED = "是否成功移除";
+        }
         public PropModifier[] getModifiers()
         {
             return modifierList.ToArray();
@@ -271,42 +402,52 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "card";
             public const string VAR_MODIFIER = "modifier";
         }
-        public async Task addBuff(IGame game, Buff buff)
+        public Task<AddBuffEventArg> addBuff(IGame game, Buff buff)
         {
             if (buff == null)
                 throw new ArgumentNullException(nameof(buff));
-            game?.logger?.logTrace("Buff", this + "获得增益" + buff);
-            buff.card = this;
-            buffList.Add(buff);
-            _lastBuffId++;
-            buff.instanceID = _lastBuffId;
 
-            CardEngine engine = game as CardEngine;
-            buff.updateModifierProps(engine);
-            var propModis = buff.getPropertyModifiers(engine);
-            var effects = buff.getEffects(engine);
-            if (propModis != null)
+            async Task func(AddBuffEventArg arg)
             {
-                foreach (var modifier in propModis)
+                var card = arg.card;
+                var argBuff = arg.buff;
+
+                game?.logger?.logTrace("Buff", card + "获得增益" + argBuff);
+                argBuff.card = card;
+                card.buffList.Add(argBuff);
+                card._lastBuffId++;
+                argBuff.instanceID = card._lastBuffId;
+
+                CardEngine engine = game as CardEngine;
+                argBuff.updateModifierProps(engine);
+                var propModis = argBuff.getPropertyModifiers(engine);
+                var effects = argBuff.getEffects(engine);
+                if (propModis != null)
                 {
-                    await addModifier(game, modifier);
-                }
-            }
-            if (effects != null)
-            {
-                foreach (var effect in effects)
-                {
-                    if (effect is IPileRangedEffect pileEffect)
+                    foreach (var modifier in propModis)
                     {
-                        if (pileEffect.piles.Contains(pile?.name))
-                            await effect.onEnable(game, this, buff);
-                    }
-                    else
-                    {
-                        await effect.onEnable(game, this, buff);
+                        await card.addModifier(game, modifier);
                     }
                 }
+                if (effects != null)
+                {
+                    foreach (var effect in effects)
+                    {
+                        if (effect is IPileRangedEffect pileEffect)
+                        {
+                            if (pileEffect.piles.Contains(card.pile?.name))
+                                await effect.onEnable(game, card, argBuff);
+                        }
+                        else
+                        {
+                            await effect.onEnable(game, card, argBuff);
+                        }
+                    }
+                }
+
             }
+            var eventArg = new AddBuffEventArg(this, buff);
+            return game.triggers.doEvent(eventArg, func);
         }
         public async Task removeBuff(IGame game)
         {
@@ -315,24 +456,31 @@ namespace TouhouCardEngine
                 await removeBuff(game, buffList[0]);
             }
         }
-        public async Task<bool> removeBuff(IGame game, Buff buff)
+        public Task<RemoveBuffEventArg> removeBuff(IGame game, Buff buff)
         {
-            if (buffList.Contains(buff))
+            if (buff == null)
+                return null;
+            var eventArg = new RemoveBuffEventArg(this, buff);
+            return game.triggers.doEvent(eventArg, func);
+            async Task func(RemoveBuffEventArg arg)
             {
-                game?.logger?.logTrace("Buff", this + "移除增益" + buff);
-                buffList.Remove(buff);
-                foreach (var modifier in buff.getPropertyModifiers(game as CardEngine))
+                var card = arg.card;
+                var argBuff = arg.buff;
+                if (card.buffList.Contains(argBuff))
                 {
-                    await removeModifier(game, modifier);
+                    game?.logger?.logTrace("Buff", card + "移除增益" + argBuff);
+                    card.buffList.Remove(argBuff);
+                    foreach (var modifier in argBuff.getPropertyModifiers(game as CardEngine))
+                    {
+                        await card.removeModifier(game, modifier);
+                    }
+                    foreach (var effect in argBuff.getEffects(game as CardEngine))
+                    {
+                        await effect.onDisable(game, card, argBuff);
+                    }
+                    arg.removed = true;
                 }
-                foreach (var effect in buff.getEffects(game as CardEngine))
-                {
-                    await effect.onDisable(game, this, buff);
-                }
-                return true;
             }
-            else
-                return false;
         }
         public Task<int> removeBuff(IGame game, int buffId)
         {
@@ -343,7 +491,8 @@ namespace TouhouCardEngine
             int count = 0;
             foreach (var buff in buffs)
             {
-                if (await removeBuff(game, buff))
+                bool removed = (await removeBuff(game, buff))?.removed ?? false;
+                if (removed)
                     count++;
             }
             return count;
