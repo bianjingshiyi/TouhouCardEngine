@@ -46,19 +46,22 @@ namespace TouhouCardEngine
             if (!methodInfo.IsStatic)
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));
             category = attribute.category;
+            type = attribute.actionType;
             _methodInfo = methodInfo;
             //分析参数设置输入和输出
             _paramsInfo = methodInfo.GetParameters();
             ActionNodeParamAttribute paramAttr;
-            List<PortDefine> inputList = new List<PortDefine>()
+            List<PortDefine> inputList = new List<PortDefine>();
+            if (type == NodeDefineType.Action)
             {
-                enterPortDefine
-            };
+                inputList.Add(enterPortDefine);
+            }
             List<PortDefine> constList = new List<PortDefine>();
-            List<PortDefine> outputList = new List<PortDefine>()
+            List<PortDefine> outputList = new List<PortDefine>();
+            if (type == NodeDefineType.Action)
             {
-                exitPortDefine
-            };
+                outputList.Add(exitPortDefine);
+            }
             for (int i = 0; i < _paramsInfo.Length; i++)
             {
                 var paramInfo = _paramsInfo[i];

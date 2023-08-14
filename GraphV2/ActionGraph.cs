@@ -106,7 +106,7 @@ namespace TouhouCardEngine
             if (connection == null)
                 return false;
             var connected = _connections.Remove(connection);
-            UpdateParamsInputs(connection.destination.node as ActionNode);
+            UpdateParamsInputs(connection.destination?.node as ActionNode);
             return connected;
         }
         public bool disconnect(IPort port1, IPort port2)
@@ -284,7 +284,7 @@ namespace TouhouCardEngine
         }
         public NodeConnection[] GetConnections(ActionGraph graph)
         {
-            return connections.ConvertAll(n => n.ToNodeConnection(graph)).ToArray();
+            return connections.ConvertAll(n => n.ToNodeConnection(graph)).Where(c => c != null).ToArray();
         }
         #endregion
         #region 属性字段

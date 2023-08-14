@@ -41,6 +41,22 @@ namespace TouhouCardEngine
             return $"{source}->{destination}";
         }
     }
+    public class InvalidNodeConnection : NodeConnection
+    {
+        public InvalidNodeConnection(IPort srcPort, string srcPortName, int srcNodeId, IPort destPort, string destPortName, int destNodeId, int destParamIndex) : base(srcPort, destPort)
+        {
+            this.srcPortName = srcPortName;
+            this.srcNodeId = srcNodeId;
+            this.destPortName = destPortName;
+            this.destNodeId = destNodeId;
+            this.destParamIndex = destParamIndex;
+        }
+        public string srcPortName;
+        public int srcNodeId;
+        public string destPortName;
+        public int destParamIndex;
+        public int destNodeId;
+    }
     [Serializable]
     public class SerializableConnection
     {
@@ -79,6 +95,8 @@ namespace TouhouCardEngine
             }
             else
                 destPort = destNode.getInputPort(destName);
+            if (sourcePort == null || destPort == null)
+                return new InvalidNodeConnection(sourcePort, sourceName, sourceNodeId, destPort, destName, destNodeId, destParamIndex);
 
             return new NodeConnection(sourcePort, destPort);
         }

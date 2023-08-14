@@ -120,6 +120,7 @@ namespace TouhouCardEngine
         /// 节点过期提示。不为null则说明过期
         /// </summary>
         public string obsoleteMsg;
+        public NodeDefineType type;
 
         public abstract IEnumerable<PortDefine> inputDefines { get; }
         public abstract IEnumerable<PortDefine> constDefines { get; }
@@ -131,5 +132,12 @@ namespace TouhouCardEngine
         public static readonly PortDefine enterPortDefine = PortDefine.Control(enterPortName, string.Empty);
         public static readonly PortDefine exitPortDefine = PortDefine.Control(exitPortName, string.Empty);
         #endregion
+    }
+
+    public enum NodeDefineType
+    {
+        Action,
+        Function,
+        Event
     }
 }
