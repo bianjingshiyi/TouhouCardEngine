@@ -73,27 +73,30 @@ namespace TouhouCardEngine
             return Value(type, name, displayName);
         }
 
-        public static bool CanTypeConvert(Type inputType, Type outputType)
+        public static bool CanTypeConvert(Type srcType, Type destType)
         {
-            if (inputType == null || outputType == null)
+            if (srcType == null || destType == null)
                 return false;
-            //如果输入类型是ActionValueRef，那么无论输出类型是什么都可以，至少暂时还不方便做ActionValueRef的类型检查
-            if (inputType == typeof(ActionValueRef))
+            //如果输入类型是NodeValueRef，那么检测泛型类型
+            if (destType.IsGenericType && destType.GetGenericTypeDefinition() == typeof(NodeValueRef<>))
             {
-                return true;
+                var genericArgs = destType.GetGenericArguments();
+                if (genericArgs.Length <= 0)
+                    return false;
+                return CanTypeConvert(srcType, genericArgs[0]);
             }
             //类型之间可以相互转化
-            if (outputType.IsAssignableFrom(inputType) || inputType.IsAssignableFrom(outputType))
+            if (destType.IsAssignableFrom(srcType) || srcType.IsAssignableFrom(destType))
             {
                 return true;
             }
             //在包装成数组之后可以相互转化
-            if (inputType.IsArray && (outputType.IsAssignableFrom(inputType.GetElementType()) || inputType.GetElementType().IsAssignableFrom(outputType)))
+            if (srcType.IsArray && (destType.IsAssignableFrom(srcType.GetElementType()) || srcType.GetElementType().IsAssignableFrom(destType)))
             {
                 return true;
             }
             //在拆包成对象之后可以相互转化
-            if (outputType.IsArray && (outputType.GetElementType().IsAssignableFrom(inputType) || inputType.IsAssignableFrom(outputType.GetElementType())))
+            if (destType.IsArray && (destType.GetElementType().IsAssignableFrom(srcType) || srcType.IsAssignableFrom(destType.GetElementType())))
             {
                 return true;
             }

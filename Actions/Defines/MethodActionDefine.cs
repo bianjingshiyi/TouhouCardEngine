@@ -241,10 +241,18 @@ namespace TouhouCardEngine
                 string name = paramInfo.Name;
                 if (paramAttr != null)
                 {
+                    // 动作输出
                     if (paramInfo.ParameterType == typeof(ControlInput))
                     {
                         ControlOutput port = node.getOutputPort<ControlOutput>(name);
                         parameters[i] = port?.getConnectedInputPort();
+                    }
+                    // 值引用
+                    else if (paramInfo.ParameterType.IsGenericType && paramInfo.ParameterType.GetGenericTypeDefinition() == typeof(NodeValueRef<>))
+                    {
+                        ValueInput port = node.getInputPort<ValueInput>(name);
+                        ValueOutput output = port?.getConnectedOutputPort();
+                        parameters[i] = NodeValueRef.FromType(paramInfo.ParameterType, output);
                     }
                     //指定了不能省略的参数
                     else if (paramInfo.IsOut || paramAttr.isOut)
