@@ -9,7 +9,7 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public GeneratedActionDefine(ActionGraph graph, int id, string category, string name, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(name, editorName)
+        public GeneratedActionDefine(ActionGraph graph, int id, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(id, editorName)
         {
             this.id = id;
             this.category = category;
@@ -23,10 +23,6 @@ namespace TouhouCardEngine
                 _outputs.AddRange(outputs);
 
             this.graph = graph;
-        }
-        public GeneratedActionDefine(ActionGraph graph, int id, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : 
-            this(graph, id, category, $"CUSTOM_{id}", editorName, inputs, consts, outputs)
-        {
         }
         #endregion
         public void InitNodes()
@@ -170,7 +166,7 @@ namespace TouhouCardEngine
             var nodes = this.graph.GetNodes(graph);
             graph.AddNodes(nodes);
 
-            var define = new GeneratedActionDefine(graph, id, category, name, name,
+            var define = new GeneratedActionDefine(graph, id, category, name,
                 inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
                 consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
                 outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());

@@ -13,13 +13,13 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 静态方法
-        public static Task<Dictionary<string, MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<Dictionary<int, MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => Task.FromResult(loadMethodsFromAssemblies(assemblies)));
         }
-        public static Dictionary<string, MethodActionDefine> loadMethodsFromAssemblies(Assembly[] assemblies)
+        public static Dictionary<int, MethodActionDefine> loadMethodsFromAssemblies(Assembly[] assemblies)
         {
-            Dictionary<string, MethodActionDefine> defineDict = new Dictionary<string, MethodActionDefine>();
+            Dictionary<int, MethodActionDefine> defineDict = new Dictionary<int, MethodActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -29,7 +29,7 @@ namespace TouhouCardEngine
                         if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
                         {
                             var define = new MethodActionDefine(attribute, method);
-                            defineDict.Add(define.defineName, define);
+                            defineDict.Add(define.defineId, define);
                         }
                     }
                 }
@@ -41,7 +41,7 @@ namespace TouhouCardEngine
         /// 
         /// </summary>
         /// <param name="methodInfo">必须是静态方法</param>
-        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo) : base(attribute.defineName, attribute.editorName, attribute.obsoleteNames)
+        public MethodActionDefine(ActionNodeMethodAttribute attribute, MethodInfo methodInfo) : base(attribute.defineId, attribute.editorName, attribute.obsoleteNames)
         {
             if (!methodInfo.IsStatic)
                 throw new ArgumentException("Target method must be static", nameof(methodInfo));

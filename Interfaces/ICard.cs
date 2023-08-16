@@ -16,7 +16,7 @@ namespace TouhouCardEngine.Interfaces
         Task<T> getValue<T>(Flow flow, ValueInput port);
         Task<object> getValue(Flow flow, ValueOutput port);
         Task<T> getValue<T>(Flow flow, ValueOutput port);
-        ActionDefine getActionDefine(string name);
+        ActionDefine getActionDefine(ActionReference defineRef);
     }
     public interface IPlayer
     {

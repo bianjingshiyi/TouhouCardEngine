@@ -84,7 +84,7 @@ namespace TouhouCardEngine
             //初始化动作定义
             foreach (var pair in ActionDefine.loadDefinesFromAssemblies(assemblies))
             {
-                addActionDefine(pair.Key, pair.Value);
+                addActionDefine(new ActionReference(0, pair.Key), pair.Value);
             }
             return rule.onGameInit(this, options, players);
         }

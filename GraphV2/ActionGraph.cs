@@ -5,8 +5,6 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public delegate ActionDefine ActionDefineFinder(string name);
-    public delegate EventDefine EventTypeInfoFinder(string name);
     public delegate Type TypeFinder(string name);
     public class ActionGraph
     {
@@ -21,10 +19,10 @@ namespace TouhouCardEngine
         #endregion
 
         #region 创建/移除节点
-        public ActionNode createActionNode(string defineName, float posX = 0, float posY = 0)
+        public ActionNode createActionNode(ActionReference defineRef, float posX = 0, float posY = 0)
         {
             int id = getUniqueNodeId();
-            var node = new ActionNode(id, defineName);
+            var node = new ActionNode(id, defineRef);
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
@@ -34,7 +32,8 @@ namespace TouhouCardEngine
         }
         public ActionNode createActionNode(ActionDefine define, float posX = 0, float posY = 0)
         {
-            var node = createActionNode(define?.defineName, posX, posY);
+            var actRef = new ActionReference(define?.cardPoolId ?? 0, define?.defineId ?? 0);
+            var node = createActionNode(actRef, posX, posY);
             if (define != null)
             {
                 node.define = define;
@@ -162,9 +161,9 @@ namespace TouhouCardEngine
         #endregion 连接
 
         #region 查找
-        public ActionNode findActionNode(string defineName)
+        public ActionNode findActionNode(ActionReference actionReference)
         {
-            return nodes.OfType<ActionNode>().FirstOrDefault(n => n.defineName == defineName);
+            return nodes.OfType<ActionNode>().FirstOrDefault(n => n.defineRef == actionReference);
         }
         #endregion 查找
 

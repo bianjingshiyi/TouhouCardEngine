@@ -9,15 +9,15 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionDefine(string defineName, string editorName, params string[] obsoleteNames)
+        public ActionDefine(int defineId, string editorName, params string[] obsoleteNames)
         {
-            this.defineName = defineName;
+            this.defineId = defineId;
             this.editorName = editorName;
             this.obsoleteNames = obsoleteNames;
         }
         #endregion
         #region 静态方法
-        public static Task<Dictionary<string, ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<Dictionary<int, ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => loadDefinesFromAssemblies(assemblies));
         }
@@ -26,9 +26,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="assemblies"></param>
         /// <returns></returns>
-        public static Dictionary<string, ActionDefine> loadDefinesFromAssemblies(Assembly[] assemblies)
+        public static Dictionary<int, ActionDefine> loadDefinesFromAssemblies(Assembly[] assemblies)
         {
-            Dictionary<string, ActionDefine> defineDict = new Dictionary<string, ActionDefine>();
+            Dictionary<int, ActionDefine> defineDict = new Dictionary<int, ActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -39,8 +39,8 @@ namespace TouhouCardEngine
                         type.GetConstructor(new Type[0]) is ConstructorInfo constructor)
                     {
                         ActionDefine actionDefine = (ActionDefine)constructor.Invoke(new object[0]);
-                        string name = actionDefine.defineName;
-                        defineDict.Add(name, actionDefine);
+                        int id = actionDefine.defineId;
+                        defineDict.Add(id, actionDefine);
                     }
                 }
             }
@@ -105,9 +105,14 @@ namespace TouhouCardEngine
                 message = "";
             obsoleteMsg = message;
         }
+        public override string ToString()
+        {
+            return editorName;
+        }
         #endregion
         #region 属性字段
-        public string defineName;
+        public int defineId;
+        public long cardPoolId;
         public string editorName;
         public string category { get; protected set; }
         public string[] obsoleteNames;

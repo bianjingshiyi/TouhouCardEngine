@@ -19,6 +19,8 @@ namespace TouhouCardEngine
         }
         public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
+            if (source == null || destination == null)
+                return;
             if (GetConnectionType() == PortType.Value)
             {
                 source.traverse(action, traversedActionNodeSet);
@@ -32,6 +34,11 @@ namespace TouhouCardEngine
         {
             this.source = source;
             this.destination = destination;
+        }
+
+        public override string ToString()
+        {
+            return $"{source}->{destination}";
         }
     }
     [Serializable]
@@ -59,9 +66,11 @@ namespace TouhouCardEngine
                 var paramIndex = destParamIndex - 1;
                 if (destNode is ActionNode action)
                 {
-                    while (paramIndex + 1 >= destNode.getParamInputPorts(destName).Length)
+                    int length = destNode.getParamInputPorts(destName).Length;
+                    while (paramIndex + 1 >= length && length > 0)
                     {
                         action.extendParamsPort(destName);
+                        length = destNode.getParamInputPorts(destName).Length;
                     }
                 }
                 destPort = destNode.getParamInputPort(destName, paramIndex);

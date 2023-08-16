@@ -8,18 +8,34 @@ namespace TouhouCardEngine
     public partial class CardEngine
     {
         #region 公有方法
-        public void addActionDefine(string name, ActionDefine actionDefine)
+        public void addActionDefine(ActionReference actRef, ActionDefine actionDefine)
         {
-            if (actionDefineDict.ContainsKey(name))
-                throw new InvalidOperationException("已存在名为" + name + "的动作定义");
-            actionDefineDict.Add(name, actionDefine);
+            addActionDefine(actRef.cardPoolId, actRef.defineId, actionDefine);
         }
-        public ActionDefine getActionDefine(string name)
+        public void addActionDefine(long cardPoolId, int actionId, ActionDefine actionDefine)
         {
-            if (actionDefineDict.ContainsKey(name))
-                return actionDefineDict[name];
-            else
-                return null;
+            if (!actionDefineDict.TryGetValue(cardPoolId, out var cardPoolActions))
+            {
+                cardPoolActions = new Dictionary<int, ActionDefine>();
+                actionDefineDict.Add(cardPoolId, cardPoolActions);
+            }
+
+            if (cardPoolActions.ContainsKey(actionId))
+                throw new InvalidOperationException($"已存在卡池为{cardPoolId}，ID为{actionId}的动作定义");
+            cardPoolActions.Add(actionId, actionDefine);
+        }
+        public ActionDefine getActionDefine(ActionReference actRef)
+        {
+            return getActionDefine(actRef.cardPoolId, actRef.defineId);
+        }
+        public ActionDefine getActionDefine(long cardPoolId, int actionId)
+        {
+            if (actionDefineDict.TryGetValue(cardPoolId, out var cardPool))
+            {
+                if (cardPool.TryGetValue(actionId, out ActionDefine actionDefine))
+                    return actionDefine;
+            }
+            return default;
         }
         public Task runActions(Flow flow, ControlInput inputPort)
         {
@@ -46,7 +62,7 @@ namespace TouhouCardEngine
             return flow.getValue(output);
         }
         #endregion
-        Dictionary<string, ActionDefine> actionDefineDict { get; } = new Dictionary<string, ActionDefine>();
+        Dictionary<long, Dictionary<int, ActionDefine>> actionDefineDict { get; } = new Dictionary<long, Dictionary<int, ActionDefine>>();
     }
     [Serializable]
     public class Scope

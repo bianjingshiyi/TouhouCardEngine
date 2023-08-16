@@ -43,7 +43,7 @@ namespace TouhouCardEngine
 
         public override string ToString()
         {
-            return name;
+            return $"{node}({name})";
         }
         public abstract IEnumerable<NodeConnection> connections { get; }
         public PortDefine define { get; }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 
@@ -16,93 +15,19 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public ActionNode(int id, string defineName)
+        public ActionNode(int id, ActionReference defineRef)
         {
             this.id = id;
-            this.defineName = defineName;
+            this.defineRef = defineRef;
         }
         #endregion
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            if (defineName == "BooleanConst")
-                sb.Append(getConst<bool>("value"));
-            else if (defineName == "IntegerConst")
-                sb.Append(getConst<int>("value"));
-            else if (defineName == "StringConst")
-                sb.Append(getConst<string>("value") ?? string.Empty);
-            else
-            {
-                if (defineName == "Compare")
-                {
-                    sb.Append(inputList.Count > 0 && inputList[0] != null ? inputList[0].ToString() : "null");
-                    if (getConst<CompareOperator>("operator") == CompareOperator.equals)
-                        sb.Append(" == ");
-                    else
-                        sb.Append(" != ");
-                    sb.Append(inputList.Count > 1 && inputList[1] != null ? inputList[1].ToString() : "null");
-                }
-                else if (defineName == "LogicOperation")
-                {
-                    LogicOperator logicOperator = getConst<LogicOperator>("operator");
-                    if (logicOperator == LogicOperator.not)
-                        sb.Append("!" + (inputList.Count > 0 && inputList[0] != null ? inputList[0].ToString() : "null"));
-                    else if (logicOperator == LogicOperator.and)
-                    {
-                        for (int i = 0; i < inputList.Count; i++)
-                        {
-                            if (i != 0)
-                                sb.Append(" && ");
-                            sb.Append(inputList[i].ToString());
-                        }
-                    }
-                    else if (logicOperator == LogicOperator.or)
-                    {
-                        for (int i = 0; i < inputList.Count; i++)
-                        {
-                            if (i != 0)
-                                sb.Append(" || ");
-                            sb.Append(inputList[i].ToString());
-                        }
-                    }
-                }
-                else
-                {
-                    sb.Append(defineName);
-                    if (constList != null && constList.Count > 0)
-                    {
-                        sb.Append('<');
-                        for (int i = 0; i < constList.Count; i++)
-                        {
-                            if (i != 0)
-                            {
-                                sb.Append(',');
-                            }
-                            var cst = constList.ElementAt(i).Value;
-                            sb.Append(cst != null ? cst.ToString() : "null");
-                        }
-                        sb.Append('>');
-                    }
-                    sb.Append('(');
-                    if (inputList != null && inputList.Count > 0)
-                    {
-                        for (int i = 0; i < inputList.Count; i++)
-                        {
-                            if (i != 0)
-                            {
-                                sb.Append(',');
-                            }
-                            sb.Append(inputList[i] != null ? inputList[i].ToString() : "null");
-                        }
-                    }
-                    sb.Append("); ");
-                }
-            }
-            return string.Intern(sb.ToString());
+            return $"动作节点{defineRef}";
         }
         public async override Task<ControlOutput> run(Flow flow)
         {
-            var define = flow.env.game.getActionDefine(defineName);
+            var define = flow.env.game.getActionDefine(defineRef);
             if (define != null)
             {
                 return await define.run(flow, this);
@@ -204,7 +129,9 @@ namespace TouhouCardEngine
             outputList.AddRange(outputs);
         }
 
+        [Obsolete]
         public string defineName;
+        public ActionReference defineRef;
         public ActionDefine define { get; set; }
 
         public const string enterControlName = "enter";
@@ -221,7 +148,7 @@ namespace TouhouCardEngine
             if (actionNode == null)
                 throw new ArgumentNullException(nameof(actionNode));
             id = actionNode.id;
-            defineName = actionNode.defineName;
+            defineRef = actionNode.defineRef;
             posX = actionNode.posX;
             posY = actionNode.posY;
             constDict = new Dictionary<string, object>(actionNode.consts);
@@ -230,12 +157,13 @@ namespace TouhouCardEngine
 
         public ActionNode ToActionNode(ActionGraph graph)
         {
-            var node = new ActionNode(id, defineName)
+            var node = new ActionNode(id, defineRef)
             {
                 posX = posX,
                 posY = posY,
             };
             node.graph = graph;
+            node.defineName = defineName;
             foreach (var pair in constDict)
             {
                 node.setConst(pair.Key, pair.Value);
@@ -246,11 +174,13 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         public int id;
-        public string defineName;
+        public ActionReference defineRef;
         public float posX;
         public float posY;
         public Dictionary<string, object> constDict;
 
+        [Obsolete]
+        public string defineName;
         [Obsolete]
         public int[] branches;
         [Obsolete]
