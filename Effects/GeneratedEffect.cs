@@ -47,7 +47,7 @@ namespace TouhouCardEngine
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
         {
-            return card.isEffectDisabled(buff, this);
+            return !card.isEffectEnabled(buff, this);
         }
         public T getProp<T>(string name)
         {

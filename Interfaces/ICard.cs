@@ -31,7 +31,7 @@ namespace TouhouCardEngine.Interfaces
         Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
         void enableEffect(IBuff buff, IEffect effect);
         void disableEffect(IBuff buff, IEffect effect);
-        bool isEffectDisabled(IBuff buff, IEffect effect);
+        bool isEffectEnabled(IBuff buff, IEffect effect);
     }
     public interface ICardData
     {

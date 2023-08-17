@@ -295,7 +295,7 @@ namespace TouhouCardEngine
                         if (effect is IPileRangedEffect pileEffect)
                         {
                             if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
-                                pileEffect.onEnable(game, card, null);
+                                pileEffect.onEnable(game, card, buff);
                         }
                     }
                 }
@@ -327,7 +327,7 @@ namespace TouhouCardEngine
                         if (effect is IPileRangedEffect pileEffect)
                         {
                             if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
-                                pileEffect.onDisable(game, card, null);
+                                pileEffect.onDisable(game, card, buff);
                         }
                     }
                 }
