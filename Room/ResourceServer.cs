@@ -2,7 +2,6 @@
 using TouhouCardEngine.Shared;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using System.Net.Http;
 using System.Text;
 using System.IO;
 using System;
@@ -199,9 +198,14 @@ namespace TouhouCardEngine
                         }
 
                         var boundary = GetBoundary(ctx.Request.ContentType);
-                        using (var fs = provider.OpenWriteResource(resType, resID, ctx.Request.ContentLength64))
+                        using (var decompressed = new MemoryStream())
                         {
-                            SaveFile(ctx.Request.ContentEncoding, boundary, ctx.Request.InputStream, fs);
+                            SaveFile(ctx.Request.ContentEncoding, boundary, ctx.Request.InputStream, decompressed);
+                            var buffer = Compression.tryDecompress(decompressed.ToArray());
+                            using (var fs = provider.OpenWriteResource(resType, resID, ctx.Request.ContentLength64))
+                            {
+                                fs.Write(buffer, 0, buffer.Length);
+                            }
                         }
                         Response(ctx.Response, HttpStatusCode.OK);
                         break;

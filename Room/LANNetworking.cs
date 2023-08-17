@@ -218,7 +218,7 @@ namespace TouhouCardEngine
                 handleRoomProp(item.Key, item.Value);
             }
             // 向房间中的其他玩家发送属性变化通知
-            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.updateRoomData), ObjectProxy.TryProxy(_hostRoomData))));
+            return Task.WhenAll(_playerInfoDict.Values.Select(i => invoke<object>(i.peer, nameof(IRoomRPCMethodClient.updateRoomData), _hostRoomData.GetProxiedClone())));
         }
 
         /// <summary>
@@ -533,9 +533,15 @@ namespace TouhouCardEngine
                         PacketType packetType = (PacketType)packetInt;
                     }
                     if (peer == hostPeer)
-                        (this as ILANRPCMethodClient).removeDiscoverRoom(cachedRoomData.ID);
+                        removeRoom(cachedRoomData.ID);
                     else
-                        removeRoomPlayer(_playerInfoDict.First(p => p.Value.peer == peer).Key);
+                    {
+                        var first = _playerInfoDict.FirstOrDefault(p => p.Value.peer == peer);
+                        if (first.Value != null)
+                        {
+                            removeRoomPlayer(first.Key);
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -691,7 +697,7 @@ namespace TouhouCardEngine
             // 更新房间信息
             // 不需要在这里添加玩家信息，玩家信息已经在连接时就添加了。
             _ = NotifyPlayerDataChange(player);
-            return data;
+            return data.GetProxiedClone();
         }
 
         /// <summary>
