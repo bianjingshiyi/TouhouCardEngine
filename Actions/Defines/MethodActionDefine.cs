@@ -264,7 +264,8 @@ namespace TouhouCardEngine
                             if (paramAttr.isParams)
                             {
                                 var ports = node.getParamInputPorts(paramInfo.Name);
-                                var array = new object[ports.Length];
+                                // 这里要-1，少包括最后一个变长参数的内容。
+                                var array = new object[ports.Length - 1];
                                 for (int paramIndex = 0; paramIndex < array.Length; paramIndex++)
                                 {
                                     var port = ports[paramIndex];
