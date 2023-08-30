@@ -2,9 +2,10 @@
 {
     public class ActionReference : DefineReference
     {
-        public ActionReference(long cardPoolId, int id) : base(cardPoolId, id)
+        public ActionReference(long cardPoolId, int defineId)
         {
-
+            this.cardPoolId = cardPoolId;
+            this.defineId = defineId;
         }
     }
 }
