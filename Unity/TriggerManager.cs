@@ -87,15 +87,21 @@ namespace TouhouCardEngine
         public bool remove(string eventName, ITrigger trigger)
         {
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-            if (eventItem == null)
-                return false;
-            else if (eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
+            if (eventItem != null && eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
             {
                 logger?.log("Trigger", "注销触发器" + trigger);
                 return true;
             }
             else
-                return false;
+            {
+                var argItem = _eventChainList.FirstOrDefault(e => getNameAfter(e.eventArg) == eventName);
+                if (argItem != null && argItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
+                {
+                    logger?.log("Trigger", "注销延迟队列中的触发器" + trigger);
+                    return true;
+                }
+            }
+            return false;
         }
         public bool remove<T>(ITrigger<T> trigger) where T : IEventArg
         {
