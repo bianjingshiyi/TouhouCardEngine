@@ -70,7 +70,7 @@ namespace TouhouCardEngine
             game.triggers.registerAfter(trigger);
             return base.afterAdd(game, card);
         }
-        public override T calc(IGame game, Card card, T value)
+        public override T calcGeneric(IGame game, Card card, T value)
         {
             if (onCalc != null)
                 return onCalc(game, card, value, this.value);

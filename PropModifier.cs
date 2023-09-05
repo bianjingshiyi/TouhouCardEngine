@@ -82,13 +82,13 @@ namespace TouhouCardEngine
         public sealed override object calc(IGame game, Card card, object value)
         {
             if (value == null)
-                return calc(game, card, default);
+                return calcGeneric(game, card, default);
             else if (value is T t)
-                return calc(game, card, t);
+                return calcGeneric(game, card, t);
             else
                 return value;
         }
-        public abstract T calc(IGame game, Card card, T value);
+        public abstract T calcGeneric(IGame game, Card card, T value);
         #endregion
         #region 属性字段
         public string propertyName;

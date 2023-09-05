@@ -607,7 +607,7 @@ namespace TouhouCardEngine
                         continue;
                     if (game != null && !modifier.checkCondition(game, this))
                         continue;
-                    value = modifier.calc(game, this, value);
+                    value = modifier.calcGeneric(game, this, value);
                 }
             }
             return (T)(object)value;

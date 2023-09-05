@@ -1,5 +1,4 @@
 ﻿using TouhouCardEngine.Interfaces;
-using System.Threading.Tasks;
 namespace TouhouCardEngine
 {
     public class IntPropModifier : PropModifier<int>
@@ -31,7 +30,7 @@ namespace TouhouCardEngine
             relatedPropName = origin.relatedPropName;
         }
         #endregion
-        public override int calc(IGame game, Card card, int value)
+        public override int calcGeneric(IGame game, Card card, int value)
         {
             if (isSet)
                 value = this.value;
