@@ -248,7 +248,7 @@ namespace TouhouCardEngine
             }
             if (historyIndex < 0)
             {
-                return snapshotCard(card);
+                historyIndex = 0;
             }
             var snapshot = snapshotCard(card);
             card.revertToHistory(snapshot, historyIndex);
