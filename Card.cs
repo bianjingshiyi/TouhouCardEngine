@@ -526,11 +526,11 @@ namespace TouhouCardEngine
         public int addHistory(CardHistory history)
         {
             _history.Add(history);
-            return _history.Count - 1;
+            return getCurrentHistory();
         }
         public int getCurrentHistory()
         {
-            return _history.Count - 1;
+            return _history.Count;
         }
         public CardHistory getHistory(int index)
         {
@@ -544,7 +544,9 @@ namespace TouhouCardEngine
         }
         public void revertToHistory(ITrackableCard trackable, int historyIndex)
         {
-            for (int i = _history.Count - 1; i > historyIndex; i--)
+            if (historyIndex < 0)
+                historyIndex = 0;
+            for (int i = _history.Count - 1; i >= historyIndex; i--)
             {
                 var history = _history[i];
                 history.revert(trackable);

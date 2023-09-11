@@ -84,8 +84,8 @@ namespace TouhouCardEngine
                                 to.cardList.Add(card);
                             enableCardEffects(game, card, from, to);
                         }
+                        card.addHistory(new CardMoveHistory(from, to, fromPosition, position, arg));
                     }
-                    card.addHistory(new CardMoveHistory(from, to, fromPosition, position, arg));
                     return Task.CompletedTask;
                 });
             else
