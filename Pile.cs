@@ -84,6 +84,7 @@ namespace TouhouCardEngine
                                 to.cardList.Add(card);
                             enableCardEffects(game, card, from, to);
                         }
+                        arg.success = true;
                         card.addHistory(new CardMoveHistory(from, to, fromPosition, position, arg));
                     }
                     return Task.CompletedTask;
@@ -136,6 +137,9 @@ namespace TouhouCardEngine
         }
         public class MoveCardEventArg : EventArg
         {
+            public MoveCardEventArg()
+            {
+            }
             public MoveCardEventArg(Pile from, Pile to, Card card, int position)
             {
                 this.from = from;
@@ -154,15 +158,58 @@ namespace TouhouCardEngine
                 record.setCardState(VAR_CARD, card);
                 record.setVar(VAR_POSITION, position);
             }
-            public Pile from;
-            public Pile to;
-            public Card card;
-            public int position;
+            public override EventVariableInfo[] getBeforeEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_FROM_PILE, type = typeof(Pile) },
+                    new EventVariableInfo() { name = VAR_TO_PILE, type = typeof(Pile) },
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_POSITION, type = typeof(int) },
+                };
+            }
+            public override EventVariableInfo[] getAfterEventVarInfos()
+            {
+                return new EventVariableInfo[]
+                {
+                    new EventVariableInfo() { name = VAR_FROM_PILE, type = typeof(Pile) },
+                    new EventVariableInfo() { name = VAR_TO_PILE, type = typeof(Pile) },
+                    new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                    new EventVariableInfo() { name = VAR_POSITION, type = typeof(int) },
+                    new EventVariableInfo() { name = VAR_SUCCESS, type = typeof(bool) },
+                };
+            }
+            public Pile from
+            {
+                get => getVar<Pile>(VAR_FROM_PILE);
+                set => setVar(VAR_FROM_PILE, value);
+            }
+            public Pile to
+            {
+                get => getVar<Pile>(VAR_TO_PILE);
+                set => setVar(VAR_TO_PILE, value);
+            }
+            public Card card
+            {
+                get => getVar<Card>(VAR_CARD);
+                set => setVar(VAR_CARD, value);
+            }
+            public int position
+            {
+                get => getVar<int>(VAR_POSITION);
+                set => setVar(VAR_POSITION, value);
+            }
+            public bool success
+            {
+                get => getVar<bool>(VAR_SUCCESS);
+                set => setVar(VAR_SUCCESS, value);
+            }
 
-            public const string VAR_FROM_PILE = "from";
-            public const string VAR_TO_PILE = "to";
-            public const string VAR_CARD = "card";
-            public const string VAR_POSITION = "position";
+            public const string VAR_FROM_PILE = "源牌堆";
+            public const string VAR_TO_PILE = "目标牌堆";
+            public const string VAR_CARD = "卡牌";
+            public const string VAR_POSITION = "目标位置";
+            public const string VAR_SUCCESS = "是否成功";
         }
         public Task moveTo(IGame game, Card card, Pile targetPile)
         {
