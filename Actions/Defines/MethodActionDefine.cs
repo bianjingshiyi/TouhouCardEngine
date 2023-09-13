@@ -205,6 +205,8 @@ namespace TouhouCardEngine
         }
         private object unpackArrayToObject(Array array)
         {
+            if (array == null || array.Length <= 0)
+                return null;
             return array.GetValue(0);
         }
         private object castArrayToTargetTypeArray(Flow flow, Array array, Type elementType)
