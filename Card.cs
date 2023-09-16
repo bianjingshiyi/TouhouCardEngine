@@ -22,19 +22,6 @@ namespace TouhouCardEngine
             }
             return null;
         }
-        public Pile getPile(CardEngine game)
-        {
-            for (int i = 0; i < game.playerCount; i++)
-            {
-                Player player = game.getPlayerAt(i);
-                foreach (Pile pile in player.getPiles())
-                {
-                    if (pile.Contains(this))
-                        return pile;
-                }
-            }
-            return null;
-        }
         public void enableEffect(IBuff buff, IEffect effect)
         {
             enabledEffects.Add((buff, effect));
@@ -102,7 +89,7 @@ namespace TouhouCardEngine
                 card.define = define;
                 card.addHistory(new CardSetDefineHistory(arg.beforeDefine, arg.afterDefine, arg));
                 //激活被动
-                Pile pile = card.getPile(game as CardEngine);
+                Pile pile = card.pile;
                 foreach (var effect in card.define.getEffects())
                 {
                     if (effect is IPileRangedEffect pileEffect)
