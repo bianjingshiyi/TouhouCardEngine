@@ -227,28 +227,27 @@ namespace TouhouCardEngine
         public CardSnapshot getCardSnapshotOfEvent(Card card, EventRecord record)
         {
             var records = triggers.getEventRecords();
-            var recordIndex = Array.IndexOf(records, record);
+            // 目标记录索引。
+            var targetRecordIndex = Array.IndexOf(records, record);
             var histories = card.getHistories();
-            int historyIndex = -1;
-            for (int i = 0; i < histories.Length; i++)
+            int historyIndex = 0; // 历史索引0是卡牌最初的样子。
+            // 倒序推断卡牌历史。
+            for (int i = histories.Length - 1; i >= 0; i--)
             {
                 var history = histories[i];
                 var rec = triggers.getEventRecord(history.eventArg);
                 if (rec == null)
                     continue;
-                var historyRecIndex = Array.IndexOf(records, rec);
-                if (historyRecIndex <= recordIndex) // 还没到，或者刚好是指定事件
+                // 这条卡牌历史的事件，在记录列表中所处的索引。
+                var historyRecordIndex = Array.IndexOf(records, rec);
+                
+                // 如果“这条卡牌历史对应的记录”比“目标事件记录”要早，
+                // 说明目标事件记录发生后，这张卡牌的状态在这条卡牌历史之后。
+                if (historyRecordIndex <= targetRecordIndex)
                 {
-                    historyIndex = i;
-                }
-                if (historyRecIndex >= recordIndex) // 超过了指定事件
-                {
+                    historyIndex = i + 1;
                     break;
                 }
-            }
-            if (historyIndex < 0)
-            {
-                historyIndex = 0;
             }
             var snapshot = snapshotCard(card);
             card.revertToHistory(snapshot, historyIndex);
