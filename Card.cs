@@ -104,19 +104,11 @@ namespace TouhouCardEngine
                 }
             });
         }
-        public class SetDefineEventArg : EventArg, IDescribableEventArg, ICardEventArg
+        public class SetDefineEventArg : EventArg, ICardEventArg
         {
             public CardDefine beforeDefine;
             public Card card;
             public CardDefine afterDefine;
-            public ICard getCard(IGame game, IPlayer viewer)
-            {
-                return card;
-            }
-            public ICard[] getTargets(IGame game, IPlayer viewer)
-            {
-                return null;
-            }
             ICard ICardEventArg.getCard()
             {
                 return card;
@@ -126,22 +118,6 @@ namespace TouhouCardEngine
                 record.setVar(VAR_BEFORE_DEFINE, beforeDefine);
                 record.setCardState(VAR_CARD, card);
                 record.setVar(VAR_AFTER_DEFINE, afterDefine);
-            }
-            public object[] localizeStringArgs(IGame game, IPlayer viewer)
-            {
-                return new object[] { card.getFormatString() };
-            }
-            const string TEXT_TEMPLATE = "一张牌变形为{0}";
-
-            public string localizeTemplateString(IGame game, IPlayer viewer)
-            {
-                return TEXT_TEMPLATE;
-            }
-
-            public string toString(IGame game, IPlayer viewer)
-            {
-                //TODO:可见性问题
-                return string.Format(TEXT_TEMPLATE, localizeStringArgs(game, viewer));
             }
             public const string VAR_BEFORE_DEFINE = "beforeDefine";
             public const string VAR_CARD = "card";
