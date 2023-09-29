@@ -629,6 +629,25 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
+        /// 更新用户信息
+        /// </summary>
+        /// <param name="nickname">要更新的昵称，不更新保持空</param>
+        /// <param name="oldPass">旧密码，不更新保持空</param>
+        /// <param name="newPass">新密码，不更新保持空</param>
+        /// <returns></returns>
+        public async Task PatchUserInfoAsync(string nickname = "", string oldPass = "", string newPass = "")
+        {
+            RestRequest request = new RestRequest("/api/User", Method.PATCH);
+            request.AddParameter("nickname", nickname);
+            request.AddParameter("oldPassword", oldPass);
+            request.AddParameter("newPassword", newPass);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+
+            errorHandler(response, response.Data, request);
+        }
+
+        /// <summary>
         /// 注销
         /// </summary>
         public void Logout() 
