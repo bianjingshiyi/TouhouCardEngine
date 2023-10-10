@@ -70,6 +70,10 @@ namespace TouhouCardEngine
             }
         }
         public abstract PropModifier[] getPropertyModifiers(CardEngine game);
+        public virtual BuffExistLimit[] getExistLimits(CardEngine game)
+        {
+            return null;
+        }
         public abstract IEffect[] getEffects(CardEngine game);
         public abstract Buff clone();
         #endregion

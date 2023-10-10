@@ -397,6 +397,7 @@ namespace TouhouCardEngine
                 argBuff.updateModifierProps(engine);
                 var propModis = argBuff.getPropertyModifiers(engine);
                 var effects = argBuff.getEffects(engine);
+                var existLimits = argBuff.getExistLimits(engine);
                 if (propModis != null)
                 {
                     foreach (var modifier in propModis)
@@ -419,7 +420,13 @@ namespace TouhouCardEngine
                         }
                     }
                 }
-
+                if (existLimits != null)
+                {
+                    foreach (var limit in existLimits)
+                    {
+                        limit.apply(engine, card, argBuff);
+                    }
+                }
             }
             var eventArg = new AddBuffEventArg(this, buff);
             return game.triggers.doEvent(eventArg, func);
@@ -445,13 +452,19 @@ namespace TouhouCardEngine
                 {
                     game?.logger?.logTrace("Buff", card + "移除增益" + argBuff);
                     card.buffList.Remove(argBuff);
-                    foreach (var modifier in argBuff.getPropertyModifiers(game as CardEngine))
+                    var engine = game as CardEngine;
+                    var existLimits = argBuff.getExistLimits(engine);
+                    foreach (var modifier in argBuff.getPropertyModifiers(engine))
                     {
                         await card.removeModifier(game, modifier);
                     }
-                    foreach (var effect in argBuff.getEffects(game as CardEngine))
+                    foreach (var effect in argBuff.getEffects(engine))
                     {
                         await effect.onDisable(game, card, argBuff);
+                    }
+                    foreach (var limit in existLimits)
+                    {
+                        limit.remove(engine, card, argBuff);
                     }
                     arg.removed = true;
                 }

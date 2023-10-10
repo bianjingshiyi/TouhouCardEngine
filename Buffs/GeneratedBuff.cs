@@ -52,6 +52,15 @@ namespace TouhouCardEngine
             }
             return _propertyModifiers;
         }
+        public override BuffExistLimit[] getExistLimits(CardEngine game)
+        {
+            if (_existLimits == null)
+            {
+                GeneratedBuffDefine define = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
+                _existLimits = define.existLimitList.Select(e => new BuffExistLimit(e)).ToArray();
+            }
+            return _existLimits;
+        }
         public override IEffect[] getEffects(CardEngine game)
         {
             GeneratedBuffDefine buffDefine = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
@@ -63,6 +72,7 @@ namespace TouhouCardEngine
         public DefineReference defineRef;
         public int instanceId = 0;
         private PropModifier[] _propertyModifiers;
+        private BuffExistLimit[] _existLimits;
         #endregion
     }
 }
