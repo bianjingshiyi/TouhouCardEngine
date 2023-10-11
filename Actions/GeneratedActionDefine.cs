@@ -9,12 +9,16 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public GeneratedActionDefine(ActionGraph graph, int id, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(id, editorName)
+        public GeneratedActionDefine(ActionGraph graph, int id, NodeDefineType type, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(id, editorName)
         {
             this.id = id;
             this.category = category;
-            _inputs.Add(enterPortDefine);
-            _outputs.Add(exitPortDefine);
+            if (type != NodeDefineType.Function)
+            {
+                _inputs.Add(enterPortDefine);
+                _outputs.Add(exitPortDefine);
+            }
+            this.type = type;
             if (inputs != null)
                 _inputs.AddRange(inputs);
             if (consts != null)
@@ -149,6 +153,7 @@ namespace TouhouCardEngine
             if (generatedActionDefine == null)
                 throw new ArgumentNullException(nameof(generatedActionDefine));
             id = generatedActionDefine.id;
+            type = (int)generatedActionDefine.type;
             category = generatedActionDefine.category;
             name = generatedActionDefine.editorName;
             graph = new SerializableActionNodeGraph(generatedActionDefine.graph);
@@ -166,7 +171,7 @@ namespace TouhouCardEngine
             var nodes = this.graph.GetNodes(graph);
             graph.AddNodes(nodes);
 
-            var define = new GeneratedActionDefine(graph, id, category, name,
+            var define = new GeneratedActionDefine(graph, id, (NodeDefineType)type, category, name,
                 inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
                 consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
                 outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());
@@ -175,6 +180,7 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         public int id;
+        public int type;
         public string name;
         public string category;
         public SerializableActionNodeGraph graph;
