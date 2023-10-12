@@ -75,11 +75,18 @@ namespace TouhouCardEngine
     public class EventDefine
     {
         #region 属性字段
+        public long cardPoolId;
         public string eventName;
         public string editorName;
+        public EventDefineType defineType;
         public EventVariableInfo[] variableInfos;
         public string[] obsoleteNames;
         #endregion
     }
-
+    public enum EventDefineType
+    {
+        Event,
+        Before,
+        After
+    }
 }

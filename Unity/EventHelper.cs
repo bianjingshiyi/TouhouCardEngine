@@ -11,13 +11,21 @@ namespace TouhouCardEngine
                 name = string.Intern(name.Substring(0, name.Length - 3));
             return name;
         }
+        public static string getNameBefore(string eventName)
+        {
+            return string.Intern("Before" + eventName);
+        }
+        public static string getNameAfter(string eventName)
+        {
+            return string.Intern("After" + eventName);
+        }
         public static string getNameBefore(IEventArg eventArg)
         {
-            return string.Intern("Before" + getName(eventArg));
+            return getNameBefore(getName(eventArg));
         }
         public static string getNameAfter(IEventArg eventArg)
         {
-            return string.Intern("After" + getName(eventArg));
+            return getNameAfter(getName(eventArg));
         }
     }
 }

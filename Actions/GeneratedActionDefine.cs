@@ -110,11 +110,11 @@ namespace TouhouCardEngine
         }
         public string getBeforeEventName()
         {
-            return $"Before{getEventName()}";
+            return EventHelper.getNameBefore(getEventName());
         }
         public string getAfterEventName()
         {
-            return $"After{getEventName()}";
+            return EventHelper.getNameAfter(getEventName());
         }
         #endregion
 
