@@ -18,9 +18,12 @@ namespace TouhouCardEngine
             rootScope = currentScope;
             this.env = env;
         }
-        public Flow(Flow parent) : this(parent.env)
+        public Flow(Flow parent, FlowEnv env) : this(env)
         {
             this.parent = parent;
+        }
+        public Flow(Flow parent) : this(parent, parent.env)
+        {
         }
         public Flow(IGame game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
         {

@@ -52,13 +52,13 @@ namespace TouhouCardEngine
             _paramsInfo = methodInfo.GetParameters();
             ActionNodeParamAttribute paramAttr;
             List<PortDefine> inputList = new List<PortDefine>();
-            if (type == NodeDefineType.Action)
+            if (type != NodeDefineType.Function)
             {
                 inputList.Add(enterPortDefine);
             }
             List<PortDefine> constList = new List<PortDefine>();
             List<PortDefine> outputList = new List<PortDefine>();
-            if (type == NodeDefineType.Action)
+            if (type != NodeDefineType.Function)
             {
                 outputList.Add(exitPortDefine);
             }

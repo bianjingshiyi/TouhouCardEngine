@@ -164,7 +164,7 @@ namespace TouhouCardEngine
 
         public IEventArg getEventArg(string[] eventNames, object[] args)
         {
-            return new GeneratedEventArg(eventNames, args);
+            return new DynamicEventArg(eventNames, args);
         }
 
         public string getName<T>() where T : IEventArg
@@ -613,9 +613,9 @@ namespace TouhouCardEngine
             return string.IsNullOrEmpty(_name) ? base.ToString() : _name;
         }
     }
-    public class GeneratedEventArg : IEventArg
+    public class DynamicEventArg : IEventArg
     {
-        public GeneratedEventArg(string[] eventNames, object[] args)
+        public DynamicEventArg(string[] eventNames, object[] args)
         {
             afterNames = eventNames;
             this.args = args;
@@ -651,7 +651,7 @@ namespace TouhouCardEngine
             set
             {
                 _parnet = value;
-                if (value is GeneratedEventArg gea)
+                if (value is DynamicEventArg gea)
                     gea.childEventList.Add(this);
             }
         }

@@ -39,24 +39,84 @@ namespace TouhouCardEngine
         }
         public override async Task<ControlOutput> run(Flow flow, Node node)
         {
-            Flow childFlow = new Flow(flow);
-
-            var entryNode = getEntryNode();
-
-            var port = entryNode.getExitPort();
-
-            await childFlow.Run(port);
-
-            var exitNode = getReturnNode();
-
-            foreach (var outputDef in getValueOutputs())
+            if (type == NodeDefineType.Event)
             {
-                var input = exitNode.getInputPort<ValueInput>(outputDef.name);
-                var output = node.getOutputPort<ValueOutput>(outputDef.name);
-                flow.setValue(output, await childFlow.getValue(input));
+                var env = flow.env;
+                var game = env.game;
+                var eventArg = new GeneratedEventArg(this);
+
+                // 为事件设置输入变量。
+                foreach (var portDefine in getValueInputs())
+                {
+                    var varName = portDefine.name;
+                    var inputPort = node.getInputPort<ValueInput>(varName);
+                    var value = await flow.getValue(inputPort);
+                    eventArg.setVar(varName, value);
+                }
+                await game.triggers.doEvent(eventArg, async arg =>
+                {
+                    var flowEnv = new FlowEnv(game, env.card, env.buff, eventArg, env.effect);
+                    Flow childFlow = new Flow(flow, flowEnv);
+                    await execute(flow, childFlow, node);
+
+                    // 为事件设置输出变量。
+                    var exitNode = getReturnNode();
+                    foreach (var portDefine in getValueOutputs())
+                    {
+                        var varName = portDefine.name;
+                        var inputPort = exitNode.getInputPort<ValueInput>(varName);
+                        var value = await childFlow.getValue(inputPort);
+                        arg.setVar(varName, value);
+                    }
+                });
+            }
+            else
+            {
+                Flow childFlow = new Flow(flow);
+                await execute(flow, childFlow, node);
             }
             return node.getOutputPort<ControlOutput>(exitPortName);
         }
+        #region 事件
+        public string[] getAllEventArgVarNames()
+        {
+            return getAfterEventArgVarNames();
+        }
+        public string[] getBeforeEventArgVarNames()
+        {
+            var inputs = getValueInputs().Select(v => v.name);
+            return inputs.ToArray();
+        }
+        public string[] getAfterEventArgVarNames()
+        {
+            var inputs = getValueInputs().Select(v => v.name);
+            var outputs = getValueOutputs().Select(v => v.name);
+            return inputs.Concat(outputs).ToArray();
+        }
+        public EventVariableInfo[] getBeforeEventArgVarInfos()
+        {
+            var inputs = getValueInputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
+            return inputs.ToArray();
+        }
+        public EventVariableInfo[] getAfterEventArgVarInfos()
+        {
+            var inputs = getValueInputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
+            var outputs = getValueOutputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
+            return inputs.Concat(outputs).ToArray();
+        }
+        public string getEventName()
+        {
+            return $"Event({defineId})From({cardPoolId})";
+        }
+        public string getBeforeEventName()
+        {
+            return $"Before{getEventName()}";
+        }
+        public string getAfterEventName()
+        {
+            return $"After{getEventName()}";
+        }
+        #endregion
 
         public void traverse(Action<Node> act, HashSet<Node> traversedActionNodeSet = null)
         {
@@ -128,6 +188,25 @@ namespace TouhouCardEngine
         public void setCategory(string category)
         {
             this.category = category;
+        }
+        #endregion
+        #region 私有方法
+        private async Task execute(Flow flow, Flow childFlow, Node node)
+        {
+            var entryNode = getEntryNode();
+            var port = entryNode.getExitPort();
+            if (port != null)
+            {
+                await childFlow.Run(port);
+            }
+
+            var exitNode = getReturnNode();
+            foreach (var outputDef in getValueOutputs())
+            {
+                var input = exitNode.getInputPort<ValueInput>(outputDef.name);
+                var output = node.getOutputPort<ValueOutput>(outputDef.name);
+                flow.setValue(output, await childFlow.getValue(input));
+            }
         }
         #endregion
         #region 属性字段
