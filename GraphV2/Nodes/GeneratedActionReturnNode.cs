@@ -20,8 +20,7 @@ namespace TouhouCardEngine
         }
         public override Task<ControlOutput> run(Flow flow)
         {
-            ActionNode node = flow.parent.currentNode as ActionNode;
-            return Task.FromResult(node?.getExitPort());
+            return Task.FromResult<ControlOutput>(null);
         }
         public void Define()
         {

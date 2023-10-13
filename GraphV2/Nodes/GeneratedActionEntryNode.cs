@@ -20,34 +20,6 @@ namespace TouhouCardEngine
         }
         public override async Task<ControlOutput> run(Flow flow)
         {
-            var parentFlow = flow.parent;
-            var outerNode = parentFlow.currentNode;
-            foreach (var input in getOutputPorts<ValueOutput>())
-            {
-                bool isParams = input.define != null && input.define.isParams;
-                if (isParams)
-                {
-                    var paramInputs = outerNode.getParamInputPorts(input.name);
-                    object[] array = new object[paramInputs.Length];
-                    for (int i = 0; i < paramInputs.Length; i++)
-                    {
-                        array[i] = await parentFlow.getValue(paramInputs[i]);
-                    }
-                    flow.setValue(input, array);
-                    continue;
-                }
-                var outerInput = outerNode.getInputPort<ValueInput>(input.name);
-                if (outerInput != null)
-                {
-                    var value = await parentFlow.getValue(outerInput);
-                    flow.setValue(input, value);
-                }
-                else
-                {
-                    if (outerNode.consts.TryGetValue(input.name, out object value))
-                        flow.setValue(input, value);
-                }
-            }
             return getExitPort();
         }
         public void Define()

@@ -46,17 +46,13 @@ namespace TouhouCardEngine
                 var eventArg = new GeneratedEventArg(this);
 
                 // 为事件设置输入变量。
-                foreach (var portDefine in getValueInputs())
-                {
-                    var varName = portDefine.name;
-                    var inputPort = node.getInputPort<ValueInput>(varName);
-                    var value = await flow.getValue(inputPort);
-                    eventArg.setVar(varName, value);
-                }
+                await setEventVariablesByInputValues(flow, node, eventArg);
                 await game.triggers.doEvent(eventArg, async arg =>
                 {
                     var flowEnv = new FlowEnv(game, env.card, env.buff, eventArg, env.effect);
                     Flow childFlow = new Flow(flow, flowEnv);
+
+                    setEntryNodeOutputValuesByEventArg(arg, childFlow);
                     await execute(flow, childFlow, node);
 
                     // 为事件设置输出变量。
@@ -73,6 +69,7 @@ namespace TouhouCardEngine
             else
             {
                 Flow childFlow = new Flow(flow);
+                await setEntryNodeOutputValues(flow, childFlow, node);
                 await execute(flow, childFlow, node);
             }
             return node.getOutputPort<ControlOutput>(exitPortName);
@@ -85,24 +82,28 @@ namespace TouhouCardEngine
         public string[] getBeforeEventArgVarNames()
         {
             var inputs = getValueInputs().Select(v => v.name);
-            return inputs.ToArray();
+            var consts = _consts.Select(v => v.name);
+            return inputs.Concat(consts).ToArray();
         }
         public string[] getAfterEventArgVarNames()
         {
             var inputs = getValueInputs().Select(v => v.name);
+            var consts = _consts.Select(v => v.name);
             var outputs = getValueOutputs().Select(v => v.name);
-            return inputs.Concat(outputs).ToArray();
+            return inputs.Concat(consts).Concat(outputs).ToArray();
         }
         public EventVariableInfo[] getBeforeEventArgVarInfos()
         {
-            var inputs = getValueInputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
-            return inputs.ToArray();
+            var inputs = getValueInputs().Select(v => portDefineToEventVarInfo(v));
+            var consts = _consts.Select(v => portDefineToEventVarInfo(v));
+            return inputs.Concat(consts).ToArray();
         }
         public EventVariableInfo[] getAfterEventArgVarInfos()
         {
-            var inputs = getValueInputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
-            var outputs = getValueOutputs().Select(v => new EventVariableInfo() { name = v.name, type = v.type });
-            return inputs.Concat(outputs).ToArray();
+            var inputs = getValueInputs().Select(v => portDefineToEventVarInfo(v));
+            var consts = _consts.Select(v => portDefineToEventVarInfo(v));
+            var outputs = getValueOutputs().Select(v => portDefineToEventVarInfo(v));
+            return inputs.Concat(consts).Concat(outputs).ToArray();
         }
         public string getEventName()
         {
@@ -191,6 +192,103 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有方法
+        private static EventVariableInfo portDefineToEventVarInfo(PortDefine portDefine)
+        {
+            return new EventVariableInfo()
+            {
+                name = portDefine.name,
+                type = portDefine.isParams ? portDefine.type.MakeArrayType() : portDefine.type
+            };
+        }
+        /// <summary>
+        /// 获取自定义动作的所有输入值和常量，并且将变长参数变为数组。
+        /// </summary>
+        /// <param name="flow">自定义动作的执行流。</param>
+        /// <param name="node">自定义动作节点。</param>
+        /// <returns>变量字典。</returns>
+        private async Task<Dictionary<string, object>> getInputValues(Flow flow, Node node)
+        {
+            Dictionary<string, object> variables = new Dictionary<string, object>();
+            foreach (var inputDef in inputDefines)
+            {
+                bool isParams = inputDef != null && inputDef.isParams;
+                var inputName = inputDef.name;
+                // 变长参数。
+                if (isParams)
+                {
+                    var paramInputs = node.getParamInputPorts(inputName);
+                    object[] array = new object[paramInputs.Length - 1];
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        array[i] = await flow.getValue(paramInputs[i]);
+                    }
+                    variables.Add(inputName, array);
+                    continue;
+                }
+                // 输入变量。
+                var outerInput = node.getInputPort<ValueInput>(inputName);
+                if (outerInput != null)
+                {
+                    var value = await flow.getValue(outerInput);
+                    variables.Add(inputName, value);
+                }
+            }
+            foreach (var constDef in constDefines)
+            {
+                // 输入常量
+                var inputName = constDef.name;
+                if (node.consts.TryGetValue(inputName, out object value))
+                    variables.Add(inputName, value);
+            }
+            return variables;
+        }
+        /// <summary>
+        /// 传递变量值：自定义动作的输入值-->入口节点的输出值
+        /// </summary>
+        /// <param name="flow">自定义动作的执行流。</param>
+        /// <param name="childFlow">自定义动作内部的执行流。</param>
+        /// <param name="node">自定义动作节点。</param>
+        /// <returns></returns>
+        private async Task setEntryNodeOutputValues(Flow flow, Flow childFlow, Node node)
+        {
+            var variables = await getInputValues(flow, node);
+            var entryNode = getEntryNode();
+            foreach (var input in entryNode.getOutputPorts<ValueOutput>())
+            {
+                if (variables.TryGetValue(input.name, out var value))
+                {
+                    childFlow.setValue(input, value);
+                }
+            }
+        }
+        /// <summary>
+        /// 传递变量值：自定义动作的输入值-->事件
+        /// </summary>
+        /// <param name="flow">自定义动作的执行流。</param>
+        /// <param name="node">自定义动作节点。</param>
+        /// <param name="arg">事件。</param>
+        /// <returns></returns>
+        private async Task setEventVariablesByInputValues(Flow flow, Node node, EventArg arg)
+        {
+            var variables = await getInputValues(flow, node);
+            foreach (var pair in variables)
+            {
+                arg.setVar(pair.Key, pair.Value);
+            }
+        }
+        /// <summary>
+        /// 传递变量值：事件-->入口节点的输出值
+        /// </summary>
+        /// <param name="arg">事件。</param>
+        /// <param name="childFlow">自定义动作内部的执行流。</param>
+        private void setEntryNodeOutputValuesByEventArg(EventArg arg, Flow childFlow)
+        {
+            var entryNode = getEntryNode();
+            foreach (var input in entryNode.getOutputPorts<ValueOutput>())
+            {
+                childFlow.setValue(input, arg.getVar(input.name));
+            }
+        }
         private async Task execute(Flow flow, Flow childFlow, Node node)
         {
             var entryNode = getEntryNode();
