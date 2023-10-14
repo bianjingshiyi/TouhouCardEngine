@@ -73,8 +73,8 @@ namespace TouhouCardEngine
         {
             GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
             generatedBuffDefine.setId(id);
-            generatedBuffDefine.propModifierList = propModifierList;
-            generatedBuffDefine.existLimitList = existLimitList;
+            generatedBuffDefine.propModifierList = propModifierList ?? new List<PropModifier>();
+            generatedBuffDefine.existLimitList = existLimitList ?? new List<BuffExistLimitDefine>();
             for (int i = 0; i < effects.Count; i++)
             {
                 if (effects[i] == null)

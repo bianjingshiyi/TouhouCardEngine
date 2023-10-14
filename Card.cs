@@ -462,9 +462,12 @@ namespace TouhouCardEngine
                     {
                         await effect.onDisable(game, card, argBuff);
                     }
-                    foreach (var limit in existLimits)
+                    if (existLimits != null)
                     {
-                        limit.remove(engine, card, argBuff);
+                        foreach (var limit in existLimits)
+                        {
+                            limit.remove(engine, card, argBuff);
+                        }
                     }
                     arg.removed = true;
                 }
