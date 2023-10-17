@@ -11,7 +11,6 @@ namespace TouhouCardEngine
         #region 构造方法
         public GeneratedActionDefine(ActionGraph graph, int id, NodeDefineType type, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(id, editorName)
         {
-            this.id = id;
             this.category = category;
             if (type != NodeDefineType.Function)
             {
@@ -308,7 +307,12 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public int id { get; }
+        [Obsolete("Use defineId instead.")]
+        public int id 
+        {
+            get => defineId;
+            set => defineId = value;
+        }
         public ActionGraph graph;
 
         private List<PortDefine> _inputs = new List<PortDefine>();
