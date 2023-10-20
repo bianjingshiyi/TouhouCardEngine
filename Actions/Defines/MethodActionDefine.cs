@@ -50,6 +50,7 @@ namespace TouhouCardEngine
             _methodInfo = methodInfo;
             //分析参数设置输入和输出
             _paramsInfo = methodInfo.GetParameters();
+            _paramAttributes = new ActionNodeParamAttribute[_paramsInfo.Length];
             ActionNodeParamAttribute paramAttr;
             List<PortDefine> inputList = new List<PortDefine>();
             if (type != NodeDefineType.Function)
@@ -66,6 +67,7 @@ namespace TouhouCardEngine
             {
                 var paramInfo = _paramsInfo[i];
                 paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                _paramAttributes[i] = paramAttr;
                 bool isParams = paramAttr != null ? paramAttr.isParams : false;
                 bool isOut = paramAttr != null ? paramAttr.isOut : false;
 
@@ -242,7 +244,7 @@ namespace TouhouCardEngine
             for (int i = 0; i < _paramsInfo.Length; i++)
             {
                 var paramInfo = _paramsInfo[i];
-                var paramAttr = paramInfo.GetCustomAttribute<ActionNodeParamAttribute>();
+                var paramAttr = _paramAttributes[i];
                 string name = paramInfo.Name;
                 if (paramAttr != null)
                 {
@@ -405,6 +407,7 @@ namespace TouhouCardEngine
         private const string returnValueName = "return";
         MethodInfo _methodInfo;
         ParameterInfo[] _paramsInfo;
+        ActionNodeParamAttribute[] _paramAttributes;
 
         private PortDefine[] _inputs;
         private PortDefine[] _consts;

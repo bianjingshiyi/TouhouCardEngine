@@ -25,14 +25,14 @@ namespace TouhouCardEngine
         {
             return $"动作节点{defineRef}";
         }
-        public async override Task<ControlOutput> run(Flow flow)
+        public override Task<ControlOutput> run(Flow flow)
         {
             var define = flow.env.game.getActionDefine(defineRef);
             if (define != null)
             {
-                return await define.run(flow, this);
+                return define.run(flow, this);
             }
-            return null;
+            return Task.FromResult<ControlOutput>(null);
         }
         public void Define()
         {

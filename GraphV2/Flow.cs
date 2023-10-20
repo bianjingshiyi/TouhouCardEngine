@@ -14,7 +14,7 @@ namespace TouhouCardEngine
         {
             nodeStack = new Stack<Node>();
             scopeStack = new Stack<FlowScope>();
-            scopeStack.Push(new FlowScope());
+            scopeStack.Push(FlowScopePool.take());
             rootScope = currentScope;
             this.env = env;
         }
@@ -31,13 +31,15 @@ namespace TouhouCardEngine
         #endregion
         public FlowScope EnterScope()
         {
-            var scope = new FlowScope(currentScope);
+            var scope = FlowScopePool.take();
+            scope.parentScope = currentScope;
             scopeStack.Push(scope);
             return scope;
         }
         public void ExitScope()
         {
-            scopeStack.Pop();
+            var scope = scopeStack.Pop();
+            FlowScopePool.put(scope);
         }
         public async Task<T> getValue<T>(ValueInput input, FlowScope scope = null)
         {
@@ -358,12 +360,13 @@ namespace TouhouCardEngine
     }
     public class FlowScope
     {
-        public FlowScope() : this(null)
+        public FlowScope()
         {
         }
-        public FlowScope(FlowScope parentScope)
+        public void reset()
         {
-            this.parentScope = parentScope;
+            parentScope = null;
+            localVarDict.Clear();
         }
         public bool tryGetLocalVar(IValuePort port, out object value)
         {
@@ -398,5 +401,27 @@ namespace TouhouCardEngine
         }
         public FlowScope parentScope;
         private Dictionary<IValuePort, object> localVarDict = new Dictionary<IValuePort, object>();
+    }
+    public static class FlowScopePool
+    {
+        public static FlowScope take()
+        {
+            if (_scopePool.Count <= 0)
+            {
+                return new FlowScope();
+            }
+            else
+            {
+                var scope = _scopePool[0];
+                _scopePool.RemoveAt(0);
+                return scope;
+            }
+        }
+        public static void put(FlowScope scope)
+        {
+            scope.reset();
+            _scopePool.Add(scope);
+        }
+        static List<FlowScope> _scopePool = new List<FlowScope>();
     }
 }
