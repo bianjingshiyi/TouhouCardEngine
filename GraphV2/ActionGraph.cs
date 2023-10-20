@@ -231,13 +231,17 @@ namespace TouhouCardEngine
                 addNode(node);
             }
         }
+        public void addConnection(NodeConnection connection)
+        {
+            if (_connections.Contains(connection))
+                return;
+            _connections.Add(connection);
+        }
         public void AddConnections(IEnumerable<NodeConnection> connections)
         {
             foreach (var connection in connections)
             {
-                if (_connections.Contains(connection))
-                    continue;
-                _connections.Add(connection);
+                addConnection(connection);
             }
         }
         #endregion 公共方法
