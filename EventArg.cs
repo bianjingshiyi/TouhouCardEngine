@@ -51,6 +51,8 @@ namespace TouhouCardEngine
         public object[] args { get; set; }
         public int flowNodeId { get; set; }
         public bool isCanceled { get; set; }
+        public bool isCompleted { get; set; }
+        public EventRecord record { get; set; }
         public int repeatTime { get; set; }
         public Func<IEventArg, Task> action { get; set; }
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();

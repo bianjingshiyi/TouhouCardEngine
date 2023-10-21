@@ -51,10 +51,12 @@ namespace TouhouCardEngine.Interfaces
         string[] afterNames { get; set; }
         object[] args { get; set; }
         bool isCanceled { get; set; }
+        bool isCompleted { get; set; }
         int repeatTime { get; set; }
         int flowNodeId { get; set; }
         Func<IEventArg, Task> action { get; set; }
         IEventArg parent { get; set; }
+        EventRecord record { get; set; }
         IEventArg[] getChildEvents();
         /// <summary>
         /// 获取环境变量

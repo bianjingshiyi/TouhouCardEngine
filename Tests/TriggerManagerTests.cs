@@ -472,6 +472,8 @@ namespace Tests
             }
             public int intValue { get; set; } = 0;
             public bool isCanceled { get; set; } = false;
+            public bool isCompleted { get; set; } = false;
+            public EventRecord record { get; set; }
             public int repeatTime { get; set; } = 0;
             public Func<IEventArg, Task> action { get; set; }
             public string[] afterNames { get; set; }

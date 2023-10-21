@@ -151,15 +151,22 @@ namespace TouhouCardEngine
         }
         public IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = true)
         {
-            return getRecords(includeCanceled, includeUncompleted).Select(ei => ei.eventArg).ToArray();
+            return getEvents(includeCanceled, includeUncompleted).ToArray();
         }
         public EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = true)
         {
             return getRecords(includeCanceled, includeUncompleted).ToArray();
         }
-        public EventRecord getEventRecord(IEventArg arg, bool includeCanceled = false, bool includeUncompleted = false)
+        public EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = true)
         {
-            return getRecords(includeCanceled, includeUncompleted).FirstOrDefault(r => r.eventArg == arg);
+            var record = eventArg.record;
+            if (record == null)
+                return null;
+            if (!includeCanceled && record.isCanceled)
+                return null;
+            if (!includeUncompleted && !record.isCompleted)
+                return null;
+            return record;
         }
 
         public IEventArg getEventArg(string[] eventNames, object[] args)
@@ -252,7 +259,9 @@ namespace TouhouCardEngine
             if (currentEvent != null)
                 eventArg.parent = currentEvent;
             var record = new EventRecord(eventArg);
+            eventArg.record = record;
             _eventChainList.Add(eventArgItem);
+            _eventArgList.Add(eventArg);
             _eventRecordList.Add(record);
             eventArg.isCanceled = false;
             eventArg.repeatTime = 0;
@@ -368,6 +377,7 @@ namespace TouhouCardEngine
 
             record.isCanceled = eventArg.isCanceled;
             eventArg.Record(game, record);
+            eventArg.isCompleted = true;
             record.isCompleted = true;
         }
         private async Task doEventAfter<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T : IEventArg
@@ -462,6 +472,10 @@ namespace TouhouCardEngine
             }
             argItem.triggerList.Clear();
         }
+        private IEnumerable<IEventArg> getEvents(bool includeCanceled, bool includeUncompleted)
+        {
+            return _eventArgList.Where(e => (includeCanceled || !e.isCanceled) && (includeUncompleted || e.isCompleted));
+        }
         private IEnumerable<EventRecord> getRecords(bool includeCanceled, bool includeUncompleted)
         {
             return _eventRecordList.Where(r => (includeCanceled || !r.isCanceled) && (includeUncompleted || r.isCompleted));
@@ -534,6 +548,8 @@ namespace TouhouCardEngine
         List<EventListItem> _eventList = new List<EventListItem>();
         [SerializeField]
         List<EventArgItem> _eventChainList = new List<EventArgItem>();
+        [SerializeField]
+        List<IEventArg> _eventArgList = new List<IEventArg>();
         [SerializeField]
         List<EventRecord> _eventRecordList = new List<EventRecord>();
         private const int MAX_EVENT_TIMES = 30;
@@ -641,7 +657,9 @@ namespace TouhouCardEngine
         public string[] beforeNames { get; set; } = new string[0];
         public string[] afterNames { get; set; } = new string[0];
         public object[] args { get; set; }
+        public bool isCompleted { get; set; } = false;
         public bool isCanceled { get; set; } = false;
+        public EventRecord record { get; set; }
         public int repeatTime { get; set; } = 0;
         public int flowNodeId { get; set; } = 0;
         public Func<IEventArg, Task> action { get; set; }
