@@ -282,11 +282,11 @@ namespace TouhouCardEngine
                     await modifier.afterAdd(game, card);
                     object value = card.getProp(game, modifier.getPropName());
                     (arg as AddModiEventArg).valueAfter = value;
-                    game?.logger?.logTrace(nameof(PropModifier), card + "获得属性修正" + modifier + "=>" + StringHelper.propToString(value));
+                    game?.logger?.logTrace(nameof(PropModifier), $"{card}获得属性修正{modifier}=>{StringHelper.propToString(value)}");
                     await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value }, arg2 =>
                     {
                         card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value, arg2));
-                        game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
+                        game?.logger?.logTrace(nameof(Card), $"{arg2.card}的属性{arg2.propName}=>{StringHelper.propToString(arg2.value)}");
                         return Task.CompletedTask;
                     });
                 }); 
@@ -339,12 +339,12 @@ namespace TouhouCardEngine
                         card.modifierList.Remove(modifier);
                         await modifier.afterRemove(game, card);
                         object value = card.getProp(game, modifier.getPropName());
-                        game?.logger?.logTrace("PropModifier", card + "移除属性修正" + modifier + "=>" + StringHelper.propToString(value));
+                        game?.logger?.logTrace("PropModifier", $"{card}移除属性修正{modifier}=>{StringHelper.propToString(value)}");
                         await game.triggers.doEvent(new PropChangeEventArg() { card = card, propName = modifier.getPropName(), beforeValue = beforeValue, value = value },
                         arg2 =>
                         {
                             card.addHistory(new CardPropHistory(arg2.propName, arg2.beforeValue, arg2.value, arg2));
-                            game?.logger?.logTrace(nameof(Card), arg2.card + "的属性" + arg2.propName + "=>" + StringHelper.propToString(arg2.value));
+                            game?.logger?.logTrace(nameof(Card), $"{arg2.card}的属性{arg2.propName}=>{StringHelper.propToString(arg2.value)}");
                             return Task.CompletedTask;
                         });
                     });
@@ -354,7 +354,7 @@ namespace TouhouCardEngine
                     modifierList.Remove(modifier);
                     await modifier.afterRemove(game, this);
                     object prop = getProp(game, modifier.getPropName());
-                    game?.logger?.logTrace("PropModifier", this + "移除属性修正" + modifier + "=>" + StringHelper.propToString(prop));
+                    game?.logger?.logTrace("PropModifier", $"{this}移除属性修正{modifier}=>{StringHelper.propToString(prop)}");
                     return default;
                 }
             }
@@ -387,7 +387,7 @@ namespace TouhouCardEngine
                 var card = arg.card;
                 var argBuff = arg.buff;
 
-                game?.logger?.logTrace("Buff", card + "获得增益" + argBuff);
+                game?.logger?.logTrace("Buff", $"{card}获得增益{argBuff}");
                 argBuff.card = card;
                 card.buffList.Add(argBuff);
                 card._lastBuffId++;
@@ -450,7 +450,7 @@ namespace TouhouCardEngine
                 var argBuff = arg.buff;
                 if (card.buffList.Contains(argBuff))
                 {
-                    game?.logger?.logTrace("Buff", card + "移除增益" + argBuff);
+                    game?.logger?.logTrace("Buff", $"{card}移除增益{argBuff}");
                     card.buffList.Remove(argBuff);
                     var engine = game as CardEngine;
                     var existLimits = argBuff.getExistLimits(engine);
@@ -554,7 +554,7 @@ namespace TouhouCardEngine
                     var v = arg.value;
                     card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value, arg));
                     propDic[propName] = v;
-                    game.logger?.logTrace("Game", card + "的属性" + propName + "=>" + StringHelper.propToString(v));
+                    game.logger?.logTrace("Game", $"{card}的属性{propName}=>{StringHelper.propToString(v)}");
                     return Task.CompletedTask;
                 });
             else

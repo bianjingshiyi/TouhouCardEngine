@@ -47,7 +47,7 @@ namespace TouhouCardEngine
         bool isLocalRoom { get; set; } = false;
         public Task createLocalRoom()
         {
-            logger?.log("客户端创建本地房间");
+            logger?.logTrace("客户端创建本地房间");
             room = new RoomData(string.Empty);
             localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
             room.playerDataList.Add(localPlayer);
@@ -91,12 +91,12 @@ namespace TouhouCardEngine
 
             if (isLAN)
             {
-                logger.log("切换到局域网网络");
+                logger.logTrace("切换到局域网网络");
                 curNetwork = LANNetwork;
             } 
             else
             {
-                logger.log("切换到服务器网络");
+                logger.logTrace("切换到服务器网络");
                 curNetwork = LobbyNetwork;
             }
 
@@ -202,7 +202,7 @@ namespace TouhouCardEngine
         /// <remarks>port主要是在局域网测试下有用</remarks>
         public async Task createOnlineRoom(string name = "", string password = "")
         {
-            logger?.log("客户端创建在线房间");
+            logger?.logTrace("客户端创建在线房间");
             localPlayer = curNetwork.GetSelfPlayerData();
             room = await curNetwork.CreateRoom(name, password);
             room.maxPlayerCount = MAX_PLAYER_COUNT;
@@ -217,13 +217,13 @@ namespace TouhouCardEngine
         /// </summary>
         public void refreshRoomList()
         {
-            logger?.log("客户端请求房间列表");
+            logger?.logTrace("客户端请求房间列表");
             curNetwork?.RefreshRoomList();
         }
 
         public async Task<bool> joinRoom(string roomId, string password = "")
         {
-            logger?.log("客户端请求加入房间" + roomId);
+            logger?.logTrace("客户端请求加入房间" + roomId);
             room = await curNetwork.JoinRoom(roomId, password);
             return room != null;
         }
@@ -231,14 +231,14 @@ namespace TouhouCardEngine
         public async Task<bool> joinRoom(string addr, int port, string password = "")
         {
             if (curNetwork != LANNetwork) return false; 
-            logger?.log("客户端请求加入房间" + addr + ":" + port);
+            logger?.logTrace("客户端请求加入房间" + addr + ":" + port);
             room = await LANNetwork.JoinRoom(addr, port, password);
             return room != null;
         }
 
         public Task addAIPlayer()
         {
-            logger?.log("主机添加AI玩家");
+            logger?.logTrace("主机添加AI玩家");
             RoomPlayerData playerData = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "AI", RoomPlayerType.ai);
             var host = curNetwork as INetworkingV3LANHost;
             if (!isLocalRoom && host != null)
@@ -261,7 +261,7 @@ namespace TouhouCardEngine
                 return Task.CompletedTask;
             }
             
-            logger?.log("主机更改房间属性" + propName + "为" + value);
+            logger?.logTrace("主机更改房间属性" + propName + "为" + value);
             room.setProp(propName, value);
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SetRoomProp(propName, value);
@@ -277,7 +277,7 @@ namespace TouhouCardEngine
 
             foreach (var item in values)
             {
-                logger?.log("主机更改房间属性" + item.Key + "为" + item.Value);
+                logger?.logTrace("主机更改房间属性" + item.Key + "为" + item.Value);
                 room.setProp(item.Key, item.Value);
             }
 
@@ -288,14 +288,14 @@ namespace TouhouCardEngine
 
         async Task IRoomClient.SetPlayerProp(string propName, object value)
         {
-            logger?.log("玩家更改玩家属性" + propName + "为" + value);
+            logger?.logTrace("玩家更改玩家属性" + propName + "为" + value);
             room.setPlayerProp(localPlayer.id, propName, value);
             if (curNetwork != null && !isLocalRoom)
                 await curNetwork.SetPlayerProp(propName, value);
         }
         public Task quitRoom()
         {
-            logger?.log("玩家退出房间" + room.ID);
+            logger?.logTrace("玩家退出房间" + room.ID);
             room = null;
             if (curNetwork != null && !isLocalRoom)
                 curNetwork.QuitRoom();
@@ -303,7 +303,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.SendChat(int channel, string message)
         {
-            logger?.log($"[{channel}] 玩家: " + message);
+            logger?.logTrace($"[{channel}] 玩家: " + message);
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SendChat(channel, message);
@@ -311,7 +311,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.SuggestCardPools(CardPoolSuggestion cardPools)
         {
-            logger?.log($"玩家提议加入卡池: " + cardPools.ToString());
+            logger?.logTrace($"玩家提议加入卡池: " + cardPools.ToString());
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SuggestCardPools(cardPools);
@@ -319,7 +319,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree)
         {
-            logger?.log($"回应来自玩家{playerId}的加入卡池提议:{agree}。");
+            logger?.logTrace($"回应来自玩家{playerId}的加入卡池提议:{agree}。");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.AnwserCardPoolsSuggestion(playerId, suggestion, agree);
@@ -327,7 +327,7 @@ namespace TouhouCardEngine
         }
         Task<byte[]> IRoomClient.GetResourceAsync(ResourceType type, string id)
         {
-            logger?.log($"获取类型为{type.GetString()}，id为{id}的资源。");
+            logger?.logTrace($"获取类型为{type.GetString()}，id为{id}的资源。");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.GetResourceAsync(type, id);
@@ -335,7 +335,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.UploadResourceAsync(ResourceType type, string id, byte[] bytes)
         {
-            logger?.log($"上传类型为{type.GetString()}，id为{id}的资源。");
+            logger?.logTrace($"上传类型为{type.GetString()}，id为{id}的资源。");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.UploadResourceAsync(type, id, bytes);
@@ -343,7 +343,7 @@ namespace TouhouCardEngine
         }
         Task<bool> IRoomClient.ResourceExistsAsync(ResourceType type, string id)
         {
-            logger?.log($"检查类型为{type.GetString()}，id为{id}的资源是否存在。");
+            logger?.logTrace($"检查类型为{type.GetString()}，id为{id}的资源是否存在。");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.ResourceExistsAsync(type, id);
@@ -351,7 +351,7 @@ namespace TouhouCardEngine
         }
         Task<bool[]> IRoomClient.ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res)
         {
-            logger?.log($"批量检查{res.Length}个资源是否存在");
+            logger?.logTrace($"批量检查{res.Length}个资源是否存在");
 
             if (curNetwork == null || isLocalRoom)
                 return Task.FromResult(new bool[res.Length]);
