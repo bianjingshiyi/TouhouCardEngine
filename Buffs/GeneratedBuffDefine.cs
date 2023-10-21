@@ -85,7 +85,7 @@ namespace TouhouCardEngine
                 }
                 catch (Exception e)
                 {
-                    throw new FormatException("反序列化增益定义" + id + "的效果" + i + "失败", e);
+                    throw new FormatException($"反序列化增益定义{id}的效果{i}失败", e);
                 }
             }
             return generatedBuffDefine;

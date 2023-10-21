@@ -223,7 +223,7 @@ namespace TouhouCardEngine
 
         public async Task<bool> joinRoom(string roomId, string password = "")
         {
-            logger?.logTrace("客户端请求加入房间" + roomId);
+            logger?.logTrace($"客户端请求加入房间{roomId}");
             room = await curNetwork.JoinRoom(roomId, password);
             return room != null;
         }
@@ -231,7 +231,7 @@ namespace TouhouCardEngine
         public async Task<bool> joinRoom(string addr, int port, string password = "")
         {
             if (curNetwork != LANNetwork) return false; 
-            logger?.logTrace("客户端请求加入房间" + addr + ":" + port);
+            logger?.logTrace($"客户端请求加入房间{addr}:{port}");
             room = await LANNetwork.JoinRoom(addr, port, password);
             return room != null;
         }
@@ -261,7 +261,7 @@ namespace TouhouCardEngine
                 return Task.CompletedTask;
             }
             
-            logger?.logTrace("主机更改房间属性" + propName + "为" + value);
+            logger?.logTrace($"主机更改房间属性{propName}为{value}");
             room.setProp(propName, value);
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SetRoomProp(propName, value);
@@ -277,7 +277,7 @@ namespace TouhouCardEngine
 
             foreach (var item in values)
             {
-                logger?.logTrace("主机更改房间属性" + item.Key + "为" + item.Value);
+                logger?.logTrace($"主机更改房间属性{item.Key}为{item.Value}");
                 room.setProp(item.Key, item.Value);
             }
 
@@ -288,14 +288,14 @@ namespace TouhouCardEngine
 
         async Task IRoomClient.SetPlayerProp(string propName, object value)
         {
-            logger?.logTrace("玩家更改玩家属性" + propName + "为" + value);
+            logger?.logTrace($"玩家更改玩家属性{propName}为{value}");
             room.setPlayerProp(localPlayer.id, propName, value);
             if (curNetwork != null && !isLocalRoom)
                 await curNetwork.SetPlayerProp(propName, value);
         }
         public Task quitRoom()
         {
-            logger?.logTrace("玩家退出房间" + room.ID);
+            logger?.logTrace($"玩家退出房间{room.ID}");
             room = null;
             if (curNetwork != null && !isLocalRoom)
                 curNetwork.QuitRoom();
@@ -303,7 +303,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.SendChat(int channel, string message)
         {
-            logger?.logTrace($"[{channel}] 玩家: " + message);
+            logger?.logTrace($"[{channel}] 玩家: {message}");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SendChat(channel, message);
@@ -311,7 +311,7 @@ namespace TouhouCardEngine
         }
         Task IRoomClient.SuggestCardPools(CardPoolSuggestion cardPools)
         {
-            logger?.logTrace($"玩家提议加入卡池: " + cardPools.ToString());
+            logger?.logTrace($"玩家提议加入卡池: {cardPools.ToString()}");
 
             if (curNetwork != null && !isLocalRoom)
                 return curNetwork.SuggestCardPools(cardPools);
@@ -418,7 +418,7 @@ namespace TouhouCardEngine
             if (player != null)
                 player.state = ERoomPlayerState.connected;
             else
-                throw new NullReferenceException("房间中不存在玩家" + player.name);
+                throw new NullReferenceException($"房间中不存在玩家{player.name}");
             return room;
         }
         /// <summary>
@@ -428,7 +428,7 @@ namespace TouhouCardEngine
         private void onConfirmJoinAck(RoomData joinedRoom)
         {
             if (room != null)
-                throw new InvalidOperationException("已经在房间" + room.ID + "中");
+                throw new InvalidOperationException($"已经在房间{room.ID}中");
             localPlayer = joinedRoom.getPlayer(curNetwork.GetSelfPlayerData().id);
             room = joinedRoom;
         }

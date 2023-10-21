@@ -50,12 +50,12 @@ namespace TouhouCardEngine
         {
             if (!string.IsNullOrEmpty(relatedPropName))
             {
-                return getPropName() + "=<" + relatedPropName + ">";
+                return $"{getPropName()}=<{relatedPropName}>";
             }
             else if (isSet)
-                return getPropName() + "=" + value;
+                return $"{getPropName()}={value}";
             else
-                return getPropName() + (value < 0 ? value.ToString() : "+" + value);
+                return $"{getPropName()}{(value < 0 ? value.ToString() : "+" + value)}";
         }
         #endregion
         //#region 动作定义

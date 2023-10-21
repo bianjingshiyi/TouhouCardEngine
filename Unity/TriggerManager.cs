@@ -26,7 +26,7 @@ namespace TouhouCardEngine
         {
             //传入不能为空
             if (string.IsNullOrEmpty(eventName))
-                throw new ArgumentException(nameof(eventName) + "不能为空字符串", nameof(eventName));
+                throw new ArgumentException($"{nameof(eventName)}不能为空字符串", nameof(eventName));
             if (trigger == null)
                 throw new ArgumentNullException(nameof(trigger));
             // 添加触发器。
@@ -62,7 +62,7 @@ namespace TouhouCardEngine
         {
             //传入不能为空
             if (string.IsNullOrEmpty(eventName))
-                throw new ArgumentException(nameof(eventName) + "不能为空字符串", nameof(eventName));
+                throw new ArgumentException($"{nameof(eventName)}不能为空字符串", nameof(eventName));
             if (trigger == null)
                 throw new ArgumentNullException(nameof(trigger));
 
@@ -89,7 +89,7 @@ namespace TouhouCardEngine
             EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
             if (eventItem != null && eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
             {
-                logger?.logTrace("Trigger", "注销触发器" + trigger);
+                logger?.logTrace("Trigger", $"注销触发器{trigger}");
                 return true;
             }
             else
@@ -97,7 +97,7 @@ namespace TouhouCardEngine
                 var argItem = _eventChainList.FirstOrDefault(e => getNameAfter(e.eventArg) == eventName);
                 if (argItem != null && argItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
                 {
-                    logger?.logTrace("Trigger", "注销延迟队列中的触发器" + trigger);
+                    logger?.logTrace("Trigger", $"注销延迟队列中的触发器{trigger}");
                     return true;
                 }
             }
@@ -331,7 +331,7 @@ namespace TouhouCardEngine
             {
                 TriggerListItem item = new TriggerListItem(trigger);
                 eventItem.triggerList.Add(item);
-                logger?.logTrace("Trigger", "注册触发器" + trigger);
+                logger?.logTrace("Trigger", $"注册触发器{trigger}");
             }
             else
                 throw new RepeatRegistrationException(eventName, trigger);
@@ -345,7 +345,7 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
-                logger?.logTrace("Trigger", "执行" + eventArg + "发生前回调引发异常：" + e);
+                logger?.logTrace("Trigger", $"执行{eventArg}发生前回调引发异常：{e}");
             }
             foreach (var trigger in triggers)
             {
@@ -369,7 +369,7 @@ namespace TouhouCardEngine
                 }
                 catch (Exception e)
                 {
-                    logger?.logError("Error", "执行" + eventArg + "逻辑发生异常：" + e);
+                    logger?.logError("Error", $"执行{eventArg}逻辑发生异常：{e}");
                 }
                 repeatTime++;
             }
@@ -389,7 +389,7 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
-                logger?.logError("Trigger", "执行" + eventArg + "发生后回调引发异常：" + e);
+                logger?.logError("Trigger", $"执行{eventArg}发生后回调引发异常：{e}");
             }
             // Event.
             foreach (var trigger in triggers)
@@ -414,26 +414,26 @@ namespace TouhouCardEngine
         {
             if (trigger is ITrigger<T> triggerT)
             {
-                logger?.logTrace("Trigger", "运行触发器" + triggerT);
+                logger?.logTrace("Trigger", $"运行触发器{triggerT}");
                 try
                 {
                     await triggerT.invoke(eventArg);
                 }
                 catch (Exception e)
                 {
-                    logger?.logError("Trigger", "运行触发器" + triggerT + "引发异常：" + e);
+                    logger?.logError("Trigger", $"运行触发器{triggerT}引发异常：{e}");
                 }
             }
             else
             {
-                logger?.logTrace("Trigger", "运行触发器" + trigger);
+                logger?.logTrace("Trigger", $"运行触发器{trigger}");
                 try
                 {
                     await trigger.invoke(eventArg);
                 }
                 catch (Exception e)
                 {
-                    logger?.logError("Trigger", "运行触发器" + trigger + "引发异常：" + e);
+                    logger?.logError("Trigger", $"运行触发器{trigger}引发异常：{e}");
                 }
             }
         }
@@ -698,7 +698,7 @@ namespace TouhouCardEngine
     public class RepeatRegistrationException : Exception
     {
         public RepeatRegistrationException() { }
-        public RepeatRegistrationException(string eventName, ITrigger trigger) : base(trigger + "重复注册事件" + eventName)
+        public RepeatRegistrationException(string eventName, ITrigger trigger) : base($"{trigger}重复注册事件{eventName}")
         { }
         public RepeatRegistrationException(string message) : base(message) { }
         public RepeatRegistrationException(string message, Exception inner) : base(message, inner) { }

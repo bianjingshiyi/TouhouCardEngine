@@ -53,7 +53,7 @@ namespace TouhouCardEngine
             if (value is T t)
                 return setValue(game, card, t);
             else
-                throw new InvalidCastException("属性修整器" + this + "的值类型必须是" + typeof(T).Name);
+                throw new InvalidCastException($"属性修整器{this}的值类型必须是{typeof(T).Name}");
         }
         /// <summary>
         /// 设置修改器的修改值。

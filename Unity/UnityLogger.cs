@@ -22,13 +22,13 @@ namespace TouhouCardEngine
             if (blackList.Contains(channel))
                 return;
             if (channel == "Debug")
-                Debug.Log((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.Log($"{(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else if (channel == "Warning")
-                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.LogWarning($"{(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else if (channel == "Error")
-                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.LogError($"{(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else
-                Debug.Log((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
+                Debug.Log($"{(string.IsNullOrEmpty(name) ? null : $"{name}（{channel}）：")}{msg}");
         }
         public void log(string msg)
         {
@@ -47,9 +47,9 @@ namespace TouhouCardEngine
             if (blackList.Contains(channel))
                 return;
             if (string.IsNullOrEmpty(channel))
-                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.LogWarning($"{(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else
-                Debug.LogWarning((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
+                Debug.LogWarning($"{(string.IsNullOrEmpty(name) ? null : $"{name}（{channel}）：")}{msg}");
         }
 
         public void logError(string msg)
@@ -64,9 +64,9 @@ namespace TouhouCardEngine
             if (blackList.Contains(channel))
                 return;
             if (string.IsNullOrEmpty(channel))
-                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.LogError($"{(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else
-                Debug.LogError((string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
+                Debug.LogError($"{(string.IsNullOrEmpty(name) ? null : $"{name}（{channel}）：")}{msg}");
         }
 
         public void logTrace(string msg)
@@ -83,9 +83,9 @@ namespace TouhouCardEngine
             if (blackList.Contains(channel))
                 return;
             if (string.IsNullOrEmpty(channel))
-                Debug.Log("[TRACE] " + (string.IsNullOrEmpty(name) ? null : name + "：") + msg);
+                Debug.Log($"[TRACE] {(string.IsNullOrEmpty(name) ? null : $"{name}：")}{msg}");
             else
-                Debug.Log("[TRACE] " + (string.IsNullOrEmpty(name) ? null : name + "（" + channel + "）：") + msg);
+                Debug.Log($"[TRACE] {(string.IsNullOrEmpty(name) ? null : $"{name}（{channel}）：")}{msg}");
         }
     }
 }

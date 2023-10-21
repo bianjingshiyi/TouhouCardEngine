@@ -58,15 +58,15 @@ namespace TouhouCardEngine
             string s;
             if (action != null)
             {
-                s = action.ToString() + "[" + index + "]";
+                s = $"{action}[{index}]";
             }
             else if (actionNodeId != 0)
             {
-                s = "{" + actionNodeId + "}[" + index + "]";
+                s = $"{{{actionNodeId}}}[{index}]";
             }
             else if (!string.IsNullOrEmpty(eventVarName))
             {
-                s = "{" + eventVarName + "}";
+                s = $"{{{eventVarName}}}";
             }
             else
             {

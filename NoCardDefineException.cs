@@ -7,7 +7,7 @@ namespace TouhouCardEngine
     public class NoCardDefineException : Exception
     {
         public NoCardDefineException() { }
-        public NoCardDefineException(int id) : base("There is no card with id " + id) { }
+        public NoCardDefineException(int id) : base($"There is no card with id {id}") { }
         public NoCardDefineException(string message) : base(message) { }
         public NoCardDefineException(string message, Exception inner) : base(message, inner) { }
         protected NoCardDefineException(

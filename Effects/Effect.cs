@@ -146,7 +146,7 @@ namespace TouhouCardEngine
         }
         private string getTriggerName(IGame game, ICard card, IBuff buff, TriggerTime time)
         {
-            return (buff != null ? buff.instanceID.ToString() : string.Empty) + "Effect" + Array.IndexOf(card.define.getEffects(), this) + time.getEventName(game.triggers);
+            return $"{(buff != null ? buff.instanceID.ToString() : string.Empty)}Effect{Array.IndexOf(card.define.getEffects(), this)}{time.getEventName(game.triggers)}";
         }
     }
     public class EffectPropertyInfo

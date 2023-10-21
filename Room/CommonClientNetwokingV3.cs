@@ -305,7 +305,7 @@ namespace TouhouCardEngine
                     }
                     catch (Exception e)
                     {
-                        log?.logError("接收消息回应发生异常：" + e);
+                        log?.logError($"接收消息回应发生异常：{e}");
                     }
                     break;
                 default:

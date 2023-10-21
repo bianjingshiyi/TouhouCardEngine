@@ -35,7 +35,7 @@ namespace TouhouCardEngine
         }
         public override string ToString()
         {
-            string s = "Buff(" + id + ")";
+            string s = $"Buff({id})";
             if ((modifiers != null && modifiers.Length > 0) || (effects != null && effects.Length > 0))
             {
                 s += "{";

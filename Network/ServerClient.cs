@@ -109,7 +109,7 @@ namespace NitoriNetwork.Common
                 }
                 catch (Exception e)
                 {
-                    logger?.logError("Cookie 保存出现问题: " + e.Message);
+                    logger?.logError($"Cookie 保存出现问题: {e.Message}");
                 }
             }
         }

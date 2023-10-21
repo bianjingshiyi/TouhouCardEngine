@@ -187,7 +187,7 @@ namespace TouhouCardEngine
                 }
                 catch (Exception e)
                 {
-                    throw new FormatException("反序列化卡牌定义" + id + "的效果" + i + "失败", e);
+                    throw new FormatException($"反序列化卡牌定义{id}的效果{i}失败", e);
                 }
             }
             cardDefine.setEffects(effectsList);

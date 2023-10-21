@@ -13,7 +13,7 @@ namespace TouhouCardEngine
         {
             string eventName = define.eventName;
             string triggerName = getEffectName(game, buff, eventName);
-            game.logger.logTrace("BuffExistLimit", card + "注册触发器" + triggerName);
+            game.logger.logTrace("BuffExistLimit", $"{card}注册触发器{triggerName}");
             Trigger trigger = new Trigger(
                 args =>
                 {
@@ -32,7 +32,7 @@ namespace TouhouCardEngine
         {
             string eventName = define.eventName;
             string triggerName = getEffectName(game, buff, eventName);
-            game.logger.logTrace("BuffExistLimit", card + "注销触发器" + triggerName);
+            game.logger.logTrace("BuffExistLimit", $"{card}注销触发器{triggerName}");
             game.triggers.remove(eventName, trigger);
             trigger = null;
         }

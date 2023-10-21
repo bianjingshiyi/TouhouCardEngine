@@ -133,9 +133,9 @@ namespace TouhouCardEngine
         public override string ToString()
         {
             if (owner != null)
-                return owner.name + "[" + name + "]";
+                return $"{owner.name}[{name}]";
             else
-                return "[" + name + "]";
+                return $"[{name}]";
         }
         public Card[] ToArray()
         {
@@ -172,7 +172,7 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
-                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时激活效果引发异常：" + e);
+                game.logger.logError($"将{card}从{from}移动到{to}时激活效果引发异常：{e}");
             }
         }
         private static void disableCardEffects(IGame game, Card card, Pile from, Pile to)
@@ -204,7 +204,7 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
-                game.logger.logError("将" + card + "从" + from + "移动到" + to + "时禁用效果引发异常：" + e);
+                game.logger.logError($"将{card}从{from}移动到{to}时禁用效果引发异常：{e}");
             }
         }
         #endregion

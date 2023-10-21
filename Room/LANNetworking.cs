@@ -63,7 +63,7 @@ namespace TouhouCardEngine
 
         public override Task<RoomData> CreateRoom(string name, string password)
         {
-            log?.log(name + "创建房间");
+            log?.log($"{name}创建房间");
             _hostRoomData = new RoomData(Guid.NewGuid().ToString());
             _hostRoomData.playerDataList.Add(_playerData);
             _hostRoomData.ownerId = _playerData.id;
@@ -124,7 +124,7 @@ namespace TouhouCardEngine
             if (opList.Any(o => o is JoinRoomOperation))
                 throw new InvalidOperationException("客户端已经在执行连接操作");
 
-            string msg = name + "连接" + addr + ":" + port;
+            string msg = $"{name}连接{addr}:{port}";
             log?.log(msg);
             // 发送连接请求
             RoomJoinRequest request = new RoomJoinRequest("", password, "", _playerData);
@@ -142,7 +142,7 @@ namespace TouhouCardEngine
                 JoinRoomOperation operation = new JoinRoomOperation();
                 startOperation(operation, () =>
                 {
-                    log?.log(msg + "超时");
+                    log?.log($"{msg}超时");
                 });
                 return operation.task;
             }
@@ -506,7 +506,7 @@ namespace TouhouCardEngine
                     reqJoinRoom(request, joinRequest);
                     break;
                 default:
-                    log?.log(name + "收到未知的请求连接类型");
+                    log?.log($"{name}收到未知的请求连接类型");
                     break;
             }
         }
@@ -521,7 +521,7 @@ namespace TouhouCardEngine
         }
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            log?.log(name + "与" + peer.EndPoint + "断开连接，原因：" + disconnectInfo.Reason + "，错误类型：" + disconnectInfo.SocketErrorCode);
+            log?.log($"{name}与{peer.EndPoint}断开连接，原因：{disconnectInfo.Reason}，错误类型：{disconnectInfo.SocketErrorCode}");
             switch (disconnectInfo.Reason)
             {
                 case DisconnectReason.DisconnectPeerCalled:
@@ -653,11 +653,11 @@ namespace TouhouCardEngine
         void reqJoinRoom(ConnectionRequest request, RoomJoinRequest req)
         {
             var player = req.player;
-            log?.logTrace(request.RemoteEndPoint + $"({player.id}) 请求加入房间。");
+            log?.logTrace($"{request.RemoteEndPoint}({player.id}) 请求加入房间。");
 
             if (_roomInfo.IsLocked && req.roomPassword != _roomInfo.Password)
             {
-                log?.log(request.RemoteEndPoint + "密码错误，拒绝加入房间。");
+                log?.log($"{request.RemoteEndPoint}密码错误，拒绝加入房间。");
                 request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(new ArgumentException("密码错误"))));
                 return;
             }
@@ -669,7 +669,7 @@ namespace TouhouCardEngine
             }
             catch (Exception e)
             {
-                log?.log(request.RemoteEndPoint + "加入房间的请求被拒绝，原因：" + e);
+                log?.log($"{request.RemoteEndPoint}加入房间的请求被拒绝，原因：{e}");
                 request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(e)));
                 return;
             }
@@ -821,7 +821,7 @@ namespace TouhouCardEngine
                 {
                     value = proxy.ConvertBack();
                 }
-                log?.logTrace(name + "收到远程调用玩家" + uid + "想要将属性" + name + "变成为" + value);
+                log?.logTrace($"{name}收到远程调用玩家{uid}想要将属性{name}变成为{value}");
                 nw.setPlayerProp(name, value, uid);
             }
 
