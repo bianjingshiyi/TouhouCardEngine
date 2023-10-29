@@ -76,7 +76,7 @@ namespace TouhouCardEngine
         //#endregion
         #region 属性字段
         public bool isSet = false;
-        public int minValue = 0;
+        public int minValue = int.MinValue;
         public int maxValue = int.MaxValue;
         #endregion
     }
