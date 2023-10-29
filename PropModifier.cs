@@ -59,15 +59,15 @@ namespace TouhouCardEngine
         /// 设置修改器的修改值。
         /// </summary>
         /// <param name="value"></param>
-        public virtual Task<IPropChangeEventArg> setValue(IGame game, Card card, T value)
+        public virtual async Task<IPropChangeEventArg> setValue(IGame game, Card card, T value)
         {
             if (Equals(this.value, value))//泛型需要用Equals来比较值
             {
-                return Task.FromResult(default(IPropChangeEventArg));
+                return null;
             }
             object beforeValue = card.getProp(game, getPropName());
             this.value = value;
-            return game.triggers.doEvent<IPropChangeEventArg>(new Card.PropChangeEventArg()
+            var eventArg = await game.triggers.doEvent(new Card.PropChangeEventArg()
             {
                 card = card,
                 propName = getPropName(),
@@ -78,6 +78,7 @@ namespace TouhouCardEngine
                 card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value, arg));
                 return Task.CompletedTask;
             });
+            return eventArg;
         }
         public sealed override object calc(IGame game, Card card, object value)
         {

@@ -544,12 +544,12 @@ namespace TouhouCardEngine
             }
         }
         #region 属性
-        public Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
+        public async Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
         {
             if (game != null && game.triggers != null)
-                return game.triggers.doEvent<IPropChangeEventArg>(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
+                return await game.triggers.doEvent(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
                 {
-                    Card card = arg.card as Card;
+                    Card card = arg.card;
                     propName = arg.propName;
                     var v = arg.value;
                     card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value, arg));
@@ -560,7 +560,7 @@ namespace TouhouCardEngine
             else
             {
                 propDic[propName] = value;
-                return Task.FromResult<IPropChangeEventArg>(default);
+                return default;
             }
         }
         public class PropChangeEventArg : EventArg, IPropChangeEventArg, ICardEventArg
