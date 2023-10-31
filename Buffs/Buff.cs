@@ -84,7 +84,7 @@ namespace TouhouCardEngine
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         #endregion
         #region 嵌套类型
-        public class PropertyChangeEventArg : EventArg
+        public class PropertyChangeEventArg : EventArg, ICardEventArg
         {
             public PropertyChangeEventArg(Buff buff, string propName, object value, object valueBeforeChanged)
             {
@@ -100,6 +100,7 @@ namespace TouhouCardEngine
                 record.setVar(VAR_VALUE, value);
                 record.setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
             }
+            ICard ICardEventArg.getCard() => buff?.card;
             public Buff buff
             {
                 get { return getVar<Buff>(VAR_BUFF); }

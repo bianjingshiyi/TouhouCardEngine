@@ -563,12 +563,13 @@ namespace TouhouCardEngine
                 return Task.FromResult<IPropChangeEventArg>(default);
             }
         }
-        public class PropChangeEventArg : EventArg, IPropChangeEventArg
+        public class PropChangeEventArg : EventArg, IPropChangeEventArg, ICardEventArg
         {
             public Card card;
             public string propName;
             public object beforeValue;
             public object value;
+            ICard ICardEventArg.getCard() => card;
             ICard IPropChangeEventArg.card => card;
             string IPropChangeEventArg.propName => propName;
             object IPropChangeEventArg.beforeValue => beforeValue;
