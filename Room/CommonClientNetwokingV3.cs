@@ -13,23 +13,39 @@ namespace TouhouCardEngine
 {
     public abstract class CommonClientNetwokingV3 : Networking, INetworkingV3Client, IRoomRPCMethodClient
     {
-        public ResourceClient ResClient { get; protected set; } = null;
-
+        #region 公有事件
+        #region 构造器
         public CommonClientNetwokingV3(string name, Shared.ILogger logger) : base(name, logger)
         {
             addRPCMethod(this, typeof(IRoomRPCMethodClient));
         }
-
-        /// <summary>
-        /// 当前网络初始化后的端口号
-        /// </summary>
-        public int Port => net.LocalPort;
-
-        public event ResponseHandler onReceive;
-
-        #region 已经实现的事件
-        public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
-
+        #endregion
+        #region 待实现的接口
+        public abstract Task<RoomData> CreateRoom(string name = "", string password = "");
+        public abstract Task DestroyRoom();
+        public abstract Task GameStart();
+        public abstract T GetRoomProp<T>(string name);
+        public abstract RoomPlayerData GetSelfPlayerData();
+        public abstract Task<RoomData> JoinRoom(string roomID, string password = "");
+        public abstract void QuitRoom();
+        public abstract Task SetPlayerProp(string name, object val);
+        public abstract Task SetRoomProp(string name, object val);
+        public abstract Task SetRoomPropBatch(List<KeyValuePair<string, object>> values);
+        public abstract int GetLatency();
+        public abstract Task RefreshRoomList();
+        public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
+        public abstract Task SendChat(int channel, string message);
+        public abstract Task SuggestCardPools(CardPoolSuggestion suggestion);
+        public abstract Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree);
+        public abstract Task<byte[]> GetResourceAsync(ResourceType type, string id);
+        public abstract Task UploadResourceAsync(ResourceType type, string id, byte[] bytes);
+        public abstract Task<bool> ResourceExistsAsync(ResourceType type, string id);
+        public abstract Task<bool[]> ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res);
+        public abstract Task<byte[]> Send(byte[] data);
+        #endregion
+        #endregion
+        #region 私有方法
+        #region 事件回调
         /// <summary>
         /// 触发 OnRoomPlayerDataChanged 事件
         /// </summary>
@@ -38,21 +54,6 @@ namespace TouhouCardEngine
         {
             OnRoomPlayerDataChanged?.Invoke(data);
         }
-
-        public event Action<RoomData> OnRoomDataChange;
-        public event Action<string, object> PostRoomPropChange;
-
-        public event Action OnGameStart;
-
-        /// <summary>
-        /// 当玩家确认加入房间的时候，收到房间状况的回应。
-        /// </summary>
-        public event Action<RoomData> onConfirmJoinAck;
-
-        public event Action<ChatMsg> OnRecvChat;
-        public event Action<int, CardPoolSuggestion> OnSuggestCardPools;
-        public event Action<CardPoolSuggestion, bool> OnCardPoolsSuggestionAnwsered;
-
         /// <summary>
         /// 触发onGameStart事件
         /// </summary>
@@ -100,38 +101,45 @@ namespace TouhouCardEngine
         {
             onConfirmJoinAck?.Invoke(room);
         }
+        protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
+        {
+            switch (type)
+            {
+                case PacketType.sendResponse:
+                    try
+                    {
+                        var result = reader.ParseRequest(out int cID, out int requestID);
+                        log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{cID}的数据：（{result}）");
+
+                        await invokeOnReceive(cID, result);
+
+                        if (cID == clientID)
+                        {
+                            var op = getOperation(requestID);
+                            if (op != null)
+                            {
+                                completeOperation(op, result);
+                                log?.logTrace($"客户端 {name}:{clientID} 收到客户端{peer.Id}的消息反馈{requestID}为{result.ToJson()}");
+                            }
+                            else
+                            {
+                                log?.log($"客户端 {name}:{clientID} 收到客户端{peer.Id}未发送或超时的消息反馈{requestID}");
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        log?.logError($"接收消息回应发生异常：{e}");
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            await base.OnNetworkReceive(peer, reader, type);
+        }
         #endregion
-
-        #region 待实现的接口
-        public abstract event Action<LobbyRoomDataList> OnRoomListUpdate;
-
-        public abstract Task<RoomData> CreateRoom(string name = "", string password = "");
-        public abstract Task DestroyRoom();
-        public abstract Task GameStart();
-        public abstract T GetRoomProp<T>(string name);
-        public abstract RoomPlayerData GetSelfPlayerData();
-        public abstract Task<RoomData> JoinRoom(string roomID, string password = "");
-        public abstract void QuitRoom();
-        public abstract Task SetPlayerProp(string name, object val);
-        public abstract Task SetRoomProp(string name, object val);
-        public abstract Task SetRoomPropBatch(List<KeyValuePair<string, object>> values);
-        public abstract int GetLatency();
-        public abstract Task RefreshRoomList();
-        public abstract Task AlterRoomInfo(LobbyRoomData newInfo);
-        public abstract Task SendChat(int channel, string message);
-        public abstract Task SuggestCardPools(CardPoolSuggestion suggestion);
-        public abstract Task AnwserCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion, bool agree);
-        public abstract Task<byte[]> GetResourceAsync(ResourceType type, string id);
-        public abstract Task UploadResourceAsync(ResourceType type, string id, byte[] bytes);
-        public abstract Task<bool> ResourceExistsAsync(ResourceType type, string id);
-        public abstract Task<bool[]> ResourceBatchExistsAsync(Tuple<ResourceType, string>[] res);
-        #endregion
-
         #region RPC接口
-        /// <summary>
-        /// 客户端缓存的房间数据
-        /// </summary>
-        protected RoomData cachedRoomData;
 
         void IRoomRPCMethodClient.updateRoomData(RoomData data)
         {
@@ -147,7 +155,7 @@ namespace TouhouCardEngine
             if (val is ObjectProxy proxy)
             {
                 var json = MessagePack.MessagePackSerializer.ConvertToJson(proxy.Content);
-                
+
                 log?.logTrace($"{proxy.Type}: {json}");
                 log?.logTrace($"{Convert.ToBase64String(proxy.Content)}");
 
@@ -247,74 +255,6 @@ namespace TouhouCardEngine
 
         #endregion
 
-        #region 网络底层处理
-        protected class JoinRoomOperation : Operation<RoomData>
-        {
-            public JoinRoomOperation() : base(nameof(INetworkingV3Client.JoinRoom))
-            {
-            }
-        }
-
-        protected class SendOperation : Operation<object>
-        {
-            public SendOperation() : base(nameof(INetworkingV3Client.Send))
-            {
-            }
-        }
-        protected class SendOperation<T> : Operation<T>
-        {
-            public SendOperation() : base(nameof(INetworkingV3Client.Send))
-            {
-            }
-        }
-
-        /// <summary>
-        /// 客户端ID
-        /// </summary>
-        /// <remarks>
-        /// 这个ID等同于玩家ID。
-        /// 玩家ID是不会重复的，所以可以这么干。
-        /// </remarks>
-        protected int clientID => GetSelfPlayerData().id;
-
-        protected override async Task OnNetworkReceive(NetPeer peer, NetPacketReader reader, PacketType type)
-        {
-            switch (type)
-            {
-                case PacketType.sendResponse:
-                    try
-                    {
-                        var result = reader.ParseRequest(out int cID, out int requestID);
-                        log?.logTrace($"客户端 {name} 收到主机转发的来自客户端{cID}的数据：（{result}）");
-
-                        await invokeOnReceive(cID, result);
-
-                        if (cID == clientID)
-                        {
-                            var op = getOperation(requestID);
-                            if (op != null)
-                            {
-                                completeOperation(op, result);
-                                log?.logTrace($"客户端 {name}:{clientID} 收到客户端{peer.Id}的消息反馈{requestID}为{result.ToJson()}");
-                            }
-                            else
-                            {
-                                log?.log($"客户端 {name}:{clientID} 收到客户端{peer.Id}未发送或超时的消息反馈{requestID}");
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        log?.logError($"接收消息回应发生异常：{e}");
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-            await base.OnNetworkReceive(peer, reader, type);
-        }
-
         protected override void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             log?.log($"网络({name})与端点({peer.EndPoint})断开连接，原因：{disconnectInfo.Reason}，SocketErrorCode：{disconnectInfo.SocketErrorCode}");
@@ -386,7 +326,61 @@ namespace TouhouCardEngine
             return op.task;
         }
 
-        public abstract Task<byte[]> Send(byte[] data);
+        #endregion
+        #region 事件
+        public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+        public event Action<RoomData> OnRoomDataChange;
+        public event Action<string, object> PostRoomPropChange;
+        public event Action OnGameStart;
+        /// <summary>
+        /// 当玩家确认加入房间的时候，收到房间状况的回应。
+        /// </summary>
+        public event Action<RoomData> onConfirmJoinAck;
+        public event Action<ChatMsg> OnRecvChat;
+        public event Action<int, CardPoolSuggestion> OnSuggestCardPools;
+        public event Action<CardPoolSuggestion, bool> OnCardPoolsSuggestionAnwsered;
+        public event ResponseHandler onReceive;
+        public abstract event Action<LobbyRoomDataList> OnRoomListUpdate;
+        #endregion
+        #region 属性字段        
+        public ResourceClient ResClient { get; protected set; } = null;
+        /// <summary>
+        /// 当前网络初始化后的端口号
+        /// </summary>
+        public int Port => net.LocalPort;
+        /// <summary>
+        /// 客户端ID
+        /// </summary>
+        /// <remarks>
+        /// 这个ID等同于玩家ID。
+        /// 玩家ID是不会重复的，所以可以这么干。
+        /// </remarks>
+        protected int clientID => GetSelfPlayerData().id;
+        /// <summary>
+        /// 客户端缓存的房间数据
+        /// </summary>
+        protected RoomData cachedRoomData;
+        #endregion
+        #region 内嵌类
+        protected class JoinRoomOperation : Operation<RoomData>
+        {
+            public JoinRoomOperation() : base(nameof(INetworkingV3Client.JoinRoom))
+            {
+            }
+        }
+
+        protected class SendOperation : Operation<object>
+        {
+            public SendOperation() : base(nameof(INetworkingV3Client.Send))
+            {
+            }
+        }
+        protected class SendOperation<T> : Operation<T>
+        {
+            public SendOperation() : base(nameof(INetworkingV3Client.Send))
+            {
+            }
+        }
         #endregion
     }
 

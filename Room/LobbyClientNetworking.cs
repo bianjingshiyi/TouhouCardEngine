@@ -1,53 +1,22 @@
-﻿using NitoriNetwork.Common;
-using System;
-using System.Threading.Tasks;
+﻿using System;
 using System.Collections.Generic;
-using MongoDB.Bson.Serialization;
+using System.Threading.Tasks;
 using LiteNetLib;
 using LiteNetLib.Utils;
-using MongoDB.Bson;
-using TouhouCardEngine.Shared;
+using NitoriNetwork.Common;
 
 namespace TouhouCardEngine
 {
     public class LobbyClientNetworking : CommonClientNetwokingV3
     {
-        /// <summary>
-        /// 服务器通信客户端
-        /// </summary>
-        ServerClient serverClient { get; }
-
-        /// <summary>
-        /// 本地玩家
-        /// </summary>
-        RoomPlayerData localPlayer { get; set; } = null;
-
-        /// <summary>
-        /// 主机对端
-        /// </summary>
-        public NetPeer hostPeer { get; set; } = null;
-
+        #region 公有方法
+        #region 构造器
         public LobbyClientNetworking(ServerClient servClient, Shared.ILogger logger) : base("lobbyClient", logger)
         {
             serverClient = servClient;
         }
-
-        #region 外部方法实现
-
-        /// <summary>
-        /// 获取当前用户的数据
-        /// </summary>
-        /// <returns></returns>
-        public override RoomPlayerData GetSelfPlayerData()
-        {
-            // 仅在更换了用户后更新这个PlayerData
-            var info = serverClient.GetUserInfo(serverClient.UID);
-            if (localPlayer?.id != info.UID)
-                localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
-
-            return localPlayer;
-        }
-
+        #endregion
+        #region 房间相关
         /// <summary>
         /// 创建一个空房间，房主为自己
         /// </summary>
@@ -59,13 +28,6 @@ namespace TouhouCardEngine
             // step 2: 加入这个房间
             return await joinRoom(roomInfo, password);
         }
-
-        public override event Action<LobbyRoomDataList> OnRoomListUpdate;
-
-        /// <summary>
-        /// 缓存的服务器上房间列表
-        /// </summary>
-        LobbyRoomDataList lobby = new LobbyRoomDataList();
 
         /// <summary>
         /// 获取当前服务器的房间信息
@@ -89,30 +51,6 @@ namespace TouhouCardEngine
 
             var roomInfo = lobby[roomId];
             return joinRoom(roomInfo, password);
-        }
-
-        /// <summary>
-        /// 加入房间
-        /// </summary>
-        /// <param name="roomInfo"></param>
-        /// <returns></returns>
-        private Task<RoomData> joinRoom(LobbyRoomData roomInfo, string password)
-        {
-            var writer = new NetDataWriter();
-
-            GetSelfPlayerData(); // 更新缓存的player数据
-
-            RoomJoinRequest req = new RoomJoinRequest(roomInfo.RoomID, password, serverClient.UserSession, localPlayer);
-            req.Write(writer);
-            log.logTrace($"尝试以 {localPlayer.id}: {serverClient.UserSession} 连接");
-
-            hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
-            JoinRoomOperation op = new JoinRoomOperation();
-            startOperation(op, () =>
-            {
-                log?.logWarn($"连接到 {roomInfo} 响应超时。");
-            });
-            return op.task;
         }
 
         /// <summary>
@@ -176,11 +114,6 @@ namespace TouhouCardEngine
             return invoke<object>(nameof(IRoomRPCMethodLobby.gameStart));
         }
 
-        public override Task<byte[]> Send(byte[] data)
-        {
-            return sendTo(hostPeer, data);
-        }
-
         public override Task SendChat(int channel, string message)
         {
             return invoke<object>(nameof(IRoomRPCMethodLobby.sendChat), channel, message);
@@ -193,6 +126,8 @@ namespace TouhouCardEngine
         {
             return invoke<object>(nameof(IRoomRPCMethodLobby.anwserCardPoolSuggestion), playerId, suggestion, agree);
         }
+        #endregion
+        #region 资源相关
         public override Task UploadResourceAsync(ResourceType type, string id, byte[] bytes)
         {
             return ResClient.UploadResourceAsync(type, id, bytes);
@@ -210,8 +145,61 @@ namespace TouhouCardEngine
             return ResClient.ResourceExistsBatchAsync(res);
         }
         #endregion
+        /// <summary>
+        /// 获取当前用户的数据
+        /// </summary>
+        /// <returns></returns>
+        public override RoomPlayerData GetSelfPlayerData()
+        {
+            // 仅在更换了用户后更新这个PlayerData
+            var info = serverClient.GetUserInfo(serverClient.UID);
+            if (localPlayer?.id != info.UID)
+                localPlayer = new RoomPlayerData(info.UID, info.Name, RoomPlayerType.human);
 
-        #region 交互逻辑
+            return localPlayer;
+        }
+        public override Task<T> invoke<T>(string method, params object[] args)
+        {
+            return invoke<T>(hostPeer, method, args);
+        }
+        public override int GetLatency()
+        {
+            return (int)latencyAvg.GetAvg();
+        }
+        public override Task<byte[]> Send(byte[] data)
+        {
+            return sendTo(hostPeer, data);
+        }
+        #endregion
+        #region 私有方法
+        #region 事件回调
+
+        protected override void OnConnectionRequest(ConnectionRequest request)
+        {
+            request.Reject();
+            log?.logWarn($"另一个客户端({request.RemoteEndPoint})尝试连接到本机({name})，由于当前网络是客户端网络故拒绝。");
+        }
+
+        protected override void OnPeerConnected(NetPeer peer)
+        {
+            if (peer == hostPeer)
+            {
+                _ = requestJoinRoom();
+            }
+        }
+
+        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
+        {
+            if (peer == hostPeer)
+            {
+                latencyAvg.Push(latency);
+            }
+        }
+        #endregion
+        /// <summary>
+        /// 请求加入房间。
+        /// </summary>
+        /// <returns></returns>
         async Task requestJoinRoom()
         {
             var op = getOperation(typeof(JoinRoomOperation));
@@ -236,40 +224,52 @@ namespace TouhouCardEngine
             completeOperation(op, roomInfo);
 
         }
+        /// <summary>
+        /// 请求被处理后，加入房间
+        /// </summary>
+        /// <param name="roomInfo"></param>
+        /// <returns></returns>
+        private Task<RoomData> joinRoom(LobbyRoomData roomInfo, string password)
+        {
+            var writer = new NetDataWriter();
+
+            GetSelfPlayerData(); // 更新缓存的player数据
+
+            RoomJoinRequest req = new RoomJoinRequest(roomInfo.RoomID, password, serverClient.UserSession, localPlayer);
+            req.Write(writer);
+            log.logTrace($"尝试以 {localPlayer.id}: {serverClient.UserSession} 连接");
+
+            hostPeer = net.Connect(roomInfo.IP, roomInfo.Port, writer);
+            JoinRoomOperation op = new JoinRoomOperation();
+            startOperation(op, () =>
+            {
+                log?.logWarn($"连接到 {roomInfo} 响应超时。");
+            });
+            return op.task;
+        }
         #endregion
-        #region 底层实现
-        public override Task<T> invoke<T>(string method, params object[] args)
-        {
-            return invoke<T>(hostPeer, method, args);
-        }
+        #region 事件
+        public override event Action<LobbyRoomDataList> OnRoomListUpdate;
+        #endregion
+        #region 属性字段
+        /// <summary>
+        /// 主机对端
+        /// </summary>
+        public NetPeer hostPeer { get; set; } = null;
+        /// <summary>
+        /// 服务器通信客户端
+        /// </summary>
+        ServerClient serverClient { get; }
 
-        protected override void OnConnectionRequest(ConnectionRequest request)
-        {
-            request.Reject();
-            log?.logWarn($"另一个客户端({request.RemoteEndPoint})尝试连接到本机({name})，由于当前网络是客户端网络故拒绝。");
-        }
-
-        protected override void OnPeerConnected(NetPeer peer)
-        {
-            if (peer == hostPeer)
-            {
-                _ = requestJoinRoom();
-            }
-        }
-
+        /// <summary>
+        /// 本地玩家
+        /// </summary>
+        RoomPlayerData localPlayer { get; set; } = null;
         SlidingAverage latencyAvg = new SlidingAverage(10);
-        protected override void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-        {
-            if (peer == hostPeer)
-            {
-                latencyAvg.Push(latency);
-            }
-        }
-
-        public override int GetLatency()
-        {
-            return (int)latencyAvg.GetAvg();
-        }
+        /// <summary>
+        /// 缓存的服务器上房间列表
+        /// </summary>
+        LobbyRoomDataList lobby = new LobbyRoomDataList();
         #endregion
     }
 }
