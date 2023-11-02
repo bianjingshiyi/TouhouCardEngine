@@ -116,7 +116,7 @@ namespace TouhouCardEngine
         /// 房间玩家信息改变事件
         /// </summary>
         /// <returns></returns>
-        event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+        event Action<RoomPlayerData[]> OnRoomPlayerDataListChanged;
 
         /// <summary>
         /// 修改玩家的属性

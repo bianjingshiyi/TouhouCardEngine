@@ -143,7 +143,7 @@ namespace Tests
                 ClientLogic client = new ClientLogic(i == 0 ? "Local" : "Remote" + i, sClient: serverClient, logger: new UnityLogger(i == 0 ? "Local" : "Remote" + i));
                 updaters[i] = new GameObject("Client" + i + "Updater").AddComponent<Updater>();
                 updaters[i].action = () => client.update();
-                client.switchNetToLAN();
+                client.SwitchMode(true);
                 clients[i] = client;
             }
             for (int i = 0; i < clients.Length; i++)
@@ -167,7 +167,7 @@ namespace Tests
         {
             using (ClientLogic client = new ClientLogic("RoomLocal", logger: new UnityLogger("RoomLocal")))
             {
-                client.switchNetToLAN();
+                client.SwitchMode(true);
                 yield return client.createOnlineRoom().wait();
                 yield return onAssert(client);
             }

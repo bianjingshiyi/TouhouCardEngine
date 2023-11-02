@@ -47,12 +47,12 @@ namespace TouhouCardEngine
         #region 私有方法
         #region 事件回调
         /// <summary>
-        /// 触发 OnRoomPlayerDataChanged 事件
+        /// 触发 OnRoomPlayerDataListChanged 事件
         /// </summary>
         /// <param name="data"></param>
-        protected void invokeOnRoomPlayerDataChanged(RoomPlayerData[] data)
+        protected void onRoomPlayerDataListChangedCallback(RoomPlayerData[] data)
         {
-            OnRoomPlayerDataChanged?.Invoke(data);
+            OnRoomPlayerDataListChanged?.Invoke(data);
         }
         /// <summary>
         /// 触发onGameStart事件
@@ -71,7 +71,7 @@ namespace TouhouCardEngine
         /// 触发收到聊天消息事件
         /// </summary>
         /// <param name="msg"></param>
-        protected void invokeOnRecvChat(ChatMsg msg)
+        protected void onReceiveChatCallback(ChatMsg msg)
         {
             OnRecvChat?.Invoke(msg);
         }
@@ -180,7 +180,7 @@ namespace TouhouCardEngine
                     cachedRoomData.playerDataList[i] = data;
                 }
             }
-            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+            onRoomPlayerDataListChangedCallback(cachedRoomData.playerDataList.ToArray());
         }
 
         void IRoomRPCMethodClient.onPlayerAdd(RoomPlayerData data)
@@ -202,35 +202,25 @@ namespace TouhouCardEngine
             {
                 cachedRoomData.playerDataList.Add(data);
             }
-            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+            onRoomPlayerDataListChangedCallback(cachedRoomData.playerDataList.ToArray());
         }
 
         void IRoomRPCMethodClient.onPlayerRemove(int playerID)
         {
             log?.logTrace($"{name} 收到移除玩家事件。玩家ID：{playerID}");
-
             if (!cachedRoomData.containsPlayer(playerID))
             {
                 log?.logWarn($"{name} 的房间信息中不存在存在ID为{playerID}的玩家，但却收到了 onPlayerRemove 事件，这是有问题的。");
                 return;
             }
-            cachedRoomData.playerDataList.RemoveAll(p => p.id == playerID);
-            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+            removePlayerAsLocal(cachedRoomData, playerID);
         }
 
         void IRoomRPCMethodClient.onPlayerPropChange(int playerID, string name, object val)
         {
-            if (val is ObjectProxy proxy)
-            {
-                // log?.logTrace($"{this.name} 收到了一个 ObjectProxy. type: {proxy.Type}, value: {proxy.Content}");
-                val = proxy.ConvertBack();
-            }
             log?.logTrace($"{this.name} 收到玩家属性改变事件。玩家ID：{playerID}, Key: {name}, Value: {val}");
-
-            cachedRoomData.setPlayerProp(playerID, name, val);
-            OnRoomPlayerDataChanged?.Invoke(cachedRoomData.playerDataList.ToArray());
+            setLocalPlayerProp(cachedRoomData, playerID, name, val);
         }
-
         void IRoomRPCMethodClient.onGameStart()
         {
             log?.logTrace("收到了游戏开始事件");
@@ -240,7 +230,7 @@ namespace TouhouCardEngine
         void IRoomRPCMethodClient.onRecvChat(int channel, int playerID, string text)
         {
             log?.logTrace($"收到了聊天消息。[{channel}] {playerID}: {text}");
-            invokeOnRecvChat(new ChatMsg(channel, playerID, text));
+            onReceiveChatCallback(new ChatMsg(channel, playerID, text));
         }
         void IRoomRPCMethodClient.onCardPoolsSuggested(int playerId, CardPoolSuggestion suggestion)
         {
@@ -325,10 +315,38 @@ namespace TouhouCardEngine
 
             return op.task;
         }
+        /// <summary>
+        /// 设置本地玩家的玩家属性。
+        /// </summary>
+        /// <param name="roomData"></param>
+        /// <param name="playerID"></param>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        protected void setLocalPlayerProp(RoomData roomData, int playerID, string name, object value)
+        {
+            if (value is ObjectProxy proxy)
+            {
+                value = proxy.ConvertBack();
+            }
+            // 首先假设玩家的属性他自己爱怎么改就怎么改。
+            roomData.setPlayerProp(playerID, name, value);
+            // 通知上层变更
+            onRoomPlayerDataListChangedCallback(roomData.playerDataList.ToArray());
+        }
+        /// <summary>
+        /// 将本地数据中的玩家移除。
+        /// </summary>
+        /// <param name="roomData"></param>
+        /// <param name="playerID"></param>
+        protected void removePlayerAsLocal(RoomData roomData, int playerID)
+        {
+            roomData.playerDataList.RemoveAll(p => p.id == playerID);
+            onRoomPlayerDataListChangedCallback(roomData.playerDataList.ToArray());
+        }
 
         #endregion
         #region 事件
-        public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+        public event Action<RoomPlayerData[]> OnRoomPlayerDataListChanged;
         public event Action<RoomData> OnRoomDataChange;
         public event Action<string, object> PostRoomPropChange;
         public event Action OnGameStart;

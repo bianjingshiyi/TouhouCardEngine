@@ -24,6 +24,7 @@ namespace TouhouCardEngine
             LANNetwork.broadcastPorts = LANPorts;
         }
         #endregion
+        #region 房间相关
         /// <summary>
         /// 根据所处的模式，创建局域网房间或服务器房间
         /// </summary>
@@ -40,6 +41,17 @@ namespace TouhouCardEngine
 
             // lobby.addRoom(room); // 不要在自己的房间列表里面显示自己的房间。
             //this.room.maxPlayerCount = MAX_PLAYER_COUNT;
+        }
+        public Task createLocalRoom()
+        {
+            logger?.logTrace("客户端创建本地房间");
+            room = new RoomData(string.Empty);
+            localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
+            room.playerDataList.Add(localPlayer);
+            room.ownerId = localPlayer.id;
+
+            isLocalRoom = true;
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -60,7 +72,8 @@ namespace TouhouCardEngine
 
         public async Task<bool> joinRoom(string addr, int port, string password = "")
         {
-            if (curNetwork != LANNetwork) return false;
+            if (curNetwork != LANNetwork) 
+                return false;
             logger?.logTrace($"客户端请求加入房间{addr}:{port}");
             room = await LANNetwork.JoinRoom(addr, port, password);
             return room != null;
@@ -92,6 +105,7 @@ namespace TouhouCardEngine
                 curNetwork.QuitRoom();
             return Task.CompletedTask;
         }
+        #endregion
         public void update()
         {
             if (curNetwork != null)
@@ -103,29 +117,16 @@ namespace TouhouCardEngine
         public void Dispose()
         {
             if (LANNetwork != null)
+            {
                 LANNetwork.Dispose();
+                LANNetwork = null;
+            }
+            if (LobbyNetwork != null)
+            {
+                LobbyNetwork.Dispose();
+                LobbyNetwork = null;
+            }
         }
-        public Task createLocalRoom()
-        {
-            logger?.logTrace("客户端创建本地房间");
-            room = new RoomData(string.Empty);
-            localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
-            room.playerDataList.Add(localPlayer);
-            room.ownerId = localPlayer.id;
-
-            isLocalRoom = true;
-            return Task.CompletedTask;
-        }
-        public void switchNetToLAN()
-        {
-            SwitchMode(true);
-        }
-
-        public void switchNetToLobby()
-        {
-            SwitchMode(false);
-        }
-
         public void SwitchMode(bool isLAN)
         {
             if (curNetwork != null)
@@ -136,16 +137,16 @@ namespace TouhouCardEngine
                 curNetwork.onReceive -= roomReceiveEvtHandler;
                 curNetwork.OnRoomDataChange -= roomDataChangeEvtHandler;
                 curNetwork.PostRoomPropChange -= roomPropChangeEvtHandler;
-                curNetwork.OnRoomPlayerDataChanged -= roomPlayerDataChangeEvtHandler;
+                curNetwork.OnRoomPlayerDataListChanged -= roomPlayerDataChangeEvtHandler;
                 curNetwork.onConfirmJoinAck -= onConfirmJoinAck;
                 curNetwork.OnRecvChat -= onRecvChat;
-                curNetwork.OnSuggestCardPools -= onSuggestCardPools;
-                curNetwork.OnCardPoolsSuggestionAnwsered -= onCardPoolsSuggestionAnwsered;
+                curNetwork.OnSuggestCardPools -= onReceiveCardPoolsSuggestion;
+                curNetwork.OnCardPoolsSuggestionAnwsered -= onReceiveCardPoolsSuggestionAnwsered;
 
                 if (curNetwork == LANNetwork)
                 {
-                    LANNetwork.onJoinRoomReq -= onJoinRoomReq;
-                    LANNetwork.onConfirmJoinReq -= onConfirmJoinReq;
+                    LANNetwork.onJoinRoomReq -= onLANJoinRoomReq;
+                    LANNetwork.onConfirmJoinReq -= onLANConfirmJoinReq;
                 }
             }
 
@@ -186,16 +187,16 @@ namespace TouhouCardEngine
             curNetwork.onReceive += roomReceiveEvtHandler;
             curNetwork.OnRoomDataChange += roomDataChangeEvtHandler;
             curNetwork.PostRoomPropChange += roomPropChangeEvtHandler;
-            curNetwork.OnRoomPlayerDataChanged += roomPlayerDataChangeEvtHandler;
+            curNetwork.OnRoomPlayerDataListChanged += roomPlayerDataChangeEvtHandler;
             curNetwork.onConfirmJoinAck += onConfirmJoinAck;
             curNetwork.OnRecvChat += onRecvChat;
-            curNetwork.OnSuggestCardPools += onSuggestCardPools;
-            curNetwork.OnCardPoolsSuggestionAnwsered += onCardPoolsSuggestionAnwsered;
+            curNetwork.OnSuggestCardPools += onReceiveCardPoolsSuggestion;
+            curNetwork.OnCardPoolsSuggestionAnwsered += onReceiveCardPoolsSuggestionAnwsered;
 
             if (curNetwork == LANNetwork)
             {
-                LANNetwork.onJoinRoomReq += onJoinRoomReq;
-                LANNetwork.onConfirmJoinReq += onConfirmJoinReq;
+                LANNetwork.onJoinRoomReq += onLANJoinRoomReq;
+                LANNetwork.onConfirmJoinReq += onLANConfirmJoinReq;
             }
         }
         public RoomPlayerData getLocalPlayerData()
@@ -211,7 +212,7 @@ namespace TouhouCardEngine
                 return;
 
             room.playerDataList = obj?.ToList();
-            OnRoomPlayerDataChanged?.Invoke(obj);
+            OnRoomPlayerDataListChanged?.Invoke(obj);
         }
 
         private void roomDataChangeEvtHandler(RoomData obj)
@@ -239,12 +240,12 @@ namespace TouhouCardEngine
             OnRecvChat?.Invoke(obj);
         }
 
-        private void onSuggestCardPools(int playerId, CardPoolSuggestion suggestion)
+        private void onReceiveCardPoolsSuggestion(int playerId, CardPoolSuggestion suggestion)
         {
             OnSuggestCardPools?.Invoke(playerId, suggestion);
         }
 
-        private void onCardPoolsSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
+        private void onReceiveCardPoolsSuggestionAnwsered(CardPoolSuggestion suggestion, bool agree)
         {
             OnCardPoolsSuggestionAnwsered?.Invoke(suggestion, agree);
         }
@@ -259,7 +260,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        private RoomData onJoinRoomReq(RoomPlayerData player)
+        private RoomData onLANJoinRoomReq(RoomPlayerData player)
         {
             if (room == null)
                 throw new InvalidOperationException("房间不存在");
@@ -277,7 +278,7 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        private RoomData onConfirmJoinReq(RoomPlayerData player)
+        private RoomData onLANConfirmJoinReq(RoomPlayerData player)
         {
             if (room == null)
                 throw new InvalidOperationException("房间不存在");
@@ -412,7 +413,7 @@ namespace TouhouCardEngine
         #endregion
         #endregion
         #region 事件
-        public event Action<RoomPlayerData[]> OnRoomPlayerDataChanged;
+        public event Action<RoomPlayerData[]> OnRoomPlayerDataListChanged;
 
         public event Action<RoomData> OnRoomDataChange;
 
@@ -448,8 +449,8 @@ namespace TouhouCardEngine
         /// 网络端口
         /// </summary>
         public int port => curNetwork != null ? curNetwork.Port : -1;
-        public LANNetworking LANNetwork { get; }
-        public LobbyClientNetworking LobbyNetwork { get; }
+        public LANNetworking LANNetwork { get; private set; }
+        public LobbyClientNetworking LobbyNetwork { get; private set; }
         public CommonClientNetwokingV3 curNetwork { get; set; } = null;
         ILogger logger { get; }
         /// <summary>

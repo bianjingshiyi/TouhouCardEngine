@@ -255,7 +255,7 @@ namespace Tests
             yield return clients[1].joinRoom(clients[1].roomList.First().Value.RoomID).wait();
             //向房间中添加AI玩家
             yield return TestHelper.waitUntilEventTrig(clients[0],
-                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
+                (c, a) => c.LANNetwork.OnRoomPlayerDataListChanged += (ps) => a(),
                 () => clients[0].addAIPlayer().wait());
             // 房间内的玩家会收到
             Assert.AreEqual(3, clients[1].room.playerDataList.Count);
@@ -295,7 +295,7 @@ namespace Tests
             yield return createAndJoinRoom(clients);
             //玩家2设置自己的属性，预期房间里的所有人都能收到属性改变
             yield return TestHelper.waitUntilEventTrig(clients[0],
-                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += (ps) => a(),
+                (c, a) => c.LANNetwork.OnRoomPlayerDataListChanged += (ps) => a(),
                 () => (clients[1] as IRoomClient).SetPlayerProp("deckCount", 30).wait());
 
             for (int i = 0; i < 2; i++)
@@ -318,7 +318,7 @@ namespace Tests
 
             //玩家2退出房间，所有人都可以看到房间中人数的减少
             yield return TestHelper.waitUntilEventTrig(clients[0],
-                (c, a) => c.LANNetwork.OnRoomPlayerDataChanged += s => a(),
+                (c, a) => c.LANNetwork.OnRoomPlayerDataListChanged += s => a(),
                 () => clients[1].quitRoom().wait());
             Debug.Log("Stage2");
             Assert.Null(clients[1].room);
@@ -400,14 +400,14 @@ namespace Tests
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
             ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
-            client.switchNetToLAN();
+            client.SwitchMode(true);
             return client.LANNetwork;
         }
         ClientLogic startLANClient(string name)
         {
             //客户端逻辑是客户端网络实现不可分割的一部分，没办法了。
             ClientLogic client = new ClientLogic(name, logger: new UnityLogger(name));
-            client.switchNetToLAN();
+            client.SwitchMode(true);
             return client;
         }
         #endregion
