@@ -576,7 +576,10 @@ namespace TouhouCardEngine
             if (_publicRoomData.IsLocked && req.roomPassword != _publicRoomData.Password)
             {
                 log?.log($"{request.RemoteEndPoint}密码错误，拒绝加入房间。");
-                request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(new ArgumentException("密码错误"))));
+                var rejectResult = new RejectResult("密码错误");
+                var response = new RPCResponseV3(rejectResult);
+                var writer = createRPCResponseWriter(PacketType.joinResponse, response);
+                request.Reject(writer);
                 return;
             }
 
@@ -588,7 +591,10 @@ namespace TouhouCardEngine
             catch (Exception e)
             {
                 log?.log($"{request.RemoteEndPoint}加入房间的请求被拒绝，原因：{e}");
-                request.Reject(createRPCResponseWriter(PacketType.joinResponse, new RPCResponseV3(e)));
+                var rejectResult = new RejectResult(e.Message);
+                var response = new RPCResponseV3(rejectResult);
+                var writer = createRPCResponseWriter(PacketType.joinResponse, response);
+                request.Reject(writer);
                 return;
             }
             //接受了加入请求，回复请求并广播房间更新信息。

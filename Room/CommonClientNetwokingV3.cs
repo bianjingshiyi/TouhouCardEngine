@@ -256,12 +256,40 @@ namespace TouhouCardEngine
                 case DisconnectReason.NetworkUnreachable: // 无法到达网络
                 case DisconnectReason.UnknownHost: // 未知主机
                 case DisconnectReason.InvalidProtocol: // 错误协议
+                    {
+                        // 基本上只有正在加入的时候才会触发这些Error。将这些错误转换为Exception交给上层处理，用于显示无法加入的信息。
+                        var exception = new NtrNetworkException(disconnectInfo.Reason);
+                        var op = getOperation(typeof(JoinRoomOperation));
+                        if (op != null)
+                            completeOperation(op, exception);
+                        break;
+                    }
                 case DisconnectReason.ConnectionRejected: // 拒绝连接
-                    // 基本上只有正在加入的时候才会触发这些Error。将这些错误转换为Exception交给上层处理，用于显示无法加入的信息。
-                    var exception = new NtrNetworkException(disconnectInfo.Reason);
-                    var op = getOperation(typeof(JoinRoomOperation));
-                    if (op != null)
-                        completeOperation(op, exception);
+                    {
+                        var reader = disconnectInfo.AdditionalData;
+                        var position = reader.Position;
+                        string message;
+                        try
+                        {
+                            reader.GetInt();// 跳过PacketType。
+                            var result = (RejectResult)reader.GetObject();
+                            message = result.message;
+                        }
+                        catch (Exception e)
+                        {
+                            // 对字符串的兼容。
+                            reader.SetPosition(position);
+                            reader.GetInt();
+                            if (!reader.TryGetString(out message))
+                            {
+                                message = e.Message;
+                            }
+                        }
+                        var exception = new NtrNetworkException(message);
+                        var op = getOperation(typeof(JoinRoomOperation));
+                        if (op != null)
+                            completeOperation(op, exception);
+                    }
                     break;
                 case DisconnectReason.RemoteConnectionClose: // 远程关闭
                     break;
@@ -473,6 +501,7 @@ namespace TouhouCardEngine
     public class NtrNetworkException : Exception
     {
         public NtrNetworkException() { }
+        public NtrNetworkException(string message) : base(message) { }
         public NtrNetworkException(DisconnectReason reason) : base(reason.ToString()) { }
         protected NtrNetworkException(
           System.Runtime.Serialization.SerializationInfo info,
