@@ -18,10 +18,11 @@ namespace TouhouCardEngine
         /// <summary>
         /// 以当前玩家为房主创建一个房间
         /// </summary>
+        /// <param name="maxPlayerCount">最大人数</param>
         /// <param name="name">房间名称</param>
         /// <param name="password">房间密码</param>
         /// <returns></returns>
-        Task<RoomData> CreateRoom(string name = "", string password = "");
+        Task<RoomData> CreateRoom(int maxPlayerCount, string name = "", string password = "");
 
         /// <summary>
         /// 关闭当前已经创建的房间（部分情况下用不上）

@@ -21,10 +21,11 @@ namespace TouhouCardEngine
         /// 创建一个空房间，房主为自己
         /// </summary>
         /// <returns></returns>
-        public async override Task<RoomData> CreateRoom(string name = "", string password = "")
+        public async override Task<RoomData> CreateRoom(int maxPlayerCount, string name = "", string password = "")
         {
             // step 1: 在服务器上创建房间
             var roomInfo = await serverClient.CreateRoomAsync(name, password);
+            roomInfo.MaxPlayerCount = maxPlayerCount;
             // step 2: 加入这个房间
             return await joinRoom(roomInfo, password);
         }

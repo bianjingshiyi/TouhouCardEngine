@@ -35,8 +35,7 @@ namespace TouhouCardEngine
         {
             logger?.logTrace("客户端创建在线房间");
             localPlayer = curNetwork.GetSelfPlayerData();
-            room = await curNetwork.CreateRoom(name, password);
-            room.maxPlayerCount = MAX_PLAYER_COUNT;
+            room = await curNetwork.CreateRoom(MAX_PLAYER_COUNT, name, password);
             isLocalRoom = false;
 
             // lobby.addRoom(room); // 不要在自己的房间列表里面显示自己的房间。

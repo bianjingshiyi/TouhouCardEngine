@@ -21,7 +21,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 待实现的接口
-        public abstract Task<RoomData> CreateRoom(string name = "", string password = "");
+        public abstract Task<RoomData> CreateRoom(int maxPlayerCount, string name = "", string password = "");
         public abstract Task DestroyRoom();
         public abstract Task GameStart();
         public abstract T GetRoomProp<T>(string name);

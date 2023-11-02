@@ -42,16 +42,17 @@ namespace TouhouCardEngine
         #endregion
 
         #region 房间相关
-        public override Task<RoomData> CreateRoom(string name, string password)
+        public override Task<RoomData> CreateRoom(int maxPlayerCount, string name, string password)
         {
             log?.log($"{name}创建房间");
             _hostRoomData = new RoomData(Guid.NewGuid().ToString());
             _hostRoomData.playerDataList.Add(_playerData);
             _hostRoomData.ownerId = _playerData.id;
+            _hostRoomData.maxPlayerCount = maxPlayerCount;
             _hostRoomData.setProp(RoomData.PROP_ROOM_NAME, name);
             _hostRoomData.setProp(RoomData.PROP_ROOM_PASSWORD, password);
 
-            _publicRoomData = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id, name, password);
+            _publicRoomData = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id, _hostRoomData.maxPlayerCount, _hostRoomData.playerDataList.Count, name, password);
             invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _publicRoomData.ToMaskedData());
 
             // 创建资源服务器
@@ -454,10 +455,6 @@ namespace TouhouCardEngine
                     // 与Peer断开连接的本地消息
                     break;
                 case DisconnectReason.RemoteConnectionClose:
-                    if (disconnectInfo.AdditionalData.TryGetInt(out int packetInt))
-                    {
-                        PacketType packetType = (PacketType)packetInt;
-                    }
                     if (peer == hostPeer)
                         removeRoomFromList(cachedRoomData.ID);
                     else
