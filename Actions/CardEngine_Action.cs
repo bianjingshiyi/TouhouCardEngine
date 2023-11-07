@@ -39,47 +39,45 @@ namespace TouhouCardEngine
             }
             return default;
         }
-        public Task runActions(Flow flow, ControlInput inputPort)
+        public async Task runActions(Flow flow, ControlInput inputPort)
         {
             pushFlow(flow);
-            var task = flow.Run(inputPort);
+            await flow.Run(inputPort);
             popFlow();
-            return task;
         }
-        public Task runActions(Flow flow, ControlOutput outputPort)
+        public async Task runActions(Flow flow, ControlOutput outputPort)
         {
             pushFlow(flow);
-            var task = flow.Run(outputPort);
+            await flow.Run(outputPort);
             popFlow();
-            return task;
         }
-        public Task<T> getValue<T>(Flow flow, ValueInput input)
+        public async Task<T> getValue<T>(Flow flow, ValueInput input)
         {
             pushFlow(flow);
-            var task = flow.getValue<T>(input);
+            var value = await flow.getValue<T>(input);
             popFlow();
-            return task;
+            return value;
         }
-        public Task<object> getValue(Flow flow, ValueInput input)
+        public async Task<object> getValue(Flow flow, ValueInput input)
         {
             pushFlow(flow);
-            var task = flow.getValue(input);
+            var value = await flow.getValue(input);
             popFlow();
-            return task;
+            return value;
         }
-        public Task<T> getValue<T>(Flow flow, ValueOutput output)
+        public async Task<T> getValue<T>(Flow flow, ValueOutput output)
         {
             pushFlow(flow);
-            var task = flow.getValue<T>(output);
+            var value = await flow.getValue<T>(output);
             popFlow();
-            return task;
+            return value;
         }
-        public Task<object> getValue(Flow flow, ValueOutput output)
+        public async Task<object> getValue(Flow flow, ValueOutput output)
         {
             pushFlow(flow);
-            var task = flow.getValue(output);
+            var value = await flow.getValue(output);
             popFlow();
-            return task;
+            return value;
         }
         #endregion
 
