@@ -9,121 +9,7 @@ namespace TouhouCardEngine
 {
     public class AnswerManager : MonoBehaviour, IAnswerManager, IDisposable
     {
-        IClient _client = null;
-        public IClient client
-        {
-            get { return _client; }
-            set
-            {
-                if (_client != null)
-                {
-                    _client.onReceive -= onReceive;
-                }
-                _client = value;
-                if (_client != null)
-                {
-                    _client.onReceive += onReceive;
-                }
-            }
-        }
-
-        [Serializable]
-        public class RequestItem
-        {
-            public IRequest request { get; }
-            public TaskCompletionSource<Dictionary<int, IResponse>> tcs { get; }
-            [SerializeField]
-            string _name;
-            [SerializeField]
-            int[] _players;
-            [SerializeField]
-            float _remainedTime;
-            public float remainedTime
-            {
-                get { return _remainedTime; }
-                set { _remainedTime = value; }
-            }
-            public Dictionary<int, IResponse> responseDic { get; } = new Dictionary<int, IResponse>();
-            public Func<IResponse, bool> responseFilter { get; }
-            public RequestItem(IRequest request, TaskCompletionSource<Dictionary<int, IResponse>> tcs, Func<IResponse, bool> responseFilter)
-            {
-                this.request = request;
-                _name = request.GetType().Name;
-                _players = request.playersId;
-                this.tcs = tcs;
-                this.responseFilter = responseFilter;
-            }
-            public override string ToString()
-            {
-                return request.ToString();
-            }
-        }
-        [SerializeField]
-        List<RequestItem> _requestList = new List<RequestItem>();
-        public IGame game { get; set; } = null;
-        protected void Update()
-        {
-            float deltaTime = Time.deltaTime;
-            while (deltaTime > 0 && _requestList.Count > 0)
-            {
-                var item = _requestList[_requestList.Count - 1];
-                if (item.remainedTime >= deltaTime)
-                {
-                    item.remainedTime -= deltaTime;
-                    deltaTime = 0;
-                }
-                else
-                {
-                    deltaTime -= item.remainedTime;
-                    item.remainedTime = 0;
-                }
-                if (item.remainedTime <= 0)
-                {
-                    if (item.request.isAny)
-                    {
-                        try
-                        {
-                            game?.logger?.logTrace("Answer", $"玩家{string.Join("，", item.request.playersId)}的询问{item.request}超时自动回应");
-                            if (item.request.playersId.Length == 1)
-                                item.tcs.SetResult(new Dictionary<int, IResponse>()
-                                {
-                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
-                                });
-                            else
-                                item.tcs.SetResult(new Dictionary<int, IResponse>());
-                        }
-                        catch (Exception e)
-                        {
-                            game?.logger?.logTrace("Error", $"{item.request}超时引发异常：{e}");
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            game?.logger?.logTrace("Answer", $"{item.request}超时自动回应");
-                            item.tcs.SetResult(item.request.playersId.Select(p =>
-                            {
-                                if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
-                                    return response;
-                                else
-                                {
-                                    response = item.request.getDefaultResponse(game, p);
-                                    response.playerId = p;
-                                    return response;
-                                }
-                            }).ToDictionary(r => r.playerId));
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogError($"{item.request}超时引发异常：{e}");
-                        }
-                    }
-                    _requestList.Remove(item);
-                    game?.logger?.logTrace($"当前询问：\n{string.Join("\n", _requestList)}");
-                }
-            }
-        }
+        #region 公有方法
         /// <summary>
         /// 询问指定的玩家一个请求，如果在指定时间内回应则返回回应，超时则返回默认回应，如果调用了Cancel则任务被取消。
         /// </summary>
@@ -205,103 +91,10 @@ namespace TouhouCardEngine
         {
             return answer(playerId, response, client);
         }
-        private async Task<bool> answer(int playerId, IResponse response, IClient client)
-        {
-            response.playerId = playerId;
-            response.isUnasked = false;
-            if (client != null)
-                response = await client.send(response);
-            for (int i = _requestList.Count - 1; i >= 0; i--)
-            {
-                var item = _requestList[i];
-                var request = item.request;
-                if (!request.playersId.Contains(playerId))//问了这个玩家
-                    continue;
-                if (request.isAny && item.responseDic.Any(r => r.Key == playerId))//如果是面对所有玩家的请求，那么玩家不能回应过
-                    continue;
-                if (item.responseFilter != null && !item.responseFilter(response))//如果有条件，那么要满足条件
-                    continue;
-                if (!request.isValidResponse(response))//是合法的回应
-                    continue;
-
-                game?.logger?.logTrace("Answer", $"玩家{playerId}回应请求{request}");
-                response.remainedTime = item.remainedTime;
-                if (request.isAny)
-                {
-                    _requestList.Remove(item);
-                    try
-                    {
-                        item.tcs.SetResult(new Dictionary<int, IResponse>()
-                            {
-                                { playerId, response }
-                            });
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"{response}回应{request}发生异常：{e}");
-                        return false;
-                    }
-                    onResponse?.Invoke(response);
-                    return true;
-                }
-                else
-                {
-                    item.responseDic.Add(playerId, response);
-                    if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
-                    {
-                        _requestList.Remove(item);
-                        try
-                        {
-                            item.tcs.SetResult(item.responseDic);
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogError($"{response}回应{request}发生异常：{e}");
-                            return false;
-                        }
-                        onResponse?.Invoke(response);
-                        return true;
-                    }
-                    else
-                    {
-                        onResponse?.Invoke(response);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
         public void unaskedAnswer(int playerId, IResponse response)
         {
             unaskedAnswer(playerId, response, client);
         }
-        private void unaskedAnswer(int playerId, IResponse response, IClient client)
-        {
-            response.playerId = playerId;
-            response.isUnasked = true;
-            if (client != null)
-            {
-                client.send(response);
-                return;
-            }
-            onResponse?.Invoke(response);
-        }
-        Task onReceive(int id, object obj)
-        {
-            if (obj is IResponse response)
-            {
-                if (id != response.playerId)
-                    throw new InvalidOperationException($"收到来自客户端{id}的玩家{response.playerId}的指令{response}");
-                if (response.isUnasked)
-                    unaskedAnswer(response.playerId, response, null);
-                else if (id != client.id)//数据可能来自自己，这种情况已经在await send中处理了，就不需要再调用一遍了。
-                    _ = answer(response.playerId, response, null);
-            }
-            return Task.CompletedTask;
-        }
-        public event Action<IRequest> onRequest;
-        public event Action<IResponse> onResponse;
         public IRequest getLastRequest(int playerId)
         {
             if (_requestList.LastOrDefault(i => i.request.playersId.Contains(playerId)) is RequestItem item)
@@ -466,5 +259,232 @@ namespace TouhouCardEngine
         {
             Destroy(gameObject);
         }
+        #endregion
+
+        #region 私有方法
+
+        #region 生命周期
+        protected void Update()
+        {
+            float deltaTime = Time.deltaTime;
+            while (deltaTime > 0 && _requestList.Count > 0)
+            {
+                var item = _requestList[_requestList.Count - 1];
+                if (item.remainedTime >= deltaTime)
+                {
+                    item.remainedTime -= deltaTime;
+                    deltaTime = 0;
+                }
+                else
+                {
+                    deltaTime -= item.remainedTime;
+                    item.remainedTime = 0;
+                }
+                if (item.remainedTime <= 0)
+                {
+                    if (item.request.isAny)
+                    {
+                        try
+                        {
+                            game?.logger?.logTrace("Answer", $"玩家{string.Join("，", item.request.playersId)}的询问{item.request}超时自动回应");
+                            if (item.request.playersId.Length == 1)
+                                item.tcs.SetResult(new Dictionary<int, IResponse>()
+                                {
+                                    { item.request.playersId[0], item.request.getDefaultResponse(game, item.request.playersId[0]) }
+                                });
+                            else
+                                item.tcs.SetResult(new Dictionary<int, IResponse>());
+                        }
+                        catch (Exception e)
+                        {
+                            game?.logger?.logTrace("Error", $"{item.request}超时引发异常：{e}");
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            game?.logger?.logTrace("Answer", $"{item.request}超时自动回应");
+                            item.tcs.SetResult(item.request.playersId.Select(p =>
+                            {
+                                if (item.responseDic.FirstOrDefault(r => r.Key == p).Value is IResponse response)
+                                    return response;
+                                else
+                                {
+                                    response = item.request.getDefaultResponse(game, p);
+                                    response.playerId = p;
+                                    return response;
+                                }
+                            }).ToDictionary(r => r.playerId));
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"{item.request}超时引发异常：{e}");
+                        }
+                    }
+                    _requestList.Remove(item);
+                    game?.logger?.logTrace($"当前询问：\n{string.Join("\n", _requestList)}");
+                }
+            }
+        }
+        #endregion
+
+        #region 事件回调
+        Task onReceive(int id, object obj)
+        {
+            if (obj is IResponse response)
+            {
+                if (id != response.playerId)
+                    throw new InvalidOperationException($"收到来自客户端{id}的玩家{response.playerId}的指令{response}");
+                if (response.isUnasked)
+                    unaskedAnswer(response.playerId, response, null);
+                else if (id != client.id)//数据可能来自自己，这种情况已经在await send中处理了，就不需要再调用一遍了。
+                    _ = answer(response.playerId, response, null);
+            }
+            return Task.CompletedTask;
+        }
+        #endregion
+
+        private async Task<bool> answer(int playerId, IResponse response, IClient client)
+        {
+            response.playerId = playerId;
+            response.isUnasked = false;
+            if (client != null)
+                response = await client.send(response);
+            for (int i = _requestList.Count - 1; i >= 0; i--)
+            {
+                var item = _requestList[i];
+                var request = item.request;
+                if (!request.playersId.Contains(playerId))//问了这个玩家
+                    continue;
+                if (request.isAny && item.responseDic.Any(r => r.Key == playerId))//如果是面对所有玩家的请求，那么玩家不能回应过
+                    continue;
+                if (item.responseFilter != null && !item.responseFilter(response))//如果有条件，那么要满足条件
+                    continue;
+                if (!request.isValidResponse(response))//是合法的回应
+                    continue;
+
+                game?.logger?.logTrace("Answer", $"玩家{playerId}回应请求{request}");
+                response.remainedTime = item.remainedTime;
+                if (request.isAny)
+                {
+                    _requestList.Remove(item);
+                    try
+                    {
+                        item.tcs.SetResult(new Dictionary<int, IResponse>()
+                            {
+                                { playerId, response }
+                            });
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"{response}回应{request}发生异常：{e}");
+                        return false;
+                    }
+                    onResponse?.Invoke(response);
+                    return true;
+                }
+                else
+                {
+                    item.responseDic.Add(playerId, response);
+                    if (item.request.playersId.All(p => item.responseDic.Any(r => r.Key == p)))
+                    {
+                        _requestList.Remove(item);
+                        try
+                        {
+                            item.tcs.SetResult(item.responseDic);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"{response}回应{request}发生异常：{e}");
+                            return false;
+                        }
+                        onResponse?.Invoke(response);
+                        return true;
+                    }
+                    else
+                    {
+                        onResponse?.Invoke(response);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        private void unaskedAnswer(int playerId, IResponse response, IClient client)
+        {
+            response.playerId = playerId;
+            response.isUnasked = true;
+            if (client != null)
+            {
+                client.send(response);
+                return;
+            }
+            onResponse?.Invoke(response);
+        }
+
+        #endregion
+
+        #region 事件
+        public event Action<IRequest> onRequest;
+        public event Action<IResponse> onResponse;
+        #endregion
+
+        #region 属性字段
+        public IGame game { get; set; } = null;
+        public IClient client
+        {
+            get { return _client; }
+            set
+            {
+                if (_client != null)
+                {
+                    _client.onReceive -= onReceive;
+                }
+                _client = value;
+                if (_client != null)
+                {
+                    _client.onReceive += onReceive;
+                }
+            }
+        }
+        IClient _client = null;
+        [SerializeField]
+        List<RequestItem> _requestList = new List<RequestItem>();
+        #endregion
+
+        #region 内嵌类
+        [Serializable]
+        public class RequestItem
+        {
+            public IRequest request { get; }
+            public TaskCompletionSource<Dictionary<int, IResponse>> tcs { get; }
+            [SerializeField]
+            string _name;
+            [SerializeField]
+            int[] _players;
+            [SerializeField]
+            float _remainedTime;
+            public float remainedTime
+            {
+                get { return _remainedTime; }
+                set { _remainedTime = value; }
+            }
+            public Dictionary<int, IResponse> responseDic { get; } = new Dictionary<int, IResponse>();
+            public Func<IResponse, bool> responseFilter { get; }
+            public RequestItem(IRequest request, TaskCompletionSource<Dictionary<int, IResponse>> tcs, Func<IResponse, bool> responseFilter)
+            {
+                this.request = request;
+                _name = request.GetType().Name;
+                _players = request.playersId;
+                this.tcs = tcs;
+                this.responseFilter = responseFilter;
+            }
+            public override string ToString()
+            {
+                return request.ToString();
+            }
+        }
+        #endregion
     }
 }
