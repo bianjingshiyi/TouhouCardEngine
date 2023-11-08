@@ -167,6 +167,13 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        public bool isCorrectResponse(IRequest request, IResponse response)
+        {
+            var item = _requestList.FirstOrDefault(i => i.request == request);
+            if (item == null)
+                return false;
+            return item.isCorrectResponse(response);
+        }
         public void Dispose()
         {
             Destroy(gameObject);

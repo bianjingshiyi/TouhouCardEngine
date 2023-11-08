@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace TouhouCardEngine.Interfaces
@@ -69,5 +67,6 @@ namespace TouhouCardEngine.Interfaces
         void cancel(IRequest request);
         void cancel(IRequest[] requests);
         void cancelAll();
+        bool isCorrectResponse(IRequest request, IResponse response);
     }
 }
