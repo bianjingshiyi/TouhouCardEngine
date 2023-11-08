@@ -22,6 +22,7 @@ namespace TouhouCardEngine
         {
             //trigger = new SyncTriggerSystem(this);
             random = new Random(0);
+            responseRNG = new Random(0);
             this.rule = rule;
         }
         public CardEngine() : this(null)
@@ -81,6 +82,7 @@ namespace TouhouCardEngine
             isInited = true;
             //初始化随机
             random = new Random(options.randomSeed);
+            responseRNG = new Random(options.randomSeed);
             //初始化动作定义
             foreach (var pair in ActionDefine.loadDefinesFromAssemblies(assemblies))
             {
@@ -360,6 +362,16 @@ namespace TouhouCardEngine
             nextRandomIntList.Clear();
             nextRandomIntList.AddRange(results);
         }
+        /// <summary>
+        /// 获取下一次的请求随机数。用于解决回放中，AI选择选项，或者卡牌选择超时后，随机选择的选项不会过随机数，导致炸rep的问题。
+        /// </summary>
+        /// <param name="min">随机最小值，包括这个数字。</param>
+        /// <param name="max">随机最大值，不包括这个数字。</param>
+        /// <returns>获取到的随机数。</returns>
+        public int responseRandomInt(int min, int max)
+        {
+            return responseRNG.Next(min, max);
+        }
         #endregion
         #endregion
         #region 私有方法
@@ -420,6 +432,7 @@ namespace TouhouCardEngine
         private List<Pile> pileList { get; } = new List<Pile>();
         List<int> nextRandomIntList { get; } = new List<int>();
         Random random { get; set; }
+        Random responseRNG { get; set; }
         #endregion
         #region 内部类
         public class CommandEventArg : EventArg

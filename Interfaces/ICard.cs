@@ -9,6 +9,7 @@ namespace TouhouCardEngine.Interfaces
         ITimeManager time { get; }
         Shared.ILogger logger { get; }
         int randomInt(int min, int max);
+        int responseRandomInt(int min, int max);
         CardSnapshot snapshotCard(Card card);
         Task runActions(Flow flow, ControlInput port);
         Task runActions(Flow flow, ControlOutput port);
