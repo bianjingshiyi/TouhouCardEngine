@@ -27,7 +27,6 @@ namespace TouhouCardEngine
             node.posY = posY;
             node.graph = this;
             addNode(node);
-            updateSize();
             return node;
         }
         public ActionNode createActionNode(ActionDefine define, float posX = 0, float posY = 0)
@@ -48,9 +47,8 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            addNode(node);
             node.Define();
-            updateSize();
+            addNode(node);
             return node;
         }
         public GeneratedActionReturnNode createActionDefineExitNode(GeneratedActionDefine define, float posX = 0, float posY = 0)
@@ -60,9 +58,8 @@ namespace TouhouCardEngine
             node.posX = posX;
             node.posY = posY;
             node.graph = this;
-            addNode(node);
             node.Define();
-            updateSize();
+            addNode(node);
             return node;
         }
         public void addNode(Node node)
@@ -70,6 +67,7 @@ namespace TouhouCardEngine
             if (!_nodes.Contains(node))
             {
                 _nodes.Add(node);
+                updateSize();
             }
         }
         public bool removeNode(Node node)
