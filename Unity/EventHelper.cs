@@ -1,15 +1,20 @@
-﻿using TouhouCardEngine.Interfaces;
+﻿using System;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
     public static class EventHelper
     {
-        public static string getName(IEventArg eventArg)
+        public static string getName(Type eventType)
         {
-            string name = eventArg.GetType().Name;
+            string name = eventType.Name;
             if (name.EndsWith("EventArg"))
                 name = string.Intern(name.Substring(0, name.Length - 3));
             return name;
+        }
+        public static string getName(IEventArg eventArg)
+        {
+            return getName(eventArg.GetType());
         }
         public static string getNameBefore(string eventName)
         {

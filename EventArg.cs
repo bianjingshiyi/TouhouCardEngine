@@ -74,4 +74,12 @@ namespace TouhouCardEngine
         public string name;
         public Type type;
     }
+    public class EventChildrenAttribute : Attribute
+    {
+        public EventChildrenAttribute(params Type[] types)
+        {
+            this.childrenTypes = types;
+        }
+        public Type[] childrenTypes;
+    }
 }

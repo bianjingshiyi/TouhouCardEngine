@@ -84,6 +84,7 @@ namespace TouhouCardEngine
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         #endregion
         #region 嵌套类型
+        [EventChildren(typeof(Card.PropChangeEventArg))]
         public class PropertyChangeEventArg : EventArg, ICardEventArg
         {
             public PropertyChangeEventArg(Buff buff, string propName, object value, object valueBeforeChanged)

@@ -123,6 +123,7 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "card";
             public const string VAR_AFTER_DEFINE = "afterDefine";
         }
+        [EventChildren(typeof(PropChangeEventArg))]
         public class AddBuffEventArg : EventArg, ICardEventArg
         {
             public Card card
@@ -189,6 +190,7 @@ namespace TouhouCardEngine
             public const string VAR_CARD = "卡牌";
             public const string VAR_BUFF = "增益";
         }
+        [EventChildren(typeof(PropChangeEventArg))]
         public class RemoveBuffEventArg : EventArg, ICardEventArg
         {
             public Card card
@@ -544,7 +546,8 @@ namespace TouhouCardEngine
             }
         }
         #region 属性
-        public async Task<IPropChangeEventArg> setProp(IGame game, string propName, object value)
+        async Task<IPropChangeEventArg> ICard.setProp(IGame game, string propName, object value) => await setProp(game, propName, value);
+        public async Task<PropChangeEventArg> setProp(IGame game, string propName, object value)
         {
             if (game != null && game.triggers != null)
                 return await game.triggers.doEvent(new PropChangeEventArg() { card = this, propName = propName, beforeValue = getProp(game, propName), value = value }, arg =>
