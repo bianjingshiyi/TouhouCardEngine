@@ -2,6 +2,7 @@
 
 namespace TouhouCardEngine
 {
+    [Serializable]
     public class EventReference
     {
         public EventReference(long cardPoolId, string eventName)
@@ -46,22 +47,6 @@ namespace TouhouCardEngine
             return !r1.Equals(r2);
         }
 
-        public long cardPoolId;
-        public string eventName;
-    }
-
-    [Serializable]
-    public class SerializableEventReference
-    {
-        public SerializableEventReference(EventReference eventRef)
-        {
-            cardPoolId = eventRef.cardPoolId;
-            eventName = eventRef.eventName;
-        }
-        public EventReference toEventRef()
-        {
-            return new EventReference(cardPoolId, eventName);
-        }
         public long cardPoolId;
         public string eventName;
     }

@@ -404,7 +404,7 @@ namespace TouhouCardEngine
 
         }
         #endregion
-        private const string returnValueName = "return";
+        public const string returnValueName = "return";
         MethodInfo _methodInfo;
         ParameterInfo[] _paramsInfo;
         ActionNodeParamAttribute[] _paramAttributes;
