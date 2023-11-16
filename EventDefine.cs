@@ -2,6 +2,14 @@
 {
     public class EventDefine
     {
+        public EventReference getReference()
+        {
+            return new EventReference(cardPoolId, eventName);
+        }
+        public bool isReference(EventReference reference)
+        {
+            return reference.cardPoolId == cardPoolId && reference.eventName == eventName;
+        }
         #region 属性字段
         public long cardPoolId;
         public string eventName;
@@ -9,6 +17,7 @@
         public string[] obsoleteNames;
         public EventVariableInfo[] beforeVariableInfos;
         public EventVariableInfo[] afterVariableInfos;
+        public EventReference[] childrenEvents;
         #endregion
     }
     public class EventTriggerTime

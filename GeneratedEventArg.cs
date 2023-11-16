@@ -39,11 +39,11 @@ namespace TouhouCardEngine
         }
         public override EventVariableInfo[] getBeforeEventVarInfos()
         {
-            return actionDefine.getBeforeEventArgVarInfos();
+            return actionDefine?.getBeforeEventArgVarInfos();
         }
         public override EventVariableInfo[] getAfterEventVarInfos()
         {
-            return actionDefine.getAfterEventArgVarInfos();
+            return actionDefine?.getAfterEventArgVarInfos();
         }
         public override string ToString()
         {
