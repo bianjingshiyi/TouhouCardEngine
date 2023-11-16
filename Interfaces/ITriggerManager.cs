@@ -76,4 +76,8 @@ namespace TouhouCardEngine.Interfaces
     {
         ICard getCard();
     }
+    public interface IMassCardEventArg : IEventArg
+    {
+        ICard[] getCards();
+    }
 }
