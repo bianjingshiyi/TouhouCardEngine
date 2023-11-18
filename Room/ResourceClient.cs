@@ -323,11 +323,11 @@ namespace TouhouCardEngine
         /// <exception cref="Exception"></exception>
         private static bool parseHeadResponse(UnityWebRequestAsyncOperation op)
         {
-            if (op.webRequest.isNetworkError)
+            if (op.webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
                 throw new Exception(op.webRequest.error);
             }
-            if (op.webRequest.isHttpError)
+            if (op.webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 if (op.webRequest.responseCode == 404) return false;
                 throw new Exception(op.webRequest.error);
@@ -355,11 +355,11 @@ namespace TouhouCardEngine
         /// <exception cref="FileNotFoundException"></exception>
         private static byte[] parseResponse(UnityWebRequestAsyncOperation op)
         {
-            if (op.webRequest.isNetworkError)
+            if (op.webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
                 throw new Exception(op.webRequest.error);
             }
-            if (op.webRequest.isHttpError)
+            if (op.webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 if (op.webRequest.responseCode == 404)
                 {
