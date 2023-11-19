@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    [Serializable]
     public class GeneratedBuff : Buff
     {
         #region 公有方法
@@ -28,23 +27,22 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有方法
-        private GeneratedBuff(GeneratedBuff originBuff) : base()
+        private GeneratedBuff(GeneratedBuff originBuff) : base(originBuff)
         {
             defineRef = originBuff.defineRef;
-            instanceId = originBuff.instanceId;
         }
         #endregion
         #region 属性字段
         public override int id => defineRef.defineId;
 
-        public override PropModifier[] getPropertyModifiers(CardEngine game)
+        public override PropModifier[] getModifiers(CardEngine game)
         {
-            if (_propertyModifiers == null)
+            if (_modifiers == null)
             {
                 GeneratedBuffDefine define = game.getBuffDefine(defineRef.cardPoolId, defineRef.defineId) as GeneratedBuffDefine;
-                _propertyModifiers = define.propModifierList.Select(m => m.clone()).ToArray();
+                _modifiers = define.propModifierList.ToArray();
             }
-            return _propertyModifiers;
+            return _modifiers;
         }
         public override BuffExistLimit[] getExistLimits(CardEngine game)
         {
@@ -64,8 +62,7 @@ namespace TouhouCardEngine
         /// 增益类型Id
         /// </summary>
         public DefineReference defineRef;
-        public int instanceId = 0;
-        private PropModifier[] _propertyModifiers;
+        private PropModifier[] _modifiers;
         private BuffExistLimit[] _existLimits;
         #endregion
     }

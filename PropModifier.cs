@@ -1,37 +1,80 @@
-﻿using TouhouCardEngine.Interfaces;
+﻿using System;
 using System.Threading.Tasks;
-using System;
+using MongoDB.Bson.Serialization.Attributes;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
     [Serializable]
     public abstract class PropModifier : IPropModifier
     {
+        #region 公有方法
+        public async Task updateValue(IGame game, Card card, object beforeCardProp, object beforeValue, object value)
+        {
+            await updateCardProp(game, card, beforeCardProp);
+            await updateModifierValue(game, card, beforeValue, value);
+        }
+        public object calcProp(IGame game, ICardData card, Buff buff, string propName, object prop)
+        {
+            if (getPropName() != propName)
+                return prop;
+            var value = getValue(buff);
+            return calc(game, card, prop, value);
+        }
+        public object getValue(Buff buff)
+        {
+            if (relatedPropName != null && buff != null)
+            {
+                return buff.getProp(relatedPropName);
+            }
+            return getDefaultValue();
+        }
+
+        #region 添加/移除回调
+        public virtual Task beforeAdd(IGame game, Card card, Buff buff)
+        {
+            return Task.CompletedTask;
+        }
+        public virtual Task afterAdd(IGame game, Card card, Buff buff)
+        {
+            return Task.CompletedTask;
+        }
+        public virtual Task beforeRemove(IGame game, Card card, Buff buff)
+        {
+            return Task.CompletedTask;
+        }
+        public virtual Task afterRemove(IGame game, Card card, Buff buff)
+        {
+            return Task.CompletedTask;
+        }
+        #endregion
+
+        #region 抽象方法
+        public abstract object getDefaultValue();
         public abstract string getPropName();
-        public abstract object getValue();
-        public virtual bool checkCondition(IGame game, Card card)
+        public abstract object calc(IGame game, ICardData card, object prop, object value);
+        #endregion
+
+        #endregion
+
+        #region 私有方法
+        protected abstract Task updateModifierValue(IGame game, Card card, object beforeValue, object value);
+        private Task<Card.PropChangeEventArg> updateCardProp(IGame game, Card card, object beforeCardProp)
         {
-            return true;
+            var propName = getPropName();
+            var afterCardProp = card.getProp(game, propName);
+            if (Equals(beforeCardProp, afterCardProp))
+                return Task.FromResult<Card.PropChangeEventArg>(null);
+            return game.triggers.doEvent(new Card.PropChangeEventArg()
+            {
+                card = card,
+                propName = propName,
+                beforeValue = beforeCardProp,
+                value = afterCardProp
+            });
         }
-        public abstract Task<IPropChangeEventArg> setValue(CardEngine game, Card card, object value);
-        public virtual Task beforeAdd(IGame game, Card card)
-        {
-            return Task.CompletedTask;
-        }
-        public virtual Task afterAdd(IGame game, Card card)
-        {
-            return Task.CompletedTask;
-        }
-        public virtual Task beforeRemove(IGame game, Card card)
-        {
-            return Task.CompletedTask;
-        }
-        public virtual Task afterRemove(IGame game, Card card)
-        {
-            return Task.CompletedTask;
-        }
-        public abstract object calc(IGame game, Card card, object value);
-        public abstract PropModifier clone();
+        #endregion
+
         #region 属性字段
         public string relatedPropName = null;
         #endregion
@@ -40,56 +83,80 @@ namespace TouhouCardEngine
     public abstract class PropModifier<T> : PropModifier
     {
         #region 公有方法
+
+        #region 替换为泛型的重写
+        public override sealed object calc(IGame game, ICardData card, object prop, object value)
+        {
+            T tValue = toGenericValue(value);
+            if (prop == null)
+                return calcGeneric(game, card, default, tValue);
+            else if (prop is T tProp)
+                return calcGeneric(game, card, tProp, tValue);
+            else
+                return prop;
+        }
+        protected override sealed Task updateModifierValue(IGame game, Card card, object beforeValue, object value)
+        {
+            return updateModifierValue(game, card, toGenericValue(beforeValue), toGenericValue(value));
+        }
+        #endregion
+
+        #region 泛型方法
+        public T calcProp(IGame game, ICardData card, Buff buff, string propName, T prop)
+        {
+            if (getPropName() != propName)
+                return prop;
+            var value = getValueGeneric(buff);
+            return calcGeneric(game, card, prop, value);
+        }
+        public virtual Task beforeAdd(IGame game, Card card, T value) => Task.CompletedTask;
+        public virtual Task afterAdd(IGame game, Card card, T value) => Task.CompletedTask;
+        public virtual Task beforeRemove(IGame game, Card card, T value) => Task.CompletedTask;
+        public virtual Task afterRemove(IGame game, Card card, T value) => Task.CompletedTask;
+        public virtual Task updateModifierValue(IGame game, Card card, T beforeValue, T value) => Task.CompletedTask;
+        public abstract T calcGeneric(IGame game, ICardData card, T prop, T value);
+        #endregion
+
+        public override object getDefaultValue()
+        {
+            return defaultValue;
+        }
         public override string getPropName()
         {
             return propertyName;
         }
-        public override object getValue()
+        private T getValueGeneric(Buff buff)
         {
-            return value;
-        }
-        public override Task<IPropChangeEventArg> setValue(CardEngine game, Card card, object value)
-        {
-            if (value is T t)
-                return setValue(game, card, t);
-            else
-                throw new InvalidCastException($"属性修整器{this}的值类型必须是{typeof(T).Name}");
-        }
-        /// <summary>
-        /// 设置修改器的修改值。
-        /// </summary>
-        /// <param name="value"></param>
-        public virtual async Task<IPropChangeEventArg> setValue(IGame game, Card card, T value)
-        {
-            if (Equals(this.value, value))//泛型需要用Equals来比较值
+            if (relatedPropName != null && buff != null)
             {
-                return null;
+                return buff.getProp<T>(relatedPropName);
             }
-            object beforeValue = card.getProp(game, getPropName());
-            this.value = value;
-            var eventArg = await game.triggers.doEvent(new Card.PropChangeEventArg()
-            {
-                card = card,
-                propName = getPropName(),
-                beforeValue = beforeValue,
-                value = card.getProp(game, getPropName())
-            });
-            return eventArg;
+            return defaultValue;
         }
-        public sealed override object calc(IGame game, Card card, object value)
-        {
-            if (value == null)
-                return calcGeneric(game, card, default);
-            else if (value is T t)
-                return calcGeneric(game, card, t);
-            else
-                return value;
-        }
-        public abstract T calcGeneric(IGame game, Card card, T value);
         #endregion
+
+        #region 私有方法
+        private T toGenericValue(object value)
+        {
+            if (value is null)
+                return default;
+            if (value is T t)
+                return t;
+            throw new InvalidCastException($"属性修整器{this}的值类型必须是{typeof(T).Name}");
+        }
+        #endregion
+
         #region 属性字段
         public string propertyName;
-        public T value;
+        public T defaultValue;
+        // 序列化兼容用
+        [Obsolete("使用defaultValue")]
+        [BsonElement]
+        public T value
+        {
+            get => defaultValue;
+            set => defaultValue = value;
+        }
         #endregion
     }
 }

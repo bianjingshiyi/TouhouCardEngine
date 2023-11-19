@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
@@ -41,7 +42,7 @@ namespace Tests
                 new IntPropModifier("attack",1)
             };
 
-            public override PropModifier[] getPropertyModifiers(CardEngine game)
+            public override PropModifier[] getModifiers(CardEngine game)
             {
                 return modifiers1;
             }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
@@ -19,10 +20,10 @@ namespace TouhouCardEngine
         public CodeBuff(int id, PropModifier modifier, params IPassiveEffect[] effects) : base()
         {
             this.id = id;
-            modifiers = (new PropModifier[] { modifier });
+            modifiers = new PropModifier[] { modifier };
             this.effects = effects;
         }
-        private CodeBuff(CodeBuff origin)
+        private CodeBuff(CodeBuff origin) : base(origin)
         {
             id = origin.id;
             modifiers = origin.modifiers;
@@ -58,7 +59,7 @@ namespace TouhouCardEngine
 
         private readonly PropModifier[] modifiers = new PropModifier[0];
 
-        public override PropModifier[] getPropertyModifiers(CardEngine game)
+        public override PropModifier[] getModifiers(CardEngine game)
         {
             return modifiers;
         }

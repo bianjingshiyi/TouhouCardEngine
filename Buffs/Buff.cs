@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -32,18 +34,29 @@ namespace TouhouCardEngine
         {
             if (game != null && game.triggers != null)
             {
-                return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), arg =>
+                return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), async arg =>
                 {
                     var argBuff = arg.buff;
                     var argPropName = arg.propName;
                     var argValue = arg.value;
                     var beforeValue = argBuff.getProp(argPropName);
+
+                    // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
+                    var modifiers = getModifiers(game).Where(m => m.relatedPropName == argPropName);
+                    (PropModifier modi, object modiBeforeValue, object cardBeforeProp)[] modiBeforeValues =
+                        modifiers.Select(m => (m, m.getValue(argBuff), card.getProp(game, m.getPropName()))).ToArray();
+
+                    // 设置增益的值。
                     argBuff.setPropRaw(argPropName, argValue);
                     addChange(game, new BuffPropChange(argBuff, argPropName, beforeValue, argValue));
-                    //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
-                    updateModifierProps(game);
                     game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
-                    return Task.CompletedTask;
+
+                    // 更新与该增益属性名绑定的修改器的值。
+                    foreach (var (modifier, modiBefore, cardBeforeProp) in modiBeforeValues)
+                    {
+                        var propName = modifier.getPropName();
+                        await modifier.updateValue(game, card, cardBeforeProp, modiBefore, argValue);
+                    }
                 });
             }
             else
@@ -54,27 +67,6 @@ namespace TouhouCardEngine
                 return Task.FromResult<PropertyChangeEventArg>(default);
             }
         }
-        /// <summary>
-        /// 更新所有与BUFF属性关联的修正器的值。
-        /// </summary>
-        public void updateModifierProps(CardEngine game)
-        {
-            //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
-            foreach (PropModifier propModifier in getPropertyModifiers(game))
-            {
-                if (propModifier.relatedPropName != null)
-                {
-                    if (propDict.TryGetValue(propModifier.relatedPropName, out object value))
-                    {
-                        propModifier.setValue(game, card, value);
-                    }
-                    else
-                    {
-                        propModifier.setValue(game, card, 0);
-                    }
-                }
-            }
-        }
         #endregion
         public void setInfo(IGame game, Card card, int id)
         {
@@ -83,7 +75,7 @@ namespace TouhouCardEngine
             setInfoRaw(card, id);
             addChange(game, new BuffInfoChange(this, beforeCard, card, beforeInstanceId, id));
         }
-        public abstract PropModifier[] getPropertyModifiers(CardEngine game);
+        public abstract PropModifier[] getModifiers(CardEngine game);
         public virtual BuffExistLimit[] getExistLimits(CardEngine game)
         {
             return null;
@@ -93,6 +85,18 @@ namespace TouhouCardEngine
         #endregion
 
         #region 私有方法
+
+        #region 构造器
+        protected Buff(Buff other)
+        {
+            instanceID = other.instanceID;
+            card = other.card;
+            foreach (var pair in other.propDict)
+            {
+                propDict.Add(pair.Key, pair.Value);
+            }
+        }
+        #endregion
 
         #region 接口实现
         void IChangeableBuff.setInfo(Card card, int id) => setInfoRaw(card, id);

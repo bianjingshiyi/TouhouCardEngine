@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
@@ -30,28 +29,52 @@ namespace TouhouCardEngine
             position = card.pile?.indexOf(card) ?? -1;
             propDic.Clear();
             buffs.Clear();
-            buffs.AddRange(card.getBuffs());
-            foreach (var pair in card.getAllProps(game))
+            buffs.AddRange(card.getBuffs().Select(b => b.clone()));
+            foreach (var pair in card.getAllProps(game, true))
             {
                 propDic.Add(pair.Key, pair.Value);
             }
         }
-        public T getProp<T>(string propName)
+        public T getProp<T>(IGame game, string propName, bool raw = false)
         {
             T value = default;
             if (propDic.ContainsKey(propName) && propDic[propName] is T t)
                 value = t;
             else if (define.hasProp(propName) && define[propName] is T dt)
                 value = dt;
+            if (!raw)
+            {
+                var engine = game as CardEngine;
+                foreach (var buff in buffs)
+                {
+                    foreach (var modifier in buff.getModifiers(engine))
+                    {
+                        if (modifier is not PropModifier<T> tModi)
+                            continue;
+                        value = tModi.calcProp(game, this, buff, propName, value);
+                    }
+                }
+            }
             return (T)(object)value;
         }
-        public object getProp(string propName)
+        public object getProp(IGame game, string propName, bool raw = false)
         {
             object value = default;
             if (propDic.ContainsKey(propName))
                 value = propDic[propName];
             else if (define.hasProp(propName))
                 value = define[propName];
+            if (!raw)
+            {
+                var engine = game as CardEngine;
+                foreach (var buff in buffs)
+                {
+                    foreach (var modifier in buff.getModifiers(engine))
+                    {
+                        value = modifier.calcProp(game, this, buff, propName, value);
+                    }
+                }
+            }
             return value;
         }
         public Buff[] getBuffs()
@@ -63,8 +86,8 @@ namespace TouhouCardEngine
         #region 私有方法
 
         #region 接口实现
-        T ICardData.getProp<T>(IGame game, string propName) => getProp<T>(propName);
-        object ICardData.getProp(IGame game, string propName) => getProp(propName);
+        T ICardData.getProp<T>(IGame game, string propName) => getProp<T>(game, propName, false);
+        object ICardData.getProp(IGame game, string propName) => getProp(game, propName, false);
         void IChangeableCard.setDefine(CardDefine define) => this.define = define;
         void IChangeableCard.moveTo(Pile to, int toPos)
         {
