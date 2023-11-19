@@ -2,12 +2,16 @@
 using System.Linq;
 using System.Collections.Generic;
 using TouhouCardEngine.Interfaces;
+using TouhouCardEngine.Histories;
+
 namespace TouhouCardEngine
 {
     [Serializable]
-    public class Player : IPlayer
+    public class Player : IPlayer, IChangeablePlayer
     {
         #region 公有方法
+
+        #region 构造器
         public Player(int id, string name, params Pile[] piles)
         {
             this.id = id;
@@ -21,6 +25,9 @@ namespace TouhouCardEngine
         public Player() : this(0, null)
         {
         }
+        #endregion
+
+        #region 属性
         public T getProp<T>(string propName)
         {
             if (getProp(propName) is T t)
@@ -37,43 +44,32 @@ namespace TouhouCardEngine
         {
             return propDict.ContainsKey(propName);
         }
-        public void setProp<T>(string propName, T value)
+        public void setProp(string propName, object value)
         {
-            propDict[propName] = value;
+            var beforeValue = getProp(propName);
+            setPropRaw(propName, value);
+            addChange(new PlayerPropChange(this, propName, beforeValue, value));
         }
-        public void setProp(string propName, PropertyChangeType changeType, int value)
+        public void setProp<T>(IGame game, string propName, T value)
         {
-            if (changeType == PropertyChangeType.set)
-                propDict[propName] = value;
-            else if (changeType == PropertyChangeType.add)
-                propDict[propName] = getProp<int>(propName) + value;
+            setProp(game, propName, (object)value);
         }
-        public void setProp(string propName, PropertyChangeType changeType, float value)
-        {
-            if (changeType == PropertyChangeType.set)
-                propDict[propName] = value;
-            else if (changeType == PropertyChangeType.add)
-                propDict[propName] = getProp<int>(propName) + value;
-        }
-        public void setProp(string propName, PropertyChangeType changeType, string value)
-        {
-            if (changeType == PropertyChangeType.set)
-                propDict[propName] = value;
-            else if (changeType == PropertyChangeType.add)
-                propDict[propName] = getProp<string>(propName) + value;
-        }
-        public Pile this[string pileName]
-        {
-            get { return getPile(pileName); }
-        }
+        #endregion
+
+        #region 牌堆
         public void addPile(Pile pile)
         {
-            pileList.Add(pile);
-            pile.owner = this;
-            foreach (Card card in pile)
+            addPileRaw(pile);
+            addChange(new AddPileChange(this, pile));
+        }
+        public bool removePile(Pile pile)
+        {
+            if (removePileRaw(pile))
             {
-                card.owner = this;
+                addChange(new RemovePileChange(this, pile));
+                return true;
             }
+            return false;
         }
         public Pile getPile(string name)
         {
@@ -98,6 +94,8 @@ namespace TouhouCardEngine
             }
             return pileList.ToArray();
         }
+        #endregion
+
         public override string ToString()
         {
             return name;
@@ -107,12 +105,55 @@ namespace TouhouCardEngine
             return new Player[] { player };
         }
         #endregion
+
+        #region 私有方法
+
+        #region 接口实现
+        void IChangeablePlayer.addPile(Pile pile) => addPileRaw(pile);
+        void IChangeablePlayer.removePile(Pile pile) => removePileRaw(pile);
+        void IChangeablePlayer.setProp(string propName, object value) => setPropRaw(propName, value);
+        #endregion
+
+        private void addPileRaw(Pile pile)
+        {
+            pileList.Add(pile);
+            pile.owner = this;
+            foreach (Card card in pile)
+            {
+                card.owner = this;
+            }
+        }
+        private bool removePileRaw(Pile pile)
+        {
+            if (pileList.Remove(pile))
+            {
+                pile.owner = null;
+                foreach (Card card in pile)
+                {
+                    card.owner = null;
+                }
+                return true;
+            }
+            return false;
+        }
+        private void setPropRaw(string propName, object value)
+        {
+            propDict[propName] = value;
+        }
+        private void addChange(PlayerChange change)
+        {
+            _changes.Add(change);
+        }
+
+        #endregion
+
         #region 属性字段
-        int IPlayer.id => id;
-        public int id;
-        public string name;
-        public Dictionary<string, object> propDict { get; } = new Dictionary<string, object>();
-        public List<Pile> pileList { get; } = new List<Pile>();
+        public int id { get; }
+        public string name { get; }
+        public Pile this[string pileName] => getPile(pileName);
+        private Dictionary<string, object> propDict { get; } = new Dictionary<string, object>();
+        private List<Pile> pileList { get; } = new List<Pile>();
+        private List<PlayerChange> _changes = new List<PlayerChange>();
         #endregion
     }
 }
