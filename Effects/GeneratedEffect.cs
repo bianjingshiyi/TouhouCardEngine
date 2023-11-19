@@ -24,8 +24,11 @@ namespace TouhouCardEngine
 
             if (onEnableAction != null)
             {
-                var flow = new Flow(game, card, buff, null, this);
-                await game.runActions(flow, onEnableAction);
+                await game.triggers.doEvent(new EffectTriggerEventArg(card as Card, buff as Buff, this), arg =>
+                {
+                    var flow = new Flow(game, card, buff, null, this);
+                    return game.runActions(flow, onEnableAction);
+                });
             }
 
             // 设置该Effect已被启用。
@@ -41,8 +44,11 @@ namespace TouhouCardEngine
 
             if (onDisableAction != null)
             {
-                var flow = new Flow(game, card, buff, null, this);
-                await game.runActions(flow, onDisableAction);
+                await game.triggers.doEvent(new EffectTriggerEventArg(card as Card, buff as Buff, this), arg =>
+                {
+                    var flow = new Flow(game, card, buff, null, this);
+                    return game.runActions(flow, onDisableAction);
+                });
             }
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
