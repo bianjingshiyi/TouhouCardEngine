@@ -1,25 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
     public class RNG
     {
-        public RNG()
-        {
-            _rng = new Random();
-        }
-        public RNG(int seed)
-        {
-            _rng = new Random(seed);
-        }
         public RNG(int seed, uint state)
         {
-            _rng = new Random(seed);
-            _state = state;
-            advanceToState(_state);
+            _seed = seed;
+            setState(state);
+        }
+        public RNG() : this(Environment.TickCount)
+        {
+        }
+        public RNG(int seed) : this(seed, 0)
+        {
         }
         public RNG(RNG rng) : this(rng.seed, rng.state)
         {
@@ -48,6 +44,12 @@ namespace TouhouCardEngine
         {
             _state++;
             _rng.NextBytes(buffer);
+        }
+        public void setState(uint state)
+        {
+            _rng = new Random(_seed);
+            _state = state;
+            advanceToState(_state);
         }
 
         private void advanceToState(uint state)
