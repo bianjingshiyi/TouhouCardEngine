@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
@@ -7,11 +8,17 @@ namespace TouhouCardEngine
 {
     public class EventRecord
     {
+        #region 公有方法
+
+        #region 构造器
         public EventRecord(IEventArg arg)
         {
             eventArg = arg;
             isCanceled = arg.isCanceled;
         }
+        #endregion
+
+        #region 变量
         public object getVar(string varName)
         {
             if (varDict.TryGetValue(varName, out object value))
@@ -63,6 +70,8 @@ namespace TouhouCardEngine
             else
                 varDict.Add(varName, value);
         }
+        #endregion
+
         public void addChange(Change change)
         {
             _changes.Add(change);
@@ -71,10 +80,15 @@ namespace TouhouCardEngine
         {
             return _changes.ToArray();
         }
+
+        #endregion
+
+        #region 属性字段
         public IEventArg eventArg { get; internal set; }
         public bool isCanceled { get; internal set; }
         public bool isCompleted { get; set; }
         private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
         private List<Change> _changes = new List<Change>();
+        #endregion
     }
 }

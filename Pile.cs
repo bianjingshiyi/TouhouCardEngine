@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
-using UnityEngine.UIElements;
 
 namespace TouhouCardEngine
 {
@@ -15,7 +14,7 @@ namespace TouhouCardEngine
     public class Pile : IEnumerable<Card>
     {
         #region 公有方法
-        public Pile(IGame game, string name = null, int maxCount = -1)
+        public Pile(string name = null, int maxCount = -1)
         {
             this.name = name;
             this.maxCount = maxCount;
@@ -37,25 +36,11 @@ namespace TouhouCardEngine
         {
             return cardList.Remove(card);
         }
-        public bool moveCard(IGame game, Card card, Pile to, int toPosition, IEventArg arg)
+        public bool moveCard(IGame game, Card card, Pile to, int toPosition)
         {
-            return moveCard(game, card, this, to, toPosition, arg);
+            return moveCard(game, card, this, to, toPosition);
         }
-        public bool moveCard(Card card, Pile to, int toPosition, IEventArg arg)
-        {
-            return moveCard(card, this, to, toPosition, arg);
-        }
-        public static bool moveCard(IGame game, Card card, Pile from, Pile to, int toPosition, IEventArg arg)
-        {
-            var moved = moveCard(card, from, to, toPosition, arg);
-            if (moved)
-            {
-                disableCardEffects(game, card, from, to);
-                enableCardEffects(game, card, from, to);
-            }
-            return moved;
-        }
-        public static bool moveCard(Card card, Pile from, Pile to, int toPosition, IEventArg arg)
+        public static bool moveCard(IGame game, Card card, Pile from, Pile to, int toPosition)
         {
             if (!canMove(card, from, to))
                 return false;
@@ -70,7 +55,9 @@ namespace TouhouCardEngine
                 to.insertCard(card, toPosition);
             card.pile = to;
             card.owner = to?.owner;
-            card.addChange(new CardMoveChange(card, from, to, fromPosition, toPosition));
+            disableCardEffects(game, card, from, to);
+            enableCardEffects(game, card, from, to);
+            card.addChange(game, new CardMoveChange(card, from, to, fromPosition, toPosition));
             return true;
         }
         public void shuffle(CardEngine engine)

@@ -44,11 +44,11 @@ namespace TouhouCardEngine
         {
             return propDict.ContainsKey(propName);
         }
-        public void setProp(string propName, object value)
+        public void setProp(IGame game, string propName, object value)
         {
             var beforeValue = getProp(propName);
             setPropRaw(propName, value);
-            addChange(new PlayerPropChange(this, propName, beforeValue, value));
+            addChange(game, new PlayerPropChange(this, propName, beforeValue, value));
         }
         public void setProp<T>(IGame game, string propName, T value)
         {
@@ -57,16 +57,16 @@ namespace TouhouCardEngine
         #endregion
 
         #region 牌堆
-        public void addPile(Pile pile)
+        public void addPile(IGame game, Pile pile)
         {
             addPileRaw(pile);
-            addChange(new AddPileChange(this, pile));
+            addChange(game, new AddPileChange(this, pile));
         }
-        public bool removePile(Pile pile)
+        public bool removePile(IGame game, Pile pile)
         {
             if (removePileRaw(pile))
             {
-                addChange(new RemovePileChange(this, pile));
+                addChange(game, new RemovePileChange(this, pile));
                 return true;
             }
             return false;
@@ -140,8 +140,9 @@ namespace TouhouCardEngine
         {
             propDict[propName] = value;
         }
-        private void addChange(PlayerChange change)
+        private void addChange(IGame game, PlayerChange change)
         {
+            game.triggers.addChange(change);
             _changes.Add(change);
         }
 

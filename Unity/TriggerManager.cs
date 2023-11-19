@@ -4,19 +4,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using TouhouCardEngine.Interfaces;
+using TouhouCardEngine.Histories;
 
 namespace TouhouCardEngine
 {
     public class TriggerManager : MonoBehaviour, ITriggerManager, IDisposable
     {
         #region 公共方法
-        public void Dispose()
-        {
-            Destroy(gameObject);
-        }
 
-        #region 触发器
-        #region 注册
+        #region 注册触发器
         /// <summary>
         /// 注册触发器
         /// </summary>
@@ -52,7 +48,10 @@ namespace TouhouCardEngine
         {
             registerAfter(trigger as ITrigger<T>);
         }
-        #region 延迟
+
+        #endregion
+
+        #region 延迟注册触发器
         /// <summary>
         /// 注册触发器。如果在执行流程中，并且处于目标事件内部，则改为延迟注册直到该事件结束。用来防止某些效果因为其外部的效果而触发。
         /// </summary>
@@ -67,12 +66,12 @@ namespace TouhouCardEngine
                 throw new ArgumentNullException(nameof(trigger));
 
             // 如果正在执行事件，并且是“XX后”事件，将触发器加入到队列中，并在之后刷新队列。
-            if (_eventChainList.Count > 0)
+            if (_executingEvents.Count > 0)
             {
-                var argItem = _eventChainList.LastOrDefault(e => eventName == getNameAfter(e.eventArg));
+                var argItem = _executingEvents.LastOrDefault(e => eventName == getNameAfter(e.eventArg));
                 if (argItem != null)
                 {
-                    argItem.triggerList.Add(new TriggerListItem(trigger));
+                    argItem.triggerList.Add(trigger);
                     return;
                 }
             }
@@ -81,21 +80,20 @@ namespace TouhouCardEngine
             addTrigger(eventName, trigger);
         }
         #endregion
-        #endregion
 
-        #region 移除
+        #region 移除触发器
         public bool remove(string eventName, ITrigger trigger)
         {
-            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-            if (eventItem != null && eventItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
+            EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.eventName == eventName);
+            if (eventItem != null && eventItem.triggerList.RemoveAll(ti => ti == trigger) > 0)
             {
                 logger?.logTrace("Trigger", $"注销触发器{trigger}");
                 return true;
             }
             else
             {
-                var argItem = _eventChainList.FirstOrDefault(e => getNameAfter(e.eventArg) == eventName);
-                if (argItem != null && argItem.triggerList.RemoveAll(ti => ti.trigger == trigger) > 0)
+                var argItem = _executingEvents.FirstOrDefault(e => getNameAfter(e.eventArg) == eventName);
+                if (argItem != null && argItem.triggerList.RemoveAll(ti => ti == trigger) > 0)
                 {
                     logger?.logTrace("Trigger", $"注销延迟队列中的触发器{trigger}");
                     return true;
@@ -119,13 +117,13 @@ namespace TouhouCardEngine
         }
         #endregion 移除
 
-        #region 获取
+        #region 获取触发器
         public ITrigger[] getTriggers(string eventName)
         {
-            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
+            EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.eventName == eventName);
             if (eventItem == null)
                 return new ITrigger[0];
-            return eventItem.triggerList.Select(ti => ti.trigger).ToArray();
+            return eventItem.triggerList.ToArray();
         }
         public ITrigger<T>[] getTriggers<T>() where T : IEventArg
         {
@@ -141,39 +139,8 @@ namespace TouhouCardEngine
             return getTriggers(getNameAfter<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
         }
         #endregion
-        #endregion
 
-        #region 事件
-
-        public IEventArg[] getEventChain()
-        {
-            return _eventChainList.Select(ei => ei.eventArg).ToArray();
-        }
-        public IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = true)
-        {
-            return getEvents(includeCanceled, includeUncompleted).ToArray();
-        }
-        public EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = true)
-        {
-            return getRecords(includeCanceled, includeUncompleted).ToArray();
-        }
-        public EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = true)
-        {
-            var record = eventArg.record;
-            if (record == null)
-                return null;
-            if (!includeCanceled && record.isCanceled)
-                return null;
-            if (!includeUncompleted && !record.isCompleted)
-                return null;
-            return record;
-        }
-
-        public IEventArg getEventArg(string[] eventNames, object[] args)
-        {
-            return new DynamicEventArg(eventNames, args);
-        }
-
+        #region 事件名称
         public string getName<T>() where T : IEventArg
         {
             return getName(typeof(T));
@@ -221,7 +188,9 @@ namespace TouhouCardEngine
         {
             return string.Intern("After" + eventName);
         }
+        #endregion
 
+        #region 执行事件
 
         public Task<T> doEvent<T>(string[] eventNames, T eventArg, params object[] args) where T : IEventArg
         {
@@ -260,7 +229,7 @@ namespace TouhouCardEngine
                 eventArg.setParent(currentEvent);
             var record = new EventRecord(eventArg);
             eventArg.record = record;
-            _eventChainList.Add(eventArgItem);
+            _executingEvents.Add(eventArgItem);
             _eventArgList.Add(eventArg);
             _eventRecordList.Add(record);
             eventArg.isCanceled = false;
@@ -301,9 +270,9 @@ namespace TouhouCardEngine
             // 执行事件后触发器。
             await doEventAfter<T>(afterTriggers, eventArg);
 
-            flushAfterEventQueue(eventArgItem, eventArg);
+            flushTriggersAfterEvent(eventArgItem, eventArg);
 
-            _eventChainList.Remove(eventArgItem);
+            _executingEvents.Remove(eventArgItem);
             if (eventArg.isCanceled)
             {
                 eventArg.state = EventState.Canceled;
@@ -326,26 +295,137 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        #region 获取事件
+
+        public IEventArg[] getEventChain()
+        {
+            return _executingEvents.Select(ei => ei.eventArg).ToArray();
+        }
+        public IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = true)
+        {
+            return getEvents(includeCanceled, includeUncompleted).ToArray();
+        }
+        public EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = true)
+        {
+            return getRecords(includeCanceled, includeUncompleted).ToArray();
+        }
+        public EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = true)
+        {
+            var record = eventArg.record;
+            if (record == null)
+                return null;
+            if (!includeCanceled && record.isCanceled)
+                return null;
+            if (!includeUncompleted && !record.isCompleted)
+                return null;
+            return record;
+        }
+        public IEventArg getEventArg(string[] eventNames, object[] args)
+        {
+            return new DynamicEventArg(eventNames, args);
+        }
+
         #endregion
+
+        public void addChange(Change change)
+        {
+            var eventArg = currentEvent;
+            if (eventArg == null)
+                return;
+            var eventRecord = getEventRecord(eventArg);
+            eventRecord.addChange(change);
+        }
+        public void Dispose()
+        {
+            Destroy(gameObject);
+        }
+        #endregion
+
         #region 私有方法
+
+        #region 触发器
         private void addTrigger(string eventName, ITrigger trigger)
         {
-            EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
+            EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.eventName == eventName);
             if (eventItem == null)
             {
                 eventItem = new EventListItem(eventName);
-                _eventList.Add(eventItem);
+                _triggerList.Add(eventItem);
             }
 
-            if (!eventItem.triggerList.Any(ti => ti.trigger == trigger))
+            if (!eventItem.triggerList.Any(ti => ti == trigger))
             {
-                TriggerListItem item = new TriggerListItem(trigger);
-                eventItem.triggerList.Add(item);
+                eventItem.triggerList.Add(trigger);
                 logger?.logTrace("Trigger", $"注册触发器{trigger}");
             }
             else
                 throw new RepeatRegistrationException(eventName, trigger);
         }
+        private async Task runTrigger<T>(ITrigger trigger, IEventArg eventArg) where T : IEventArg
+        {
+            if (trigger is ITrigger<T> triggerT)
+            {
+                logger?.logTrace("Trigger", $"运行触发器{triggerT}");
+                try
+                {
+                    await triggerT.invoke(eventArg);
+                }
+                catch (Exception e)
+                {
+                    logger?.logError("Trigger", $"运行触发器{triggerT}引发异常：{e}");
+                }
+            }
+            else
+            {
+                logger?.logTrace("Trigger", $"运行触发器{trigger}");
+                try
+                {
+                    await trigger.invoke(eventArg);
+                }
+                catch (Exception e)
+                {
+                    logger?.logError("Trigger", $"运行触发器{trigger}引发异常：{e}");
+                }
+            }
+        }
+        private ITrigger[] getEventTriggerList(IEnumerable<string> names, IEventArg eventArg)
+        {
+            List<ITrigger> triggerList = new List<ITrigger>();
+            foreach (string eventName in names)
+            {
+                EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.eventName == eventName);
+                if (eventItem == null)
+                    continue;
+                eventItem.triggerList.Sort((a, b) => a.compare(b, eventArg));
+                foreach (ITrigger item in eventItem.triggerList)
+                {
+                    if (item.checkCondition(eventArg))
+                        triggerList.Add(item);
+                }
+            }
+            triggerList.Sort((a, b) => a.compare(b, eventArg));
+            return triggerList.ToArray();
+        }
+        /// <summary>
+        /// 刷新事件项中的所有触发器队列。
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="eventArg"></param>
+        private void flushTriggersAfterEvent<T>(EventArgItem argItem, T eventArg) where T : IEventArg
+        {
+            var eventName = getNameAfter<T>();
+            var triggers = argItem.triggerList;
+            foreach (var item in triggers)
+            {
+                if (item == null)
+                    continue;
+                addTrigger(eventName, item);
+            }
+            argItem.triggerList.Clear();
+        }
+        #endregion
+
+        #region 执行事件
         private async Task doEventBefore<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T: IEventArg
         {
             //Callback
@@ -409,9 +489,11 @@ namespace TouhouCardEngine
                 await runTrigger<T>(trigger, eventArg);
             }
         }
+        #endregion
+
         private bool eventOutOfLimit<T>() where T : IEventArg
         {
-            if (_eventChainList.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
+            if (_executingEvents.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
             {
                 string eventName = getName<T>();
                 Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
@@ -419,68 +501,6 @@ namespace TouhouCardEngine
                 return true;
             }
             return false;
-        }
-        private async Task runTrigger<T>(ITrigger trigger, IEventArg eventArg) where T:IEventArg
-        {
-            if (trigger is ITrigger<T> triggerT)
-            {
-                logger?.logTrace("Trigger", $"运行触发器{triggerT}");
-                try
-                {
-                    await triggerT.invoke(eventArg);
-                }
-                catch (Exception e)
-                {
-                    logger?.logError("Trigger", $"运行触发器{triggerT}引发异常：{e}");
-                }
-            }
-            else
-            {
-                logger?.logTrace("Trigger", $"运行触发器{trigger}");
-                try
-                {
-                    await trigger.invoke(eventArg);
-                }
-                catch (Exception e)
-                {
-                    logger?.logError("Trigger", $"运行触发器{trigger}引发异常：{e}");
-                }
-            }
-        }
-        private ITrigger[] getEventTriggerList(IEnumerable<string> names, IEventArg eventArg)
-        {
-            List<ITrigger> triggerList = new List<ITrigger>();
-            foreach (string eventName in names)
-            {
-                EventListItem eventItem = _eventList.FirstOrDefault(ei => ei.eventName == eventName);
-                if (eventItem == null)
-                    continue;
-                eventItem.triggerList.Sort((a, b) => a.trigger.compare(b.trigger, eventArg));
-                foreach (TriggerListItem item in eventItem.triggerList)
-                {
-                    if (item.trigger.checkCondition(eventArg))
-                        triggerList.Add(item.trigger);
-                }
-            }
-            triggerList.Sort((a, b) => a.compare(b, eventArg));
-            return triggerList.ToArray();
-        }
-        /// <summary>
-        /// 刷新事件项中的所有触发器队列。
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="eventArg"></param>
-        private void flushAfterEventQueue<T>(EventArgItem argItem, T eventArg) where T : IEventArg
-        {
-            var eventName = getNameAfter<T>();
-            var triggers = argItem.triggerList;
-            foreach (var item in triggers)
-            {
-                if (item == null)
-                    continue;
-                addTrigger(eventName, item.trigger);
-            }
-            argItem.triggerList.Clear();
         }
         private IEnumerable<IEventArg> getEvents(bool includeCanceled, bool includeUncompleted)
         {
@@ -491,78 +511,44 @@ namespace TouhouCardEngine
             return _eventRecordList.Where(r => (includeCanceled || !r.isCanceled) && (includeUncompleted || r.isCompleted));
         }
         #endregion
-        #region 内置类
-        [Serializable]
-        public class EventArgItem
-        {
-#if UNITY_EDITOR
-            [SerializeField]
-            string _eventArg;
-            [Multiline]
-            [SerializeField]
-            string _string;
-#endif
-            public IEventArg eventArg { get; }
-            public List<TriggerListItem> triggerList { get; } = new List<TriggerListItem>();
-            public EventArgItem(IEventArg eventArg)
-            {
-                this.eventArg = eventArg;
-#if UNITY_EDITOR
-                _eventArg = eventArg.GetType().Name;
-                _string = eventArg.ToString();
-#endif
-            }
-        }
 
-        [Serializable]
-        public class EventListItem
-        {
-            [SerializeField]
-            string _eventName;
-            public string eventName
-            {
-                get { return _eventName; }
-            }
-            [SerializeField]
-            List<TriggerListItem> _triggerList = new List<TriggerListItem>();
-            public List<TriggerListItem> triggerList
-            {
-                get { return _triggerList; }
-            }
-            public EventListItem(string eventName)
-            {
-                _eventName = eventName;
-            }
-        }
-
-        [Serializable]
-        public class TriggerListItem
-        {
-            public ITrigger trigger { get; }
-            public TriggerListItem(ITrigger trigger)
-            {
-                this.trigger = trigger;
-            }
-        }
-
-        #endregion
         #region 事件
         public event Action<IEventArg> onEventBefore;
         public event Action<IEventArg> onEventAfter;
         #endregion
+
         #region 属性字段
         public IGame game { get; set; }
         public Shared.ILogger logger { get; set; } = null;
-        public IEventArg currentEvent => _eventChainList.Count > 0 ? _eventChainList[_eventChainList.Count - 1].eventArg : null;
-        [SerializeField]
-        List<EventListItem> _eventList = new List<EventListItem>();
-        [SerializeField]
-        List<EventArgItem> _eventChainList = new List<EventArgItem>();
-        [SerializeField]
-        List<IEventArg> _eventArgList = new List<IEventArg>();
-        [SerializeField]
-        List<EventRecord> _eventRecordList = new List<EventRecord>();
+        public IEventArg currentEvent => _executingEvents.LastOrDefault()?.eventArg;
+        private List<EventListItem> _triggerList = new List<EventListItem>();
+        private List<EventArgItem> _executingEvents = new List<EventArgItem>();
+        private List<IEventArg> _eventArgList = new List<IEventArg>();
+        private List<EventRecord> _eventRecordList = new List<EventRecord>();
         private const int MAX_EVENT_TIMES = 30;
+        #endregion
+
+        #region 内置类
+        public class EventArgItem
+        {
+            public EventArgItem(IEventArg eventArg)
+            {
+                this.eventArg = eventArg;
+            }
+            public IEventArg eventArg { get; }
+            public List<ITrigger> triggerList { get; } = new List<ITrigger>();
+        }
+
+        public class EventListItem
+        {
+            public EventListItem(string eventName)
+            {
+                this.eventName = eventName;
+            }
+            public string eventName { get; }
+            public List<ITrigger> triggerList { get; } = new List<ITrigger>();
+        }
+
         #endregion
     }
     public class Trigger : Trigger<IEventArg>

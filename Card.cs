@@ -65,7 +65,7 @@ namespace TouhouCardEngine
                     var argValue = arg.value;
 
                     argCard.setPropRaw(argName, argValue);
-                    argCard.addChange(new CardPropChange(argCard, argName, beforeValueRaw, argValue));
+                    argCard.addChange(game, new CardPropChange(argCard, argName, beforeValueRaw, argValue));
 
                     game.logger?.logTrace("Game", $"{argCard}的属性{argName}=>{StringHelper.propToString(argValue)}");
                     return Task.CompletedTask;
@@ -353,7 +353,7 @@ namespace TouhouCardEngine
                         arg2 =>
                         {
                             var arg2Card = arg2.card;
-                            arg2Card.addChange(new CardPropChange(arg2Card, arg2.propName, arg2.beforeValue, arg2.value));
+                            arg2Card.addChange(game, new CardPropChange(arg2Card, arg2.propName, arg2.beforeValue, arg2.value));
                             game?.logger?.logTrace(nameof(Card), $"{arg2.card}的属性{arg2.propName}=>{StringHelper.propToString(arg2.value)}");
                             return Task.CompletedTask;
                         });
@@ -374,8 +374,9 @@ namespace TouhouCardEngine
         #endregion
 
         #region 变更
-        public int addChange(CardChange change)
+        public int addChange(IGame game, CardChange change)
         {
+            game.triggers.addChange(change);
             _changes.Add(change);
             return getCurrentHistory();
         }
@@ -435,7 +436,7 @@ namespace TouhouCardEngine
                 }
                 //更换define
                 argCard.setDefineRaw(argDefine);
-                argCard.addChange(new SetCardDefineChange(argCard, argBeforeDefine, argAfterDefine));
+                argCard.addChange(game, new SetCardDefineChange(argCard, argBeforeDefine, argAfterDefine));
                 //激活效果
                 foreach (var effect in argCard.define.getEffects())
                 {

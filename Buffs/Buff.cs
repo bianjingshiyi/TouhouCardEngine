@@ -39,7 +39,7 @@ namespace TouhouCardEngine
                     var argValue = arg.value;
                     var beforeValue = argBuff.getProp(argPropName);
                     argBuff.setPropRaw(argPropName, argValue);
-                    addChange(new BuffPropChange(argBuff, argPropName, beforeValue, argValue));
+                    addChange(game, new BuffPropChange(argBuff, argPropName, beforeValue, argValue));
                     //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
                     updateModifierProps(game);
                     game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
@@ -50,7 +50,7 @@ namespace TouhouCardEngine
             {
                 var beforeValue = getProp(propName);
                 setPropRaw(propName, value);
-                addChange(new BuffPropChange(this, propName, beforeValue, value));
+                addChange(game, new BuffPropChange(this, propName, beforeValue, value));
                 return Task.FromResult<PropertyChangeEventArg>(default);
             }
         }
@@ -81,7 +81,7 @@ namespace TouhouCardEngine
             var beforeCard = this.card;
             var beforeInstanceId = instanceID;
             setInfoRaw(card, id);
-            addChange(new BuffInfoChange(this, beforeCard, card, beforeInstanceId, id));
+            addChange(game, new BuffInfoChange(this, beforeCard, card, beforeInstanceId, id));
         }
         public abstract PropModifier[] getPropertyModifiers(CardEngine game);
         public virtual BuffExistLimit[] getExistLimits(CardEngine game)
@@ -99,8 +99,9 @@ namespace TouhouCardEngine
         void IChangeableBuff.setProp(string propName, object value) => setPropRaw(propName, value);
         #endregion
 
-        private void addChange(BuffChange change)
+        private void addChange(IGame game, BuffChange change)
         {
+            game.triggers.addChange(change);
             _changes.Add(change);
         }
         private void setInfoRaw(Card card, int id)

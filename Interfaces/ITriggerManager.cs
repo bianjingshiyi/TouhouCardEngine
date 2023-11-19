@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using TouhouCardEngine.Histories;
 
 namespace TouhouCardEngine.Interfaces
 {
@@ -32,6 +33,7 @@ namespace TouhouCardEngine.Interfaces
         IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = false);
         EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = false);
         EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = false);
+        void addChange(Change change);
     }
     public interface ITrigger
     {

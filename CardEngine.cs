@@ -389,6 +389,7 @@ namespace TouhouCardEngine
         }
         private void addChange(GameChange change)
         {
+            triggers.addChange(change);
             _changes.Add(change);
         }
         private void setNextRandomIntRaw(int[] results)
