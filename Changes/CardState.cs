@@ -1,6 +1,4 @@
-﻿using NitoriNetwork.Common;
-
-namespace TouhouCardEngine
+﻿namespace TouhouCardEngine.Histories
 {
     public struct CardState
     {

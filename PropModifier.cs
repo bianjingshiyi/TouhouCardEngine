@@ -73,10 +73,6 @@ namespace TouhouCardEngine
                 propName = getPropName(),
                 beforeValue = beforeValue,
                 value = card.getProp(game, getPropName())
-            }, arg =>
-            {
-                card.addHistory(new CardPropHistory(arg.propName, arg.beforeValue, arg.value, arg));
-                return Task.CompletedTask;
             });
             return eventArg;
         }

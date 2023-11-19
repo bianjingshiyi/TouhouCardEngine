@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 using UnityEngine.UIElements;
 
@@ -69,7 +70,7 @@ namespace TouhouCardEngine
                 to.insertCard(card, toPosition);
             card.pile = to;
             card.owner = to?.owner;
-            card.addHistory(new CardMoveHistory(from, to, fromPosition, toPosition, arg));
+            card.addChange(new CardMoveChange(card, from, to, fromPosition, toPosition));
             return true;
         }
         public void shuffle(CardEngine engine)
@@ -149,6 +150,42 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 私有方法
+        /// <summary>
+        /// 简单地将卡牌移动到牌堆，而不进行任何其他逻辑上的更改。
+        /// </summary>
+        /// <param name="card"></param>
+        /// <param name="to"></param>
+        /// <param name="toPosition"></param>
+        /// <returns></returns>
+        internal bool moveCardRaw(Card card, Pile to, int toPosition)
+        {
+            return moveCardRaw(card, this, to, toPosition);
+        }
+        /// <summary>
+        /// 简单地将卡牌移动到牌堆，而不进行任何其他逻辑上的更改。
+        /// </summary>
+        /// <param name="card"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="toPosition"></param>
+        /// <returns></returns>
+        internal static bool moveCardRaw(Card card, Pile from, Pile to, int toPosition)
+        {
+            bool moveSuccess = true;
+            if (from != null)
+            {
+                if (!from.removeCard(card))
+                    moveSuccess = false;
+            }
+
+            if (moveSuccess)
+            {
+                to?.insertCard(card, toPosition);
+                card.pile = to;
+                card.owner = to?.owner;
+            }
+            return moveSuccess;
+        }
         private static void enableCardEffects(IGame game, Card card, Pile from, Pile to)
         {
             if (to == null)

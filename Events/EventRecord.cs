@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
@@ -62,9 +63,18 @@ namespace TouhouCardEngine
             else
                 varDict.Add(varName, value);
         }
+        public void addChange(Change change)
+        {
+            _changes.Add(change);
+        }
+        public Change[] getChanges()
+        {
+            return _changes.ToArray();
+        }
         public IEventArg eventArg { get; internal set; }
         public bool isCanceled { get; internal set; }
         public bool isCompleted { get; set; }
-        Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+        private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+        private List<Change> _changes = new List<Change>();
     }
 }

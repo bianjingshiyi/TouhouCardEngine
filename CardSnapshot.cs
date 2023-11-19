@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class CardSnapshot : ICardData, ITrackableCard
+    public class CardSnapshot : ICardData, IChangeableCard
     {
+        #region 公有方法
+
+        #region 构造器
         public CardSnapshot()
         {
         }
@@ -13,6 +18,7 @@ namespace TouhouCardEngine
         {
             Update(game, card);
         }
+        #endregion 构造器
 
         public void Update(IGame game, Card card)
         {
@@ -23,7 +29,8 @@ namespace TouhouCardEngine
             owner = card.owner;
             position = card.pile?.indexOf(card) ?? -1;
             propDic.Clear();
-            buffs = card.getBuffs();
+            buffs.Clear();
+            buffs.AddRange(card.getBuffs());
             foreach (var pair in card.getAllProps(game))
             {
                 propDic.Add(pair.Key, pair.Value);
@@ -47,31 +54,46 @@ namespace TouhouCardEngine
                 value = define[propName];
             return value;
         }
-        public void setProp(string propName, object value)
+        public Buff[] getBuffs()
+        {
+            return buffs.ToArray();
+        }
+        #endregion
+
+        #region 私有方法
+
+        #region 接口实现
+        T ICardData.getProp<T>(IGame game, string propName) => getProp<T>(propName);
+        object ICardData.getProp(IGame game, string propName) => getProp(propName);
+        void IChangeableCard.setDefine(CardDefine define) => this.define = define;
+        void IChangeableCard.moveTo(Pile to, int toPos)
+        {
+            pile = to;
+            owner = pile?.owner;
+            position = toPos;
+        }
+        void IChangeableCard.setProp(string propName, object value) => setPropRaw(propName, value);
+        void IChangeableCard.addBuff(Buff buff) => addBuffRaw(buff);
+        void IChangeableCard.removeBuff(Buff buff) => removeBuffRaw(buff);
+        #endregion
+        private void setPropRaw(string propName, object value)
         {
             if (propDic.ContainsKey(propName))
                 propDic[propName] = value;
             else
                 propDic.Add(propName, value);
         }
-        public void setDefine(CardDefine define)
+        private void addBuffRaw(Buff buff)
         {
-            this.define = define;
+            buffs.Add(buff);
         }
-        public void moveTo(Pile to, int toPos)
+        private void removeBuffRaw(Buff buff)
         {
-            pile = to;
-            owner = pile?.owner;
-            position = toPos;
+            buffs.Remove(buff);
         }
-        public Buff[] getBuffs()
-        {
-            return buffs;
-        }
-        public void setBuffs(Buff[] buffs)
-        {
-            this.buffs = buffs;
-        }
+        #endregion
+
+        #region 属性字段
         public int id { get; private set; }
         public Card card { get; private set; }
         public Pile pile { get; private set; }
@@ -79,8 +101,7 @@ namespace TouhouCardEngine
         public Player owner { get; private set; }
         public int position { get; private set; }
         private Dictionary<string, object> propDic = new Dictionary<string, object>();
-        private Buff[] buffs = Array.Empty<Buff>();
-        T ICardData.getProp<T>(IGame game, string propName) => getProp<T>(propName);
-        object ICardData.getProp(IGame game, string propName) => getProp(propName);
+        private List<Buff> buffs = new List<Buff>();
+        #endregion
     }
 }

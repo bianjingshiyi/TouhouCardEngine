@@ -376,29 +376,13 @@ namespace TouhouCardEngine
         private int getCardHistoryIndexAfterRecord(Card card, EventRecord record)
         {
             var records = triggers.getEventRecords();
+            var changes = card.getHistories();
+
             // 目标记录索引。
             var targetRecordIndex = Array.IndexOf(records, record);
-            var histories = card.getHistories();
-            int historyIndex = -1; // 历史索引0是卡牌最初的样子。
-            // 倒序推断卡牌历史。
-            for (int i = histories.Length - 1; i >= 0; i--)
-            {
-                var history = histories[i];
-                var rec = triggers.getEventRecord(history.eventArg);
-                if (rec == null)
-                    continue;
-                // 这条卡牌历史的事件，在记录列表中所处的索引。
-                var historyRecordIndex = Array.IndexOf(records, rec);
-
-                // 如果“这条卡牌历史对应的记录”比“目标事件记录”要早，
-                // 说明目标事件记录发生后，这张卡牌的状态在这条卡牌历史之后。
-                if (historyRecordIndex <= targetRecordIndex)
-                {
-                    historyIndex = i;
-                    break;
-                }
-            }
-            return historyIndex;
+            // 获得目标事件记录，以及之前的所有事件记录中，最后一个对该卡牌产生的变更。
+            var olderChange = records.Take(targetRecordIndex + 1).SelectMany(rec => rec.getChanges()).LastOrDefault(change => change.target == card);
+            return olderChange != null ? Array.IndexOf(changes, olderChange) : 0;
         }
         #endregion
         #region 属性字段
