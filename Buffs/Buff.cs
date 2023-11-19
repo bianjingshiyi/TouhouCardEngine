@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     [Serializable]
-    public abstract class Buff : IBuff
+    public abstract class Buff : IBuff, IChangeableBuff
     {
         #region 公有方法
         public Buff()
         {
         }
-        public object getProp(CardEngine game, string propName)
+        #region 属性
+        public object getProp(string propName)
         {
             if (propDict.TryGetValue(propName, out object value))
             {
@@ -19,7 +21,7 @@ namespace TouhouCardEngine
             }
             return null;
         }
-        public T getProp<T>(CardEngine game, string propName)
+        public T getProp<T>(string propName)
         {
             if (propDict.TryGetValue(propName, out object value) && value is T t)
                 return t;
@@ -30,21 +32,25 @@ namespace TouhouCardEngine
         {
             if (game != null && game.triggers != null)
             {
-                return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(game, propName)), arg =>
+                return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), arg =>
                 {
-                    arg.buff.propDict[arg.propName] = arg.value;
+                    var argBuff = arg.buff;
+                    var argPropName = arg.propName;
+                    var argValue = arg.value;
+                    var beforeValue = argBuff.getProp(argPropName);
+                    argBuff.setPropRaw(argPropName, argValue);
+                    addChange(new BuffPropChange(argBuff, argPropName, beforeValue, argValue));
                     //当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，则改变它的值
                     updateModifierProps(game);
-                    game.logger?.logTrace("Game", string.Format("{0}的属性{1}=>{2}",
-                        arg.buff,
-                        arg.propName,
-                        StringHelper.propToString(arg.value)));
+                    game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
                     return Task.CompletedTask;
                 });
             }
             else
             {
-                propDict[propName] = value;
+                var beforeValue = getProp(propName);
+                setPropRaw(propName, value);
+                addChange(new BuffPropChange(this, propName, beforeValue, value));
                 return Task.FromResult<PropertyChangeEventArg>(default);
             }
         }
@@ -69,6 +75,14 @@ namespace TouhouCardEngine
                 }
             }
         }
+        #endregion
+        public void setInfo(IGame game, Card card, int id)
+        {
+            var beforeCard = this.card;
+            var beforeInstanceId = instanceID;
+            setInfoRaw(card, id);
+            addChange(new BuffInfoChange(this, beforeCard, card, beforeInstanceId, id));
+        }
         public abstract PropModifier[] getPropertyModifiers(CardEngine game);
         public virtual BuffExistLimit[] getExistLimits(CardEngine game)
         {
@@ -77,12 +91,38 @@ namespace TouhouCardEngine
         public abstract IEffect[] getEffects(CardEngine game);
         public abstract Buff clone();
         #endregion
-        #region 属性字段
-        public abstract int id { get; }
-        public abstract int instanceID { get; set; }
-        public Card card;
-        public Dictionary<string, object> propDict = new Dictionary<string, object>();
+
+        #region 私有方法
+
+        #region 接口实现
+        void IChangeableBuff.setInfo(Card card, int id) => setInfoRaw(card, id);
+        void IChangeableBuff.setProp(string propName, object value) => setPropRaw(propName, value);
         #endregion
+
+        private void addChange(BuffChange change)
+        {
+            _changes.Add(change);
+        }
+        private void setInfoRaw(Card card, int id)
+        {
+            this.card = card;
+            instanceID = id;
+        }
+        private void setPropRaw(string propName, object value)
+        {
+            propDict[propName] = value;
+        }
+        #endregion
+
+        #region 属性字段
+        [Obsolete]
+        public abstract int id { get; }
+        public int instanceID { get; private set; }
+        public Card card { get; private set; }
+        public Dictionary<string, object> propDict = new Dictionary<string, object>();
+        private List<BuffChange> _changes = new List<BuffChange>();
+        #endregion
+
         #region 嵌套类型
         [EventChildren(typeof(Card.PropChangeEventArg))]
         public class PropertyChangeEventArg : EventArg, ICardEventArg

@@ -52,8 +52,6 @@ namespace Tests
             {
                 return effects1;
             }
-
-            public override int instanceID { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
             public override Buff clone()
             {
                 return new TestBuff();

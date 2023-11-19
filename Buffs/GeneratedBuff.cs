@@ -37,12 +37,6 @@ namespace TouhouCardEngine
         #region 属性字段
         public override int id => defineRef.defineId;
 
-        public override int instanceID
-        {
-            get { return instanceId; }
-            set { instanceId = value; }
-        }
-
         public override PropModifier[] getPropertyModifiers(CardEngine game)
         {
             if (_propertyModifiers == null)

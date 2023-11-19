@@ -164,8 +164,7 @@ namespace TouhouCardEngine
                 game?.logger?.logTrace("Buff", $"{argCard}获得增益{argBuff}");
                 argCard.addBuffRaw(argBuff);
                 var buffId = Math.Max(0, argCard.getBuffs().Max(b => b.instanceID)) + 1;
-                argBuff.card = argCard;
-                argBuff.instanceID = buffId;
+                argBuff.setInfo(game, argCard, buffId);
 
                 CardEngine engine = game as CardEngine;
                 argBuff.updateModifierProps(engine);

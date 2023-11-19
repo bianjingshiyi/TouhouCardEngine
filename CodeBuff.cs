@@ -55,7 +55,6 @@ namespace TouhouCardEngine
         #region 属性字段
         [Obsolete("使用效果中的buff替代")]
         public override int id { get; } = 0;
-        public override int instanceID { get; set; } = -1;
 
         private readonly PropModifier[] modifiers = new PropModifier[0];
 

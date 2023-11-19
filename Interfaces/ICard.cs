@@ -67,6 +67,6 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface IBuff
     {
-        int instanceID { get; set; }
+        int instanceID { get; }
     }
 }
