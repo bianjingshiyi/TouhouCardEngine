@@ -34,29 +34,19 @@ namespace Tests
         }
         class TestBuff : Buff
         {
-            public const int ID = 0x001;
-            public override int id { get; } = ID;
-
-            private readonly PropModifier[] modifiers1 = new PropModifier[]
+            public TestBuff() : base()
             {
-                new IntPropModifier("attack",1)
-            };
-
-            public override PropModifier[] getModifiers(CardEngine game)
-            {
-                return modifiers1;
-            }
-
-            private readonly IPassiveEffect[] effects1;
-
-            public override IEffect[] getEffects(CardEngine game)
-            {
-                return effects1;
+                _modifiers.Add(new IntPropModifier("attack", 1));
             }
             public override Buff clone()
             {
-                return new TestBuff();
+                return new TestBuff(this);
             }
+            TestBuff(TestBuff origin) : base(origin)
+            {
+            }
+            public const int ID = 0x001;
+            public override int id => ID;
         }
     }
 }

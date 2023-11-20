@@ -1,18 +1,36 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
-    [Serializable]
     public abstract class BuffDefine
     {
         #region 公有方法
-        public abstract Task onEnable(CardEngine game, Card card, Buff buff);
-        public abstract Task onDisable(CardEngine game, Card card, Buff buff);
-        public abstract int id { get; }
+
+        #region 构造方法
+        public BuffDefine(int id, IEnumerable<PropModifier> propModifiers = null)
+        {
+            this.id = id;
+            if (propModifiers != null)
+                propModifierList.AddRange(propModifiers);
+        }
+        public BuffDefine()
+        {
+        }
         #endregion
+
+        public abstract IEffect[] getEffects();
+        public override string ToString()
+        {
+            return string.Intern(string.Format("Buff<{0}>", id));
+        }
+        #endregion
+
         #region 属性字段
-        [NonSerialized]
         public long cardPoolId;
+        public int id { get; set; }
+        public List<PropModifier> propModifierList = new List<PropModifier>();
+        public List<BuffExistLimitDefine> existLimitList = new List<BuffExistLimitDefine>();
         #endregion
     }
 }

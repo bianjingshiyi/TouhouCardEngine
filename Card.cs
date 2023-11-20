@@ -86,10 +86,9 @@ namespace TouhouCardEngine
                 value = dt;
             if (!raw)
             {
-                var engine = game as CardEngine;
                 foreach (var buff in buffList)
                 {
-                    foreach (var modifier in buff.getModifiers(engine))
+                    foreach (var modifier in buff.getModifiers())
                     {
                         if (modifier is not PropModifier<T> tModi)
                             continue;
@@ -108,10 +107,9 @@ namespace TouhouCardEngine
                 value = define[propName];
             if (!raw)
             {
-                var engine = game as CardEngine;
                 foreach (var buff in buffList)
                 {
-                    foreach (var modifier in buff.getModifiers(engine))
+                    foreach (var modifier in buff.getModifiers())
                     {
                         value = modifier.calcProp(game, this, buff, propName, value);
                     }
@@ -138,10 +136,9 @@ namespace TouhouCardEngine
             Dictionary<string, object> props = new Dictionary<string, object>(propDic);
             if (!raw)
             {
-                var engine = game as CardEngine;
                 foreach (var buff in buffList)
                 {
-                    foreach (var modifier in buff.getModifiers(engine))
+                    foreach (var modifier in buff.getModifiers())
                     {
                         var propName = modifier.getPropName();
                         if (props.TryGetValue(propName, out var value))
@@ -172,35 +169,13 @@ namespace TouhouCardEngine
                 var argBuff = arg.buff;
 
                 game?.logger?.logTrace("Buff", $"{argCard}获得增益{argBuff}");
+                var buffId = (argCard.buffList.Count > 0 ? argCard.buffList.Max(b => b.instanceID) : 0) + 1;
+                argBuff.card = argCard;
+                argBuff.instanceID = buffId;
                 argCard.addBuffRaw(argBuff);
-                var buffId = Math.Max(0, argCard.getBuffs().Max(b => b.instanceID)) + 1;
-                argBuff.setInfo(game, argCard, buffId);
 
                 CardEngine engine = game as CardEngine;
-                var effects = argBuff.getEffects(engine);
-                var existLimits = argBuff.getExistLimits(engine);
-                if (effects != null)
-                {
-                    foreach (var effect in effects)
-                    {
-                        if (effect is IPileRangedEffect pileEffect)
-                        {
-                            if (pileEffect.piles.Contains(argCard.pile?.name))
-                                await effect.onEnable(game, argCard, argBuff);
-                        }
-                        else
-                        {
-                            await effect.onEnable(game, argCard, argBuff);
-                        }
-                    }
-                }
-                if (existLimits != null)
-                {
-                    foreach (var limit in existLimits)
-                    {
-                        limit.apply(engine, argCard, argBuff);
-                    }
-                }
+                await argBuff.enable(engine, argCard);
             }
             var eventArg = new AddBuffEventArg(this, buff);
             return game.triggers.doEvent(eventArg, func);
@@ -220,25 +195,14 @@ namespace TouhouCardEngine
             return game.triggers.doEvent(eventArg, func);
             async Task func(RemoveBuffEventArg arg)
             {
-                var card = arg.card;
+                var argCard = arg.card;
                 var argBuff = arg.buff;
-                if (card.buffList.Contains(argBuff))
+                if (argCard.buffList.Contains(argBuff))
                 {
-                    game?.logger?.logTrace("Buff", $"{card}移除增益{argBuff}");
-                    card.buffList.Remove(argBuff);
+                    game?.logger?.logTrace("Buff", $"{argCard}移除增益{argBuff}");
+                    argCard.buffList.Remove(argBuff);
                     var engine = game as CardEngine;
-                    var existLimits = argBuff.getExistLimits(engine);
-                    foreach (var effect in argBuff.getEffects(engine))
-                    {
-                        await effect.onDisable(game, card, argBuff);
-                    }
-                    if (existLimits != null)
-                    {
-                        foreach (var limit in existLimits)
-                        {
-                            limit.remove(engine, card, argBuff);
-                        }
-                    }
+                    await argBuff.disable(engine, argCard);
                     arg.removed = true;
                 }
             }
@@ -388,6 +352,7 @@ namespace TouhouCardEngine
         void IChangeableCard.setDefine(CardDefine define) => setDefineRaw(define);
         void IChangeableCard.addBuff(Buff buff) => addBuffRaw(buff);
         void IChangeableCard.removeBuff(Buff buff) => removeBuffRaw(buff);
+        IChangeableBuff IChangeableCard.getBuff(int instanceId) => buffList.FirstOrDefault(b => b.instanceID == instanceId);
         void IChangeableCard.moveTo(Pile to, int position) => pile.moveCardRaw(this, to, position);
         #endregion
 

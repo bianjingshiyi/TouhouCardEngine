@@ -5,6 +5,7 @@ namespace TouhouCardEngine
 {
     public class BuffExistLimit
     {
+        #region 公有方法
         public BuffExistLimit(BuffExistLimitDefine define)
         {
             this.define = define;
@@ -12,7 +13,7 @@ namespace TouhouCardEngine
         public void apply(CardEngine game, Card card, Buff buff)
         {
             string eventName = define.eventName;
-            string triggerName = getEffectName(game, buff, eventName);
+            string triggerName = getEffectName(buff, eventName);
             game.logger.logTrace("BuffExistLimit", $"{card}注册触发器{triggerName}");
             Trigger trigger = new Trigger(
                 args =>
@@ -31,7 +32,7 @@ namespace TouhouCardEngine
         public void remove(CardEngine game, Card card, Buff buff)
         {
             string eventName = define.eventName;
-            string triggerName = getEffectName(game, buff, eventName);
+            string triggerName = getEffectName(buff, eventName);
             game.logger.logTrace("BuffExistLimit", $"{card}注销触发器{triggerName}");
             game.triggers.remove(eventName, trigger);
             trigger = null;
@@ -51,10 +52,22 @@ namespace TouhouCardEngine
         {
             return counter >= define.count;
         }
-        private string getEffectName(CardEngine game, Buff buff, string eventName)
+        public BuffExistLimit clone()
+        {
+            return new BuffExistLimit(this);
+        }
+        #endregion
+
+        #region 私有方法
+        private BuffExistLimit(BuffExistLimit other)
+        {
+            define = other.define;
+            counter = other.counter;
+        }
+        private string getEffectName(Buff buff, string eventName)
         {
             var buffPrefix = buff != null ? buff.instanceID.ToString() : string.Empty;
-            var limits = buff.getExistLimits(game);
+            var limits = buff.getExistLimits();
             var limitIndex = -1;
             if (limits != null)
             {
@@ -62,6 +75,7 @@ namespace TouhouCardEngine
             }
             return $"{buffPrefix}-Limit{limitIndex}-{eventName}";
         }
+        #endregion
 
         public BuffExistLimitDefine define;
         private Trigger trigger;

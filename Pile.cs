@@ -190,7 +190,7 @@ namespace TouhouCardEngine
                 }
                 foreach (var buff in card.getBuffs())
                 {
-                    foreach (var effect in buff.getEffects(game as CardEngine))
+                    foreach (var effect in buff.getEffects())
                     {
                         if (effect is IPileRangedEffect pileEffect)
                         {
@@ -222,7 +222,7 @@ namespace TouhouCardEngine
                 }
                 foreach (var buff in card.getBuffs())
                 {
-                    foreach (var effect in buff.getEffects(game as CardEngine))
+                    foreach (var effect in buff.getEffects())
                     {
                         if (effect is IPileRangedEffect pileEffect)
                         {

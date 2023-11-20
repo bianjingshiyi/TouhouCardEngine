@@ -11,9 +11,19 @@ namespace TouhouCardEngine
     public abstract class Buff : IBuff, IChangeableBuff
     {
         #region 公有方法
-        public Buff()
+
+        #region 构造器
+        public Buff(IEnumerable<PropModifier> modifiers = null, IEnumerable<IEffect> effects = null, IEnumerable<BuffExistLimit> existLimits = null)
         {
+            if (modifiers != null)
+                _modifiers.AddRange(modifiers);
+            if (effects != null)
+                _effects.AddRange(effects);
+            if (existLimits != null)
+                _existLimits.AddRange(existLimits);
         }
+        #endregion
+
         #region 属性
         public object getProp(string propName)
         {
@@ -42,13 +52,13 @@ namespace TouhouCardEngine
                     var beforeValue = argBuff.getProp(argPropName);
 
                     // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
-                    var modifiers = getModifiers(game).Where(m => m.relatedPropName == argPropName);
+                    var modifiers = getModifiers().Where(m => m.relatedPropName == argPropName);
                     (PropModifier modi, object modiBeforeValue, object cardBeforeProp)[] modiBeforeValues =
                         modifiers.Select(m => (m, m.getValue(argBuff), card.getProp(game, m.getPropName()))).ToArray();
 
                     // 设置增益的值。
                     argBuff.setPropRaw(argPropName, argValue);
-                    addChange(game, new BuffPropChange(argBuff, argPropName, beforeValue, argValue));
+                    card.addChange(game, new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
                     game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
 
                     // 更新与该增益属性名绑定的修改器的值。
@@ -63,24 +73,67 @@ namespace TouhouCardEngine
             {
                 var beforeValue = getProp(propName);
                 setPropRaw(propName, value);
-                addChange(game, new BuffPropChange(this, propName, beforeValue, value));
+                card.addChange(game, new BuffPropChange(card, instanceID, propName, beforeValue, value));
                 return Task.FromResult<PropertyChangeEventArg>(default);
             }
         }
         #endregion
-        public void setInfo(IGame game, Card card, int id)
+
+        public PropModifier[] getModifiers()
         {
-            var beforeCard = this.card;
-            var beforeInstanceId = instanceID;
-            setInfoRaw(card, id);
-            addChange(game, new BuffInfoChange(this, beforeCard, card, beforeInstanceId, id));
+            return _modifiers.ToArray();
         }
-        public abstract PropModifier[] getModifiers(CardEngine game);
-        public virtual BuffExistLimit[] getExistLimits(CardEngine game)
+        public IEffect[] getEffects()
         {
-            return null;
+            return _effects.ToArray();
         }
-        public abstract IEffect[] getEffects(CardEngine game);
+        public BuffExistLimit[] getExistLimits()
+        {
+            return _existLimits.ToArray();
+        }
+        public async Task enable(CardEngine game, Card card)
+        {
+            var effects = _effects;
+            var existLimits = _existLimits;
+            if (effects != null)
+            {
+                foreach (var effect in effects)
+                {
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if (pileEffect.piles.Contains(card.pile?.name))
+                            await effect.onEnable(game, card, this);
+                    }
+                    else
+                    {
+                        await effect.onEnable(game, card, this);
+                    }
+                }
+            }
+            if (existLimits != null)
+            {
+                foreach (var limit in existLimits)
+                {
+                    limit.apply(game, card, this);
+                }
+            }
+        }
+        public async Task disable(CardEngine game, Card card)
+        {
+            var effects = _effects;
+            var existLimits = _existLimits;
+            foreach (var effect in effects)
+            {
+                await effect.onDisable(game, card, this);
+            }
+            if (existLimits != null)
+            {
+                foreach (var limit in existLimits)
+                {
+                    limit.remove(game, card, this);
+                }
+            }
+        }
         public abstract Buff clone();
         #endregion
 
@@ -95,24 +148,16 @@ namespace TouhouCardEngine
             {
                 propDict.Add(pair.Key, pair.Value);
             }
+            _modifiers.AddRange(other._modifiers);
+            _existLimits.AddRange(other._existLimits.Select(e => e.clone()));
+            _effects.AddRange(other._effects);
         }
         #endregion
 
         #region 接口实现
-        void IChangeableBuff.setInfo(Card card, int id) => setInfoRaw(card, id);
         void IChangeableBuff.setProp(string propName, object value) => setPropRaw(propName, value);
         #endregion
 
-        private void addChange(IGame game, BuffChange change)
-        {
-            game.triggers.addChange(change);
-            _changes.Add(change);
-        }
-        private void setInfoRaw(Card card, int id)
-        {
-            this.card = card;
-            instanceID = id;
-        }
         private void setPropRaw(string propName, object value)
         {
             propDict[propName] = value;
@@ -122,10 +167,12 @@ namespace TouhouCardEngine
         #region 属性字段
         [Obsolete]
         public abstract int id { get; }
-        public int instanceID { get; private set; }
-        public Card card { get; private set; }
-        public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        private List<BuffChange> _changes = new List<BuffChange>();
+        public int instanceID { get; set; }
+        public Card card { get; set; }
+        protected List<PropModifier> _modifiers = new List<PropModifier>();
+        protected List<IEffect> _effects = new List<IEffect>();
+        protected List<BuffExistLimit> _existLimits = new List<BuffExistLimit>();
+        private Dictionary<string, object> propDict = new Dictionary<string, object>();
         #endregion
 
         #region 嵌套类型

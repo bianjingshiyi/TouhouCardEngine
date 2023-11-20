@@ -1,56 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
+
 namespace TouhouCardEngine
 {
     [Serializable]
     public class GeneratedBuffDefine : BuffDefine
     {
-        #region 公有方法
-        #region 构造方法
-        public GeneratedBuffDefine(int id, IEnumerable<PropModifier> propModifiers = null, IEnumerable<GeneratedEffect> effects = null)
+        public GeneratedBuffDefine(int id, IEnumerable<PropModifier> modifiers = null, IEnumerable<GeneratedEffect> effects = null) : 
+            base(id, modifiers)
         {
-            _id = id;
-            if (propModifiers != null)
-                propModifierList.AddRange(propModifiers);
             if (effects != null)
                 effectList.AddRange(effects);
         }
-        public GeneratedBuffDefine()
+        public GeneratedBuffDefine(long cardPoolId, int id, IEnumerable<PropModifier> modifiers = null, IEnumerable<GeneratedEffect> effects = null) :
+            base(id, modifiers)
         {
-        }
-        #endregion
-        public override async Task onEnable(CardEngine game, Card card, Buff buff)
-        {
-            for (int i = 0; i < effectList.Count; i++)
-            {
-                await effectList[i].onEnable(game, card, buff);
-            }
-        }
-        public override async Task onDisable(CardEngine game, Card card, Buff buff)
-        {
-            for (int i = 0; i < effectList.Count; i++)
-            {
-                await effectList[i].onDisable(game, card, buff);
-            }
-        }
-        public void setId(int id)
-        {
-            _id = id;
-        }
-        public override int id => _id;
-        public override string ToString()
-        {
-            return string.Intern(string.Format("Buff<{0}>", id));
+            this.cardPoolId = cardPoolId;
+            if (effects != null)
+                effectList.AddRange(effects);
         }
 
-        #endregion
-        #region 属性字段
-        public List<PropModifier> propModifierList = new List<PropModifier>();
-        public List<BuffExistLimitDefine> existLimitList = new List<BuffExistLimitDefine>();
+        public override IEffect[] getEffects()
+        {
+            return effectList.ToArray();
+        }
+
         public List<GeneratedEffect> effectList = new List<GeneratedEffect>();
-        private int _id;
-        #endregion
     }
     [Serializable]
     public class SerializableBuffDefine
@@ -71,9 +47,7 @@ namespace TouhouCardEngine
         #endregion
         public GeneratedBuffDefine toGeneratedBuffDefine(INodeDefiner definer)
         {
-            GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine();
-            generatedBuffDefine.setId(id);
-            generatedBuffDefine.propModifierList = propModifierList ?? new List<PropModifier>();
+            GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine(id, propModifierList ?? new List<PropModifier>());
             generatedBuffDefine.existLimitList = existLimitList ?? new List<BuffExistLimitDefine>();
             for (int i = 0; i < effects.Count; i++)
             {

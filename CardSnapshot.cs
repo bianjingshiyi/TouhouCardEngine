@@ -44,10 +44,9 @@ namespace TouhouCardEngine
                 value = dt;
             if (!raw)
             {
-                var engine = game as CardEngine;
                 foreach (var buff in buffs)
                 {
-                    foreach (var modifier in buff.getModifiers(engine))
+                    foreach (var modifier in buff.getModifiers())
                     {
                         if (modifier is not PropModifier<T> tModi)
                             continue;
@@ -66,10 +65,9 @@ namespace TouhouCardEngine
                 value = define[propName];
             if (!raw)
             {
-                var engine = game as CardEngine;
                 foreach (var buff in buffs)
                 {
-                    foreach (var modifier in buff.getModifiers(engine))
+                    foreach (var modifier in buff.getModifiers())
                     {
                         value = modifier.calcProp(game, this, buff, propName, value);
                     }
@@ -98,6 +96,7 @@ namespace TouhouCardEngine
         void IChangeableCard.setProp(string propName, object value) => setPropRaw(propName, value);
         void IChangeableCard.addBuff(Buff buff) => addBuffRaw(buff);
         void IChangeableCard.removeBuff(Buff buff) => removeBuffRaw(buff);
+        IChangeableBuff IChangeableCard.getBuff(int id) => buffs.FirstOrDefault(b => b.instanceID == id);
         #endregion
         private void setPropRaw(string propName, object value)
         {
