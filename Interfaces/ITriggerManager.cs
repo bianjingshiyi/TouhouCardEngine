@@ -55,9 +55,12 @@ namespace TouhouCardEngine.Interfaces
         int repeatTime { get; set; }
         int flowNodeId { get; set; }
         Func<IEventArg, Task> action { get; set; }
-        IEventArg parent { get; set; }
+        IEventArg parent { get; }
+        EventState state { get; set; }
         EventRecord record { get; set; }
-        IEventArg[] getChildEvents();
+        void setParent(IEventArg parent);
+        IEventArg[] getAllChildEvents();
+        IEventArg[] getChildEvents(EventState state);
         /// <summary>
         /// 获取环境变量
         /// </summary>

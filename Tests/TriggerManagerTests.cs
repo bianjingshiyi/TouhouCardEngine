@@ -423,8 +423,8 @@ namespace Tests
                 return Task.CompletedTask;
             });
             Assert.AreEqual(e1, manager.getRecordedEvents()[0]);
-            Assert.AreEqual(e2, e1.getChildEvents()[0]);
-            Assert.AreEqual(e3, e1.getChildEvents()[1]);
+            Assert.AreEqual(e2, e1.getChildEvents(EventState.None)[0]);
+            Assert.AreEqual(e3, e1.getChildEvents(EventState.None)[1]);
         }
         [Test]
         public void getParentEventTest()
@@ -448,13 +448,13 @@ namespace Tests
         }
         class TestEventArg : IEventArg
         {
-            public void addChildEvent(IEventArg eventArg)
-            {
-                childEventList.Add(eventArg);
-            }
-            public IEventArg[] getChildEvents()
+            public IEventArg[] getAllChildEvents()
             {
                 return childEventList.ToArray();
+            }
+            public IEventArg[] getChildEvents(EventState state)
+            {
+                return getAllChildEvents();
             }
             public object getVar(string varName)
             {
@@ -481,22 +481,16 @@ namespace Tests
             public string[] beforeNames { get; set; }
             public int flowNodeId { get; set; }
             List<IEventArg> childEventList { get; } = new List<IEventArg>();
-            public IEventArg parent
-            {
-                get => _parent;
-                set
-                {
-                    _parent = value;
-                    if (value is TestEventArg tea)
-                        tea.childEventList.Add(this);
-                }
-            }
-            IEventArg _parent;
-            public IEventArg[] children
-            {
-                get { return childEventList.ToArray(); }
-            }
+            public IEventArg parent { get; private set; }
             Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+            public EventState state { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+            public void setParent(IEventArg value)
+            {
+                parent = value;
+                if (value is TestEventArg tea)
+                    tea.childEventList.Add(this);
+            }
         }
     }
 }

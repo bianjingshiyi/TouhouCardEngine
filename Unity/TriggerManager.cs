@@ -257,7 +257,7 @@ namespace TouhouCardEngine
                 return default;
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
-                eventArg.parent = currentEvent;
+                eventArg.setParent(currentEvent);
             var record = new EventRecord(eventArg);
             eventArg.record = record;
             _eventChainList.Add(eventArgItem);
@@ -272,38 +272,48 @@ namespace TouhouCardEngine
                 eventArg.flowNodeId = engine.currentFlow?.currentNode?.id ?? -1;
             }
 
+
+            // 事件前
             // 获取事件前触发器。
+            eventArg.state = EventState.Before;
             var beforeNames = eventArg.beforeNames;
             if (beforeNames == null)
                 beforeNames = new string[] { getNameBefore<T>() };
             else
                 beforeNames = beforeNames.Concat(new string[] { getNameBefore<T>() }).Distinct().ToArray();
             IEnumerable<ITrigger> beforeTriggers = getEventTriggerList(beforeNames, eventArg);
-
-            // 事件前
+            // 执行事件前触发器。
             await doEventBefore<T>(beforeTriggers, eventArg);
 
-            // 执行事件
+            // 执行事件。
+            eventArg.state = EventState.Logic;
             await doEventFunc(eventArg, record);
 
+            // 事件后
             // 获取事件后触发器。
+            eventArg.state = EventState.After;
             var afterNames = eventArg.afterNames;
             if (afterNames == null)
                 afterNames = new string[] { getNameAfter<T>() };
             else
                 afterNames = afterNames.Concat(new string[] { getNameAfter<T>() }).Distinct().ToArray();
             IEnumerable<ITrigger> afterTriggers = getEventTriggerList(afterNames, eventArg);
-
-            // 事件后
+            // 执行事件后触发器。
             await doEventAfter<T>(afterTriggers, eventArg);
 
             flushAfterEventQueue(eventArgItem, eventArg);
 
             _eventChainList.Remove(eventArgItem);
             if (eventArg.isCanceled)
+            {
+                eventArg.state = EventState.Canceled;
                 return default;
+            }
             else
+            {
+                eventArg.state = EventState.Completed;
                 return eventArg;
+            }
         }
 
         public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
@@ -636,9 +646,13 @@ namespace TouhouCardEngine
             afterNames = eventNames;
             this.args = args;
         }
-        public IEventArg[] getChildEvents()
+        public IEventArg[] getAllChildEvents()
         {
             return childEventList.ToArray();
+        }
+        public IEventArg[] getChildEvents(EventState state)
+        {
+            return getAllChildEvents();
         }
         public object getVar(string varName)
         {
@@ -654,6 +668,12 @@ namespace TouhouCardEngine
         public void Record(IGame game, EventRecord record)
         {
         }
+        public void setParent(IEventArg value)
+        {
+            parent = value;
+            if (value is DynamicEventArg gea)
+                gea.childEventList.Add(this);
+        }
         public string[] beforeNames { get; set; } = new string[0];
         public string[] afterNames { get; set; } = new string[0];
         public object[] args { get; set; }
@@ -663,22 +683,9 @@ namespace TouhouCardEngine
         public int repeatTime { get; set; } = 0;
         public int flowNodeId { get; set; } = 0;
         public Func<IEventArg, Task> action { get; set; }
-        public IEventArg parent
-        {
-            get => _parnet;
-            set
-            {
-                _parnet = value;
-                if (value is DynamicEventArg gea)
-                    gea.childEventList.Add(this);
-            }
-        }
-        IEventArg _parnet;
-        public IEventArg[] children
-        {
-            get { return childEventList.ToArray(); }
-        }
+        public IEventArg parent { get; private set; }
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();
+        public EventState state { get; set; }
         Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
     }
     public static class EventArgExtension

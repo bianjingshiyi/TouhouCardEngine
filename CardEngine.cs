@@ -446,10 +446,4 @@ namespace TouhouCardEngine
         }
         #endregion
     }
-    public enum EventPhase
-    {
-        logic = 0,
-        before,
-        after
-    }
 }
