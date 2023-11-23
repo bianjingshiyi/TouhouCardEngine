@@ -221,6 +221,19 @@ namespace TouhouCardEngine
             return snapshoter?.snapshot(this, card);
         }
         /// <summary>
+        /// 获取某张卡牌在某事件发生前的快照。
+        /// </summary>
+        /// <param name="card">目标卡牌。</param>
+        /// <param name="record">事件记录。</param>
+        /// <returns>卡牌快照。</returns>
+        public CardSnapshot getCardSnapshotBeforeEvent(Card card, EventRecord record)
+        {
+            var historyIndex = getCardHistoryIndexAfterRecord(card, record);
+            var snapshot = snapshotCard(card);
+            card.revertToHistory(snapshot, historyIndex);
+            return snapshot;
+        }
+        /// <summary>
         /// 获取某张卡牌在某事件发生后的快照。
         /// </summary>
         /// <param name="card">目标卡牌。</param>
@@ -228,29 +241,7 @@ namespace TouhouCardEngine
         /// <returns>卡牌快照。</returns>
         public CardSnapshot getCardSnapshotOfEvent(Card card, EventRecord record)
         {
-            var records = triggers.getEventRecords();
-            // 目标记录索引。
-            var targetRecordIndex = Array.IndexOf(records, record);
-            var histories = card.getHistories();
-            int historyIndex = 0; // 历史索引0是卡牌最初的样子。
-            // 倒序推断卡牌历史。
-            for (int i = histories.Length - 1; i >= 0; i--)
-            {
-                var history = histories[i];
-                var rec = triggers.getEventRecord(history.eventArg);
-                if (rec == null)
-                    continue;
-                // 这条卡牌历史的事件，在记录列表中所处的索引。
-                var historyRecordIndex = Array.IndexOf(records, rec);
-                
-                // 如果“这条卡牌历史对应的记录”比“目标事件记录”要早，
-                // 说明目标事件记录发生后，这张卡牌的状态在这条卡牌历史之后。
-                if (historyRecordIndex <= targetRecordIndex)
-                {
-                    historyIndex = i + 1;
-                    break;
-                }
-            }
+            var historyIndex = getCardHistoryIndexAfterRecord(card, record) + 1;
             var snapshot = snapshotCard(card);
             card.revertToHistory(snapshot, historyIndex);
             return snapshot;
@@ -381,6 +372,33 @@ namespace TouhouCardEngine
             if (playerList.Any(p => p.id == id))
                 id++;
             return id;
+        }
+        private int getCardHistoryIndexAfterRecord(Card card, EventRecord record)
+        {
+            var records = triggers.getEventRecords();
+            // 目标记录索引。
+            var targetRecordIndex = Array.IndexOf(records, record);
+            var histories = card.getHistories();
+            int historyIndex = -1; // 历史索引0是卡牌最初的样子。
+            // 倒序推断卡牌历史。
+            for (int i = histories.Length - 1; i >= 0; i--)
+            {
+                var history = histories[i];
+                var rec = triggers.getEventRecord(history.eventArg);
+                if (rec == null)
+                    continue;
+                // 这条卡牌历史的事件，在记录列表中所处的索引。
+                var historyRecordIndex = Array.IndexOf(records, rec);
+
+                // 如果“这条卡牌历史对应的记录”比“目标事件记录”要早，
+                // 说明目标事件记录发生后，这张卡牌的状态在这条卡牌历史之后。
+                if (historyRecordIndex <= targetRecordIndex)
+                {
+                    historyIndex = i;
+                    break;
+                }
+            }
+            return historyIndex;
         }
         #endregion
         #region 属性字段
