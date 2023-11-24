@@ -73,6 +73,7 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="varName">环境变量名</param>
         /// <param name="value">环境变量值</param>
         void setVar(string varName, object value);
+        string[] getVarNames();
         void Record(IGame game, EventRecord record);
     }
     public interface ICardEventArg : IEventArg

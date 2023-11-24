@@ -39,6 +39,10 @@ namespace TouhouCardEngine
             else
                 return default;
         }
+        public string[] getVarNames()
+        {
+            return varDict.Keys.ToArray();
+        }
         public void setVar(string varName, object value)
         {
             varDict[varName] = value;

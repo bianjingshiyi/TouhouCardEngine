@@ -467,6 +467,10 @@ namespace Tests
             {
                 varDict[varName] = value;
             }
+            public string[] getVarNames()
+            {
+                return varDict.Keys.ToArray();
+            }
             public void Record(IGame game, EventRecord record)
             {
             }
