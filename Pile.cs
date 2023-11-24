@@ -56,23 +56,21 @@ namespace TouhouCardEngine
         }
         public static bool moveCard(Card card, Pile from, Pile to, int toPosition, IEventArg arg)
         {
-            var fromPosition = -1;
-            bool moveSuccess = true;
+            if (!canMove(card, from, to))
+                return false;
+
+            int fromPosition = -1;
             if (from != null)
             {
                 fromPosition = from.indexOf(card);
-                if (!from.removeCard(card))
-                    moveSuccess = false;
+                from.removeCard(card);
             }
-
-            if (moveSuccess)
-            {
-                to?.insertCard(card, toPosition);
-                card.pile = to;
-                card.owner = to?.owner;
-                card.addHistory(new CardMoveHistory(from, to, fromPosition, toPosition, arg));
-            }
-            return moveSuccess;
+            if (to != null)
+                to.insertCard(card, toPosition);
+            card.pile = to;
+            card.owner = to?.owner;
+            card.addHistory(new CardMoveHistory(from, to, fromPosition, toPosition, arg));
+            return true;
         }
         public void shuffle(CardEngine engine)
         {
@@ -83,6 +81,14 @@ namespace TouhouCardEngine
                 cardList[i] = cardList[index];
                 cardList[index] = card;
             }
+        }
+        public static bool canMove(Card card, Pile from, Pile to)
+        {
+            if (from != null && !from.Contains(card))
+                return false;
+            if (to != null && to.isFull)
+                return false;
+            return true;
         }
 
         public Card getCard<T>() where T : CardDefine
