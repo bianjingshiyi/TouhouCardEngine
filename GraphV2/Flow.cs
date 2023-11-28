@@ -251,11 +251,11 @@ namespace TouhouCardEngine
         }
         private async Task<ControlOutput> InvokeNode(Node node)
         {
-
-            if (node == null)
-            {
+            if (currentScope.terminated)
                 return null;
-            }
+            if (node == null)
+                return null;
+
             nodeStack.Push(node);
             try
             {
@@ -366,7 +366,36 @@ namespace TouhouCardEngine
         public void reset()
         {
             parentScope = null;
+            terminated = false;
+            tempVarDict.Clear();
             localVarDict.Clear();
+        }
+        public void terminate()
+        {
+            terminated = true;
+        }
+        public bool tryGetScopeVariable(string key, out object value)
+        {
+            return tempVarDict.TryGetValue(key, out value);
+        }
+        public object getScopeVariable(string key)
+        {
+            if (tryGetScopeVariable(key, out var value))
+            {
+                return value;
+            }
+            return null;
+        }
+        public void setScopeVariable(string key, object value)
+        {
+            if (tempVarDict.ContainsKey(key))
+            {
+                tempVarDict[key] = value;
+            }
+            else
+            {
+                tempVarDict.Add(key, value);
+            }
         }
         public bool tryGetLocalVar(IValuePort port, out object value)
         {
@@ -400,6 +429,8 @@ namespace TouhouCardEngine
             }
         }
         public FlowScope parentScope;
+        public bool terminated { get; private set; }
+        private Dictionary<string, object> tempVarDict = new Dictionary<string, object>();
         private Dictionary<IValuePort, object> localVarDict = new Dictionary<IValuePort, object>();
     }
     public static class FlowScopePool
