@@ -77,6 +77,8 @@ namespace TouhouCardEngine.Interfaces
         void setVar(string varName, object value);
         string[] getVarNames();
         void Record(IGame game, EventRecord record);
+        void addChange(Change change);
+        Change[] getChanges();
     }
     public interface ICardEventArg : IEventArg
     {

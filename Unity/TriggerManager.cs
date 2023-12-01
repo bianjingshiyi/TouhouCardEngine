@@ -658,6 +658,14 @@ namespace TouhouCardEngine
         public void Record(IGame game, EventRecord record)
         {
         }
+        public void addChange(Change change)
+        {
+            _changes.Add(change);
+        }
+        public Change[] getChanges()
+        {
+            return _changes.ToArray();
+        }
         public void setParent(IEventArg value)
         {
             parent = value;
@@ -677,6 +685,7 @@ namespace TouhouCardEngine
         public List<IEventArg> childEventList { get; } = new List<IEventArg>();
         public EventState state { get; set; }
         Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+        private List<Change> _changes = new List<Change>();
     }
     public static class EventArgExtension
     {

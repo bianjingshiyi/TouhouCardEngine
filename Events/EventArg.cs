@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
@@ -45,6 +46,8 @@ namespace TouhouCardEngine
         }
         public void setVar(string varName, object value)
         {
+            if (isCompleted)
+                return;
             varDict[varName] = value;
         }
         /// <summary>
@@ -85,6 +88,14 @@ namespace TouhouCardEngine
             }
         }
         public abstract void Record(IGame game, EventRecord record);
+        public void addChange(Change change)
+        {
+            _changes.Add(change);
+        }
+        public Change[] getChanges()
+        {
+            return _changes.ToArray();
+        }
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
         public object[] args { get; set; }
@@ -100,6 +111,7 @@ namespace TouhouCardEngine
         public IEventArg parent { get; private set; }
         public EventState state { get; set; }
         private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
+        private List<Change> _changes = new List<Change>();
     }
     public class EventVariableInfo
     {

@@ -18,9 +18,9 @@ namespace TouhouCardEngine
         {
             id = 0;
         }
-        public override async Task<ControlOutput> run(Flow flow)
+        public override Task<ControlOutput> run(Flow flow)
         {
-            return getExitPort();
+            return Task.FromResult(getExitPort());
         }
         public void Define()
         {

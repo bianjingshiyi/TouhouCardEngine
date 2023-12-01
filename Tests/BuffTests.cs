@@ -1,8 +1,5 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using TouhouCardEngine;
-using TouhouCardEngine.Interfaces;
 using UnityEngine;
 namespace Tests
 {

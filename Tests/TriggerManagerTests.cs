@@ -8,6 +8,7 @@ using UnityEngine.TestTools;
 using System.Collections.Generic;
 using TouhouCardEngine;
 using TouhouCardEngine.Interfaces;
+using TouhouCardEngine.Histories;
 
 namespace Tests
 {
@@ -474,6 +475,14 @@ namespace Tests
             public void Record(IGame game, EventRecord record)
             {
             }
+            public void addChange(Change change)
+            {
+                _changes.Add(change);
+            }
+            public Change[] getChanges()
+            {
+                return _changes.ToArray();
+            }
             public int intValue { get; set; } = 0;
             public bool isCanceled { get; set; } = false;
             public bool isCompleted { get; set; } = false;
@@ -488,6 +497,7 @@ namespace Tests
             public IEventArg parent { get; private set; }
             Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
             public EventState state { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+            private List<Change> _changes = new List<Change>();
 
             public void setParent(IEventArg value)
             {
