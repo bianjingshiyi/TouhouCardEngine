@@ -26,7 +26,7 @@ namespace Tests
             Assert.True(triggers.Contains(triggerA));
             Assert.True(triggers.Contains(triggerB));
         }
-        public class TestTrigger : Trigger<TestEventArg>
+        public class TestTrigger : Trigger
         {
             public Func<IEventArg, bool> condition { get; set; }
             public IEventArg eventArg;
@@ -35,79 +35,37 @@ namespace Tests
                 this.condition = condition;
                 this.eventArg = eventArg;
             }
-            public override bool checkCondition(TestEventArg arg)
+            public override bool checkCondition(IEventArg arg)
             {
                 if (condition != null)
                     return condition.Invoke(arg);
                 else
                     return true;
             }
-            public override Task invoke(TestEventArg arg)
+            public override Task invoke(IEventArg arg)
             {
                 if (eventArg != null)
-                    eventArg.action?.Invoke(eventArg);
+                    eventArg.execute();
                 return Task.CompletedTask;
             }
         }
-        public class TestEventArg : IEventArg
+        class TestEventDefine : EventDefine
         {
-            public IEventArg[] getAllChildEvents()
+            public TestEventDefine(Action<IEventArg> action)
             {
-                return childEventList.ToArray();
+                this.action = action;
             }
-            public IEventArg[] getChildEvents(EventState state)
+            public override Task execute(IEventArg arg)
             {
-                return getAllChildEvents();
+                action?.Invoke(arg);
+                return Task.CompletedTask;
             }
-            public object getVar(string varName)
-            {
-                if (varDict.TryGetValue(varName, out object value))
-                    return value;
-                else
-                    return null;
-            }
-            public void setVar(string varName, object value)
-            {
-                varDict[varName] = value;
-            }
-            public string[] getVarNames()
-            {
-                return varDict.Keys.ToArray();
-            }
-            public void Record(IGame game, EventRecord record)
+            [Obsolete]
+            public override void Record(CardEngine game, EventArg arg, EventRecord record)
             {
             }
-            public void addChange(Change change)
-            {
-                _changes.Add(change);
-            }
-            public Change[] getChanges()
-            {
-                return _changes.ToArray();
-            }
-            public int intValue { get; set; } = 0;
-            public bool isCanceled { get; set; } = false;
-            public bool isCompleted { get; set; } = false;
-            public EventRecord record { get; set; }
-            public int repeatTime { get; set; } = 0;
-            public Func<IEventArg, Task> action { get; set; }
-            public string[] afterNames { get; set; }
-            public object[] args { get; set; }
-            public string[] beforeNames { get; set; }
-            public int flowNodeId { get; set; }
-            List<IEventArg> childEventList { get; } = new List<IEventArg>();
-            public IEventArg parent { get; private set; }
-            Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
-            public EventState state { get; set; }
             public IGame game { get; set; }
-            private List<Change> _changes = new List<Change>();
-
-            public void setParent(IEventArg value)
-            {
-                parent = value;
-                if (value is TestEventArg tea)
-                    tea.childEventList.Add(this);
-            }
+            public Action<IEventArg> action;
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -8,13 +7,13 @@ namespace TouhouCardEngine
         public static string getName(Type eventType)
         {
             string name = eventType.Name;
-            if (name.EndsWith("EventArg"))
-                name = string.Intern(name.Substring(0, name.Length - 3));
+            if (name.EndsWith("EventDefine"))
+                name = string.Intern(name.Substring(0, name.Length - 6));
             return name;
         }
-        public static string getName(IEventArg eventArg)
+        public static string getName(EventDefine eventDefine)
         {
-            return getName(eventArg.GetType());
+            return getName(eventDefine.GetType());
         }
         public static string getNameBefore(string eventName)
         {
@@ -24,13 +23,13 @@ namespace TouhouCardEngine
         {
             return string.Intern("After" + eventName);
         }
-        public static string getNameBefore(IEventArg eventArg)
+        public static string getNameBefore(EventDefine eventDefine)
         {
-            return getNameBefore(getName(eventArg));
+            return getNameBefore(getName(eventDefine));
         }
-        public static string getNameAfter(IEventArg eventArg)
+        public static string getNameAfter(EventDefine eventDefine)
         {
-            return getNameAfter(getName(eventArg));
+            return getNameAfter(getName(eventDefine));
         }
     }
 }

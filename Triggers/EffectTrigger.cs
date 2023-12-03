@@ -18,7 +18,7 @@ namespace TouhouCardEngine
         }
         public override Task invoke(IEventArg arg)
         {
-            return effect.execute(game, card, buff, arg);
+            return effect.onTrigger(game, card, buff, arg);
         }
         public IGame game;
         public ICard card;

@@ -40,13 +40,6 @@ namespace TouhouCardEngine
         {
             return new BuffExistLimit(this);
         }
-        private void update(CardEngine game, Card card, Buff buff)
-        {
-            if (isFinished())
-            {
-                card.removeBuff(game, buff);
-            }
-        }
         #endregion
 
         #region 私有方法
@@ -54,6 +47,13 @@ namespace TouhouCardEngine
         {
             define = other.define;
             counter = other.counter;
+        }
+        private void update(CardEngine game, Card card, Buff buff)
+        {
+            if (isFinished())
+            {
+                RemoveBuffEventDefine.doEvent(game, card, buff);
+            }
         }
         private string getEffectName(Buff buff, string eventName)
         {

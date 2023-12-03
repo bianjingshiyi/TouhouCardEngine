@@ -27,7 +27,7 @@ namespace TouhouCardEngine.Interfaces
     {
         T getProp<T>(IGame game, string propName, bool raw);
         object getProp(IGame game, string propName, bool raw);
-        Task<IPropChangeEventArg> setProp(IGame game, string propName, object value);
+        void setProp(string propName, object value);
         void enableEffect(IBuff buff, IEffect effect);
         void disableEffect(IBuff buff, IEffect effect);
         bool isEffectEnabled(IBuff buff, IEffect effect);
@@ -40,13 +40,6 @@ namespace TouhouCardEngine.Interfaces
         T getProp<T>(IGame game, string propName);
         object getProp(IGame game, string propName);
         Buff[] getBuffs();
-    }
-    public interface IPropChangeEventArg : IEventArg
-    {
-        ICard card { get; }
-        string propName { get; }
-        object beforeValue { get; }
-        object value { get; }
     }
     public interface IPropModifier
     {

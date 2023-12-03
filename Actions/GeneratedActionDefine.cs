@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -38,40 +39,38 @@ namespace TouhouCardEngine
         }
         public override async Task<ControlOutput> run(Flow flow, Node node)
         {
+            var env = flow.env;
             if (type == NodeDefineType.Event)
             {
-                var env = flow.env;
                 var game = env.game;
-                var eventArg = new GeneratedEventArg(this);
+                var eventDefine = game.getGeneratedEventDefine(new ActionReference(cardPoolId, defineId));
+                var eventArg = new EventArg(game, eventDefine);
+                eventArg.setVar(GeneratedEventDefine.VAR_CARD, env.card);
+                eventArg.setVar(GeneratedEventDefine.VAR_BUFF, env.buff);
+                eventArg.setVar(GeneratedEventDefine.VAR_EFFECT, env.effect); 
 
-                // 为事件设置输入变量。
                 await setEventVariablesByInputValues(flow, node, eventArg);
-                await game.triggers.doEvent(eventArg, async arg =>
-                {
-                    var flowEnv = new FlowEnv(game, env.card, env.buff, eventArg, env.effect);
-                    Flow childFlow = new Flow(flow, flowEnv);
-
-                    setEntryNodeOutputValuesByEventArg(arg, childFlow);
-                    await execute(flow, childFlow, node);
-
-                    // 为事件设置输出变量。
-                    var exitNode = getReturnNode();
-                    foreach (var portDefine in getValueOutputs())
-                    {
-                        var varName = portDefine.name;
-                        var inputPort = exitNode.getInputPort<ValueInput>(varName);
-                        var value = await childFlow.getValue(inputPort);
-                        arg.setVar(varName, value);
-                    }
-                });
+                await game.triggers.doEvent(eventArg);
+                sendOuterNodeOutputValuesByEventArg(flow, node, eventArg);
             }
             else
             {
-                Flow childFlow = new Flow(flow);
+                Flow childFlow = new Flow(env);
                 await setEntryNodeOutputValues(flow, childFlow, node);
-                await execute(flow, childFlow, node);
+                await executeGraph(childFlow);
+                sendOuterNodeOutputValues(flow, childFlow, node);
             }
             return node.getOutputPort<ControlOutput>(exitPortName);
+        }
+        public Task executeGraph(Flow childFlow)
+        {
+            var entryNode = getEntryNode();
+            var port = entryNode.getExitPort();
+            if (port != null)
+            {
+                return childFlow.Run(port);
+            }
+            return Task.CompletedTask;
         }
         #region 事件
         public string[] getAllEventArgVarNames()
@@ -106,7 +105,7 @@ namespace TouhouCardEngine
         }
         public string getEventName()
         {
-            return $"Event({defineId})From({cardPoolId})";
+            return getEventName(cardPoolId, defineId);
         }
         public string getBeforeEventName()
         {
@@ -115,6 +114,16 @@ namespace TouhouCardEngine
         public string getAfterEventName()
         {
             return EventHelper.getNameAfter(getEventName());
+        }
+        public static string getEventName(long cardPoolId, int defineId)
+        {
+            return $"Event({defineId})From({cardPoolId})";
+        }
+        public static string getEventName(ActionReference actionRef)
+        {
+            if (actionRef == null)
+                return null;
+            return getEventName(actionRef.cardPoolId, actionRef.defineId);
         }
         #endregion
 
@@ -188,6 +197,10 @@ namespace TouhouCardEngine
         public void setCategory(string category)
         {
             this.category = category;
+        }
+        public ActionReference getReference()
+        {
+            return new ActionReference(cardPoolId, defineId);
         }
         #endregion
         #region 私有方法
@@ -276,33 +289,37 @@ namespace TouhouCardEngine
             }
         }
         /// <summary>
-        /// 传递变量值：事件-->入口节点的输出值
+        /// 传递变量值：出口节点的输出值-->自定义动作的输出值
         /// </summary>
+        /// <param name="flow">自定义动作的执行流。</param>
+        /// <param name="node">自定义动作节点。</param>
         /// <param name="arg">事件。</param>
-        /// <param name="childFlow">自定义动作内部的执行流。</param>
-        private void setEntryNodeOutputValuesByEventArg(EventArg arg, Flow childFlow)
+        /// <returns></returns>
+        private void sendOuterNodeOutputValues(Flow flow, Flow childFlow, Node node)
         {
-            var entryNode = getEntryNode();
-            foreach (var input in entryNode.getOutputPorts<ValueOutput>())
-            {
-                childFlow.setValue(input, arg.getVar(input.name));
-            }
-        }
-        private async Task execute(Flow flow, Flow childFlow, Node node)
-        {
-            var entryNode = getEntryNode();
-            var port = entryNode.getExitPort();
-            if (port != null)
-            {
-                await childFlow.Run(port);
-            }
-
             var exitNode = getReturnNode();
             foreach (var outputDef in getValueOutputs())
             {
                 var input = exitNode.getInputPort<ValueInput>(outputDef.name);
                 var output = node.getOutputPort<ValueOutput>(outputDef.name);
-                flow.setValue(output, await childFlow.getValue(input));
+                flow.setValue(output, childFlow.getValue(input));
+            }
+        }
+        /// <summary>
+        /// 传递变量值：事件-->自定义动作的输出值
+        /// </summary>
+        /// <param name="flow">自定义动作的执行流。</param>
+        /// <param name="node">自定义动作节点。</param>
+        /// <param name="arg">事件。</param>
+        /// <returns></returns>
+        private void sendOuterNodeOutputValuesByEventArg(Flow flow, Node node, IEventArg arg)
+        {
+            var exitNode = getReturnNode();
+            foreach (var outputDef in getValueOutputs())
+            {
+                var input = exitNode.getInputPort<ValueInput>(outputDef.name);
+                var output = node.getOutputPort<ValueOutput>(outputDef.name);
+                flow.setValue(output, arg.getVar(input.name));
             }
         }
         #endregion
@@ -333,7 +350,7 @@ namespace TouhouCardEngine
         {
             if (generatedActionDefine == null)
                 throw new ArgumentNullException(nameof(generatedActionDefine));
-            id = generatedActionDefine.id;
+            id = generatedActionDefine.defineId;
             type = (int)generatedActionDefine.type;
             category = generatedActionDefine.category;
             name = generatedActionDefine.editorName;

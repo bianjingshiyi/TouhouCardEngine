@@ -185,10 +185,15 @@ namespace TouhouCardEngine
         {
             foreach (var node in actionDefine.graph.nodes)
             {
-                if (node is IDefineNode<GeneratedActionDefine> genNode)
+                if (node is GeneratedActionEntryNode entryNode)
                 {
-                    genNode.define = actionDefine;
-                    genNode.Define();
+                    entryNode.define = actionDefine;
+                    entryNode.Define();
+                }
+                else if (node is GeneratedActionReturnNode returnNode)
+                {
+                    returnNode.define = actionDefine;
+                    returnNode.Define();
                 }
             }
         }

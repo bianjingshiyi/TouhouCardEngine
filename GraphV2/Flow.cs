@@ -18,14 +18,7 @@ namespace TouhouCardEngine
             rootScope = currentScope;
             this.env = env;
         }
-        public Flow(Flow parent, FlowEnv env) : this(env)
-        {
-            this.parent = parent;
-        }
-        public Flow(Flow parent) : this(parent, parent.env)
-        {
-        }
-        public Flow(IGame game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
+        public Flow(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
         {
         }
         #endregion
@@ -304,7 +297,6 @@ namespace TouhouCardEngine
         public Node currentNode => nodeStack.Peek();
         public FlowScope currentScope => scopeStack.Peek();
         public FlowEnv env { get; private set; }
-        public Flow parent { get; private set; }
         private Stack<Node> nodeStack;
         private Stack<FlowScope> scopeStack;
         private Dictionary<string, object> flowVariables = new Dictionary<string, object>();
@@ -314,13 +306,13 @@ namespace TouhouCardEngine
 
     public class FlowEnv
     {
-        public IGame game { get; private set; }
+        public CardEngine game { get; private set; }
         public ICard card { get; private set; }
         public IBuff buff { get; private set; }
         public IEventArg eventArg { get; private set; }
         public IEffect effect { get; private set; }
         private Dictionary<string, object> arguments;
-        public FlowEnv(IGame game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect)
+        public FlowEnv(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect)
         {
             this.game = game;
             this.card = card;

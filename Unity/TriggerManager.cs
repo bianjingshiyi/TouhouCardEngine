@@ -199,14 +199,6 @@ namespace TouhouCardEngine
             return doEvent(eventArg);
         }
 
-        public Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, params object[] args) where T : IEventArg
-        {
-            eventArg.beforeNames = beforeNames;
-            eventArg.afterNames = afterNames;
-            eventArg.args = args;
-            return doEvent(eventArg, action);
-        }
-
         public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
         {
             if (eventArg == null)
@@ -217,7 +209,6 @@ namespace TouhouCardEngine
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 eventArg.setParent(currentEvent);
-            eventArg.game = game;
             var record = new EventRecord(game, eventArg);
             eventArg.record = record;
             _executingEvents.Add(eventArgItem);
@@ -274,15 +265,6 @@ namespace TouhouCardEngine
                 eventArg.state = EventState.Completed;
                 return eventArg;
             }
-        }
-
-        public async Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg
-        {
-            eventArg.action = arg =>
-            {
-                return action?.Invoke((T)arg);
-            };
-            return await doEvent(eventArg);
         }
         #endregion
 
@@ -470,11 +452,11 @@ namespace TouhouCardEngine
             {
                 if (eventArg.isCanceled)
                     break;
-                if (eventArg.action == null)
+                if (eventArg.define == null)
                     break;
                 try
                 {
-                    await eventArg.action.Invoke(eventArg);
+                    await eventArg.execute();
                 }
                 catch (Exception e)
                 {

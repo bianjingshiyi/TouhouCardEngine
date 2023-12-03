@@ -40,32 +40,9 @@ namespace TouhouCardEngine
             else
                 return default;
         }
-        public Task<PropertyChangeEventArg> setProp(CardEngine game, string propName, object value)
+        public void setProp(string propName, object value)
         {
-            return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), async arg =>
-            {
-                var argBuff = arg.buff;
-                var argPropName = arg.propName;
-                var argValue = arg.value;
-                var beforeValue = argBuff.getProp(argPropName);
-
-                // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
-                var modifiers = getModifiers().Where(m => m.relatedPropName == argPropName);
-                CardModifierState[] modiBeforeValues =
-                    modifiers.Select(m => new CardModifierState(game, m, card, argBuff)).ToArray();
-
-                // 设置增益的值。
-                argBuff.setPropRaw(argPropName, argValue);
-                game.triggers.addChange(new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
-                game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
-
-                // 更新与该增益属性名绑定的修改器的值。
-                foreach (var state in modiBeforeValues)
-                {
-                    var modifier = state.modifier;
-                    await modifier.updateValue(game, card, argBuff, state.cardBeforeProperty, state.modifierBeforeValue);
-                }
-            });
+            propDict[propName] = value;
         }
         #endregion
 
@@ -145,13 +122,9 @@ namespace TouhouCardEngine
         #endregion
 
         #region 接口实现
-        void IChangeableBuff.setProp(string propName, object value) => setPropRaw(propName, value);
+        void IChangeableBuff.setProp(string propName, object value) => setProp(propName, value);
         #endregion
 
-        private void setPropRaw(string propName, object value)
-        {
-            propDict[propName] = value;
-        }
         #endregion
 
         #region 属性字段
@@ -166,50 +139,5 @@ namespace TouhouCardEngine
         private Dictionary<string, object> propDict = new Dictionary<string, object>();
         #endregion
 
-        #region 嵌套类型
-        [EventChildren(typeof(Card.PropChangeEventArg))]
-        public class PropertyChangeEventArg : EventArg, ICardEventArg
-        {
-            public PropertyChangeEventArg(Buff buff, string propName, object value, object valueBeforeChanged)
-            {
-                setVar(VAR_BUFF, buff);
-                setVar(VAR_PROPERTY_NAME, propName);
-                setVar(VAR_VALUE, value);
-                setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
-            }
-            public override void Record(IGame game, EventRecord record)
-            {
-                record.setVar(VAR_BUFF, buff);
-                record.setVar(VAR_PROPERTY_NAME, propName);
-                record.setVar(VAR_VALUE, value);
-                record.setVar(VAR_VALUE_BEFORE_CHANGED, valueBeforeChanged);
-            }
-            ICard ICardEventArg.getCard() => buff?.card;
-            public Buff buff
-            {
-                get { return getVar<Buff>(VAR_BUFF); }
-                set { setVar(VAR_BUFF, value); }
-            }
-            public string propName
-            {
-                get { return getVar<string>(VAR_PROPERTY_NAME); }
-                set { setVar(VAR_PROPERTY_NAME, value); }
-            }
-            public object value
-            {
-                get { return getVar(VAR_VALUE); }
-                set { setVar(VAR_VALUE, value); }
-            }
-            public object valueBeforeChanged
-            {
-                get { return getVar(VAR_VALUE_BEFORE_CHANGED); }
-                set { setVar(VAR_VALUE_BEFORE_CHANGED, value); }
-            }
-            public const string VAR_BUFF = "Buff";
-            public const string VAR_PROPERTY_NAME = "PropertyName";
-            public const string VAR_VALUE = "Value";
-            public const string VAR_VALUE_BEFORE_CHANGED = "ValueBeforeChanged";
-        }
-        #endregion
     }
 }

@@ -8,7 +8,7 @@ namespace TouhouCardEngine
     public abstract class PropModifier : IPropModifier
     {
         #region 公有方法
-        public async Task updateValue(IGame game, Card card, Buff buff, object beforeCardProp, object beforeValue)
+        public async Task updateValue(CardEngine game, Card card, Buff buff, object beforeCardProp, object beforeValue)
         {
             await updateCardProp(game, card, beforeCardProp);
             await updateModifierValue(game, card, buff, beforeValue);
@@ -28,19 +28,13 @@ namespace TouhouCardEngine
             }
             return getDefaultValue();
         }
-        public Task<Card.PropChangeEventArg> updateCardProp(IGame game, Card card, object beforeCardProp)
+        public Task<EventArg> updateCardProp(CardEngine game, Card card, object beforeCardProp)
         {
             var propName = getPropName();
             var afterCardProp = card.getProp(game, propName);
             if (Equals(beforeCardProp, afterCardProp))
-                return Task.FromResult<Card.PropChangeEventArg>(null);
-            return game.triggers.doEvent(new Card.PropChangeEventArg()
-            {
-                card = card,
-                propName = propName,
-                beforeValue = beforeCardProp,
-                value = afterCardProp
-            });
+                return Task.FromResult<EventArg>(null);
+            return CardPropChangeEventDefine.doEvent(game, card, propName, beforeCardProp, afterCardProp);
         }
         public abstract SerializablePropModifier serialize();
 

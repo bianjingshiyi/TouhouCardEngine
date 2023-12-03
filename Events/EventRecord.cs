@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
+using UnityEngine;
 
 namespace TouhouCardEngine
 {
@@ -46,6 +47,10 @@ namespace TouhouCardEngine
             CardState state = new CardState(card, stateIdx);
             setVar(varName, state);
         }
+        public void setCardState(string varName, IEventArg eventArg)
+        {
+            setCardState(varName, eventArg.getVar<Card>(varName));
+        }
         public void setCardStates(string varName, IEnumerable<Card> cards)
         {
             if (cards == null)
@@ -65,12 +70,20 @@ namespace TouhouCardEngine
             }
             setVar(varName, states);
         }
+        public void setCardStates(string varName, IEventArg eventArg)
+        {
+            setCardStates(varName, eventArg.getVar<IEnumerable<Card>>(varName));
+        }
         public void setVar(string varName, object value)
         {
             if (varDict.ContainsKey(varName))
                 varDict[varName] = value;
             else
                 varDict.Add(varName, value);
+        }
+        public void setVar(string varName, IEventArg eventArg)
+        {
+            setVar(varName, eventArg.getVar(varName));
         }
         #endregion
 

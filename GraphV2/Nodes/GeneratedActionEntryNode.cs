@@ -6,7 +6,7 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public class GeneratedActionEntryNode : Node, IDefineNode<GeneratedActionDefine>
+    public class GeneratedActionEntryNode : Node
     {
         #region 公有方法
         public GeneratedActionEntryNode(int id, GeneratedActionDefine actionDefine)

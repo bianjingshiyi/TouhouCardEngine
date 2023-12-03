@@ -7,8 +7,13 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    public abstract class EventArg : IEventArg
+    public class EventArg : IEventArg
     {
+        public EventArg(CardEngine game, EventDefine define)
+        {
+            this.game = game;
+            this.define = define;
+        }
         public IEventArg[] getAllChildEvents()
         {
             return beforeChildrenEvents.Concat(logicChildrenEvents).Concat(afterChildrenEvents).ToArray();
@@ -54,17 +59,21 @@ namespace TouhouCardEngine
         /// 获取事件发生时的参数信息。
         /// </summary>
         /// <returns></returns>
-        public virtual EventVariableInfo[] getBeforeEventVarInfos()
+        public EventVariableInfo[] getBeforeEventVarInfos()
         {
-            return null;
+            return define.beforeVariableInfos;
         }
         /// <summary>
         /// 获取事件发生后的参数信息。
         /// </summary>
         /// <returns></returns>
-        public virtual EventVariableInfo[] getAfterEventVarInfos()
+        public EventVariableInfo[] getAfterEventVarInfos()
         {
-            return null;
+            return define.afterVariableInfos;
+        }
+        public Task execute()
+        {
+            return define.execute(this);
         }
         public void setParent(IEventArg parent)
         {
@@ -87,7 +96,11 @@ namespace TouhouCardEngine
                 }
             }
         }
-        public abstract void Record(IGame game, EventRecord record);
+        [Obsolete]
+        public void Record(CardEngine game, EventRecord record)
+        {
+            define.Record(game, this, record);
+        }
         public void addChange(Change change)
         {
             _changes.Add(change);
@@ -95,6 +108,12 @@ namespace TouhouCardEngine
         public Change[] getChanges()
         {
             return _changes.ToArray();
+        }
+        public override string ToString()
+        {
+            if (define == null)
+                return "未知事件";
+            return define.toString(this);
         }
         public string[] beforeNames { get; set; }
         public string[] afterNames { get; set; }
@@ -111,9 +130,10 @@ namespace TouhouCardEngine
         public List<IEventArg> afterChildrenEvents { get; } = new List<IEventArg>();
         public IEventArg parent { get; private set; }
         public EventState state { get; set; }
-        public IGame game { get; set; }
         private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
         private List<Change> _changes = new List<Change>();
+        public EventDefine define { get; set; }
+        public CardEngine game { get; set; }
     }
     public class EventVariableInfo
     {

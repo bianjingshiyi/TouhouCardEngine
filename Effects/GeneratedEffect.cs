@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public abstract class GeneratedEffect : IEffect
+    public abstract class GeneratedEffect : IEffect, ITriggerEventEffect
     {
         #region 公有方法
         #region 构造方法
@@ -24,11 +24,7 @@ namespace TouhouCardEngine
 
             if (onEnableAction != null)
             {
-                await game.triggers.doEvent(new EffectTriggerEventArg(card as Card, buff as Buff, this), arg =>
-                {
-                    var flow = new Flow(game, card, buff, null, this);
-                    return game.runActions(flow, onEnableAction);
-                });
+                await EffectTriggerEventDefine.doEvent(game as CardEngine, card as Card, buff as Buff, null, this, onEnableAction.name);
             }
 
             // 设置该Effect已被启用。
@@ -44,11 +40,7 @@ namespace TouhouCardEngine
 
             if (onDisableAction != null)
             {
-                await game.triggers.doEvent(new EffectTriggerEventArg(card as Card, buff as Buff, this), arg =>
-                {
-                    var flow = new Flow(game, card, buff, null, this);
-                    return game.runActions(flow, onDisableAction);
-                });
+                await EffectTriggerEventDefine.doEvent(game as CardEngine, card as Card, buff as Buff, null, this, onDisableAction.name);
             }
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
@@ -117,14 +109,18 @@ namespace TouhouCardEngine
         public virtual void Init()
         {
         }
+        public Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg)
+        {
+            return EffectTriggerEventDefine.doEvent(game as CardEngine, card as Card, buff as Buff, eventArg as EventArg, this, executePort?.name);
+        }
         public abstract void setTags(params string[] tags);
         public abstract string[] getTags();
         public abstract bool hasTag(string tag);
         public abstract bool checkCondition(IGame game, ICard card, IBuff buff, IEventArg eventArg);
-        public abstract Task execute(IGame game, ICard card, IBuff buff, IEventArg eventArg);
         public abstract SerializableEffect Serialize();
         #endregion
         #region 私有方法
+        Task ITriggerEventEffect.runEffect(CardEngine game, Card card, Buff buff, EventArg arg, string portName) => runEffect(game, card, buff, arg, portName);
         protected virtual IEnumerable<ITraversable> getTraversableProps()
         {
             if (onEnableAction != null)
@@ -132,6 +128,7 @@ namespace TouhouCardEngine
             if (onDisableAction != null)
                 yield return onDisableAction;
         }
+        protected abstract Task runEffect(CardEngine game, Card card, Buff buff, EventArg arg, string portName);
         #endregion
         #region 属性字段
         public string name;
@@ -139,6 +136,7 @@ namespace TouhouCardEngine
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         public virtual ControlOutput onEnableAction => null;
         public virtual ControlOutput onDisableAction => null;
+        public abstract ControlOutput executePort { get; }
         #endregion
     }
 

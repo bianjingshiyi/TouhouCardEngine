@@ -24,9 +24,7 @@ namespace TouhouCardEngine.Interfaces
         bool removeAfter<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggersBefore<T>() where T : IEventArg;
         ITrigger<T>[] getTriggersAfter<T>() where T : IEventArg;
-        Task<T> doEvent<T>(T eventArg, Func<T, Task> action) where T : IEventArg;
         Task<T> doEvent<T>(string[] eventNames, T eventArg, object[] args) where T : IEventArg;
-        Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, object[] args) where T : IEventArg;
         event Action<IEventArg> onEventBefore;
         event Action<IEventArg> onEventAfter;
         IEventArg currentEvent { get; }
@@ -54,7 +52,6 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface IEventArg
     {
-        IGame game { get; set; }
         string[] beforeNames { get; set; }
         string[] afterNames { get; set; }
         object[] args { get; set; }
@@ -62,7 +59,6 @@ namespace TouhouCardEngine.Interfaces
         bool isCompleted { get; set; }
         int repeatTime { get; set; }
         int flowNodeId { get; set; }
-        Func<IEventArg, Task> action { get; set; }
         IEventArg parent { get; }
         EventState state { get; set; }
         [Obsolete]
@@ -76,6 +72,7 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="varName">变量名</param>
         /// <returns>环境变量值</returns>
         object getVar(string varName);
+        T getVar<T>(string varName);
         /// <summary>
         /// 设置环境变量
         /// </summary>
@@ -83,16 +80,19 @@ namespace TouhouCardEngine.Interfaces
         /// <param name="value">环境变量值</param>
         void setVar(string varName, object value);
         string[] getVarNames();
-        void Record(IGame game, EventRecord record);
+        void Record(CardEngine game, EventRecord record);
         void addChange(Change change);
         Change[] getChanges();
+        Task execute();
+        EventDefine define { get; }
+        CardEngine game { get; }
     }
-    public interface ICardEventArg : IEventArg
+    public interface ICardEventDefine
     {
-        ICard getCard();
+        ICard getCard(IEventArg arg);
     }
-    public interface IMassCardEventArg : IEventArg
+    public interface IMassCardEventDefine
     {
-        ICard[] getCards();
+        ICard[] getCards(IEventArg arg);
     }
 }
