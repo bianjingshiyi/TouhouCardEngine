@@ -1,5 +1,8 @@
-﻿namespace TouhouCardEngine.Histories
+﻿using System;
+
+namespace TouhouCardEngine.Histories
 {
+    [Obsolete]
     public struct CardState
     {
         public Card card;

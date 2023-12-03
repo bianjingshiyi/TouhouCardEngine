@@ -176,11 +176,11 @@ namespace TouhouCardEngine
         /// 获取某张卡牌在某事件发生前的快照。
         /// </summary>
         /// <param name="card">目标卡牌。</param>
-        /// <param name="record">事件记录。</param>
+        /// <param name="arg">事件。</param>
         /// <returns>卡牌快照。</returns>
-        public CardSnapshot getCardSnapshotBeforeEvent(Card card, EventRecord record)
+        public CardSnapshot getCardSnapshotBeforeEvent(Card card, IEventArg arg)
         {
-            var eventIndex = triggers.getEventIndexBefore(record.eventArg);
+            var eventIndex = triggers.getEventIndexBefore(arg);
             var snapshot = snapshotCard(card);
             triggers.revertChanges(snapshot, eventIndex);
             return snapshot;
@@ -189,11 +189,11 @@ namespace TouhouCardEngine
         /// 获取某张卡牌在某事件发生后的快照。
         /// </summary>
         /// <param name="card">目标卡牌。</param>
-        /// <param name="record">事件记录。</param>
+        /// <param name="arg">事件。</param>
         /// <returns>卡牌快照。</returns>
-        public CardSnapshot getCardSnapshotOfEvent(Card card, EventRecord record)
+        public CardSnapshot getCardSnapshotAfterEvent(Card card, IEventArg arg)
         {
-            var eventIndex = triggers.getEventIndexAfter(record.eventArg);
+            var eventIndex = triggers.getEventIndexAfter(arg);
             var snapshot = snapshotCard(card);
             triggers.revertChanges(snapshot, eventIndex);
             return snapshot;
@@ -436,18 +436,6 @@ namespace TouhouCardEngine
 
         private Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
         private Dictionary<int, Card> cardIdDic { get; } = new Dictionary<int, Card>();
-        #endregion
-
-        #region 内部类
-        public class CommandEventArg : EventArg
-        {
-            public int playerId;
-            public string commandName;
-            public object[] commandArgs;
-            public override void Record(IGame game, EventRecord record)
-            {
-            }
-        }
         #endregion
     }
 }

@@ -411,9 +411,21 @@ namespace TouhouCardEngine
         #region 事件
         public class SetDefineEventArg : EventArg, ICardEventArg
         {
-            public CardDefine beforeDefine;
-            public Card card;
-            public CardDefine afterDefine;
+            public CardDefine beforeDefine
+            {
+                get => getVar<CardDefine>(VAR_BEFORE_DEFINE);
+                set => setVar(VAR_BEFORE_DEFINE, value);
+            }
+            public Card card
+            {
+                get => getVar<Card>(VAR_CARD);
+                set => setVar(VAR_CARD, value);
+            }
+            public CardDefine afterDefine
+            {
+                get => getVar<CardDefine>(VAR_AFTER_DEFINE);
+                set => setVar(VAR_AFTER_DEFINE, value);
+            }
             ICard ICardEventArg.getCard()
             {
                 return card;
@@ -571,10 +583,26 @@ namespace TouhouCardEngine
         }
         public class PropChangeEventArg : EventArg, IPropChangeEventArg, ICardEventArg
         {
-            public Card card;
-            public string propName;
-            public object beforeValue;
-            public object value;
+            public Card card
+            {
+                get => getVar<Card>(VAR_CARD);
+                set => setVar(VAR_CARD, value);
+            }
+            public string propName
+            {
+                get => getVar<string>(VAR_PROP_NAME);
+                set => setVar(VAR_PROP_NAME, value);
+            }
+            public object beforeValue
+            {
+                get => getVar<object>(VAR_VALUE_BEFORE);
+                set => setVar(VAR_VALUE_BEFORE, value);
+            }
+            public object value
+            {
+                get => getVar<object>(VAR_VALUE_AFTER);
+                set => setVar(VAR_VALUE_AFTER, value);
+            }
             ICard ICardEventArg.getCard() => card;
             ICard IPropChangeEventArg.card => card;
             string IPropChangeEventArg.propName => propName;

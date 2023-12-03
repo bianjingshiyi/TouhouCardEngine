@@ -15,7 +15,6 @@ namespace TouhouCardEngine
         public abstract Task onGameRun(CardEngine game);
         public abstract Task onGameStart(CardEngine game);
         public abstract Task onPlayerInit(CardEngine game, Player player);
-        public abstract Task onPlayerCommand(CardEngine game, Player player, CardEngine.CommandEventArg command);
         public abstract Task onGameClose(CardEngine game);
         public Dictionary<long, Dictionary<int, CardDefine>> cardDict;
     }

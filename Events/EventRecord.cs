@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
+    [Obsolete]
     public class EventRecord
     {
         #region 公有方法

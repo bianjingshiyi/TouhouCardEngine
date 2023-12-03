@@ -102,6 +102,7 @@ namespace TouhouCardEngine
         public int flowNodeId { get; set; }
         public bool isCanceled { get; set; }
         public bool isCompleted { get; set; }
+        [Obsolete]
         public EventRecord record { get; set; }
         public int repeatTime { get; set; }
         public Func<IEventArg, Task> action { get; set; }

@@ -31,7 +31,9 @@ namespace TouhouCardEngine.Interfaces
         IEventArg currentEvent { get; }
         IEventArg[] getEventChain();
         IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = false);
+        [Obsolete]
         EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = false);
+        [Obsolete]
         EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = false);
         int getCurrentEventIndex();
         int getEventIndexBefore(IEventArg eventArg);
@@ -63,6 +65,7 @@ namespace TouhouCardEngine.Interfaces
         Func<IEventArg, Task> action { get; set; }
         IEventArg parent { get; }
         EventState state { get; set; }
+        [Obsolete]
         EventRecord record { get; set; }
         void setParent(IEventArg parent);
         IEventArg[] getAllChildEvents();
