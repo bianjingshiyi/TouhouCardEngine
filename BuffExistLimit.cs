@@ -1,5 +1,4 @@
 ﻿using System;
-using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -12,19 +11,19 @@ namespace TouhouCardEngine
         }
         public void apply(CardEngine game, Card card, Buff buff)
         {
-            string eventName = define.eventName;
-            string triggerName = getEffectName(buff, eventName);
+            var triggerTime = define.triggerTime;
+            string triggerName = getEffectName(buff, triggerTime);
             game.logger.logTrace("BuffExistLimit", $"{card}注册触发器{triggerName}");
             Trigger trigger = new BuffExistLimitTrigger(game, card, buff, this);
             this.trigger = trigger;
-            game.triggers.registerDelayed(eventName, trigger);
+            game.triggers.registerDelayed(triggerTime, trigger);
         }
         public void remove(CardEngine game, Card card, Buff buff)
         {
-            string eventName = define.eventName;
-            string triggerName = getEffectName(buff, eventName);
+            var triggerTime = define.triggerTime;
+            string triggerName = getEffectName(buff, triggerTime);
             game.logger.logTrace("BuffExistLimit", $"{card}注销触发器{triggerName}");
-            game.triggers.remove(eventName, trigger);
+            game.triggers.remove(triggerTime, trigger);
             trigger = null;
         }
         public void addCounter(CardEngine game, Card card, Buff buff)
@@ -55,7 +54,7 @@ namespace TouhouCardEngine
                 RemoveBuffEventDefine.doEvent(game, card, buff);
             }
         }
-        private string getEffectName(Buff buff, string eventName)
+        private string getEffectName(Buff buff, EventTriggerTime triggerTime)
         {
             var buffPrefix = buff != null ? buff.instanceID.ToString() : string.Empty;
             var limits = buff.getExistLimits();
@@ -64,7 +63,7 @@ namespace TouhouCardEngine
             {
                 limitIndex = Array.IndexOf(limits, this);
             }
-            return $"{buffPrefix}-Limit{limitIndex}-{eventName}";
+            return $"{buffPrefix}-Limit{limitIndex}-{triggerTime}";
         }
         #endregion
 

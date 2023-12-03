@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -19,10 +18,11 @@ namespace Tests
             TestTrigger triggerA = new TestTrigger();
             TestTrigger triggerB = new TestTrigger();
 
-            manager.register("BeforeTestEvent", triggerA);
-            manager.register("BeforeTestEvent", triggerB);
+            var triggerTime = new EventTriggerTime(new EventReference(0, "TestEvent"), EventTriggerTimeType.Before);
+            manager.register(triggerTime, triggerA);
+            manager.register(triggerTime, triggerB);
 
-            var triggers = manager.getTriggers("BeforeTestEvent");
+            var triggers = manager.getTriggers(triggerTime);
             Assert.True(triggers.Contains(triggerA));
             Assert.True(triggers.Contains(triggerB));
         }

@@ -6,10 +6,10 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface ITriggerManager : IDisposable
     {
-        void register(string eventName, ITrigger trigger);
-        void registerDelayed(string eventName, ITrigger trigger);
-        bool remove(string eventName, ITrigger trigger);
-        ITrigger[] getTriggers(string eventName);
+        void register(EventTriggerTime triggerTime, ITrigger trigger);
+        void registerDelayed(EventTriggerTime triggerTime, ITrigger trigger);
+        bool remove(EventTriggerTime triggerTime, ITrigger trigger);
+        ITrigger[] getTriggers(EventTriggerTime triggerTime);
         Task<EventArg> doEvent(EventArg eventArg);
         event Action<IEventArg> onEventBefore;
         event Action<IEventArg> onEventAfter;
@@ -33,9 +33,6 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface IEventArg
     {
-        string[] beforeNames { get; set; }
-        string[] afterNames { get; set; }
-        object[] args { get; set; }
         bool isCanceled { get; set; }
         bool isCompleted { get; set; }
         int repeatTime { get; set; }

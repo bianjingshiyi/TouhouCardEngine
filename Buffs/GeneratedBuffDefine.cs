@@ -38,8 +38,12 @@ namespace TouhouCardEngine
             if (buffDefine == null)
                 throw new ArgumentNullException(nameof(buffDefine));
             id = buffDefine.id;
-            propModifierList = buffDefine.propModifierList != null ? buffDefine.propModifierList.ConvertAll(p => p.serialize()) : new List<SerializablePropModifier>();
-            existLimitList = buffDefine.existLimitList != null ? buffDefine.existLimitList : new List<BuffExistLimitDefine>();
+            propModifierList = buffDefine.propModifierList != null 
+                ? buffDefine.propModifierList.ConvertAll(p => p.serialize()) 
+                : new List<SerializablePropModifier>();
+            existLimitList = buffDefine.existLimitList != null 
+                ? buffDefine.existLimitList.ConvertAll(p => new SerializableBuffExistLimitDefine(p)) 
+                : new List<SerializableBuffExistLimitDefine>();
             effects = buffDefine.effectList != null ?
                 buffDefine.effectList.ConvertAll(e => e?.Serialize()) :
                 new List<SerializableEffect>();
@@ -48,7 +52,7 @@ namespace TouhouCardEngine
         public GeneratedBuffDefine toGeneratedBuffDefine(INodeDefiner definer)
         {
             GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine(id, propModifierList.ConvertAll(p => p.deserialize()) ?? new List<PropModifier>());
-            generatedBuffDefine.existLimitList = existLimitList ?? new List<BuffExistLimitDefine>();
+            generatedBuffDefine.existLimitList = existLimitList?.ConvertAll(e => e.toDefine()) ?? new List<BuffExistLimitDefine>();
             for (int i = 0; i < effects.Count; i++)
             {
                 if (effects[i] == null)
@@ -68,7 +72,7 @@ namespace TouhouCardEngine
         #region 属性字段
         public int id;
         public List<SerializablePropModifier> propModifierList;
-        public List<BuffExistLimitDefine> existLimitList;
+        public List<SerializableBuffExistLimitDefine> existLimitList;
         public List<SerializableEffect> effects;
         [Obsolete]
         public List<SerializableGeneratedEffect> effectList;
