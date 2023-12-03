@@ -29,26 +29,6 @@ namespace TouhouCardEngine
             addTrigger(eventName, trigger);
         }
 
-        public void register<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getName<T>(), trigger);
-        }
-
-        public void registerBefore<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getNameBefore<T>(), trigger);
-        }
-
-        public void registerAfter<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            register(getNameAfter<T>(), trigger);
-        }
-
-        public void registerAfter<T>(Trigger<T> trigger) where T : IEventArg
-        {
-            registerAfter(trigger as ITrigger<T>);
-        }
-
         #endregion
 
         #region 延迟注册触发器
@@ -68,7 +48,7 @@ namespace TouhouCardEngine
             // 如果正在执行事件，并且是“XX后”事件，将触发器加入到队列中，并在之后刷新队列。
             if (_executingEvents.Count > 0)
             {
-                var argItem = _executingEvents.LastOrDefault(e => eventName == getNameAfter(e.eventArg));
+                var argItem = _executingEvents.LastOrDefault(e => eventName == EventHelper.getNameAfter(e.eventArg.define));
                 if (argItem != null)
                 {
                     argItem.triggerList.Add(trigger);
@@ -92,7 +72,7 @@ namespace TouhouCardEngine
             }
             else
             {
-                var argItem = _executingEvents.FirstOrDefault(e => getNameAfter(e.eventArg) == eventName);
+                var argItem = _executingEvents.FirstOrDefault(e => EventHelper.getNameAfter(e.eventArg.define) == eventName);
                 if (argItem != null && argItem.triggerList.RemoveAll(ti => ti == trigger) > 0)
                 {
                     logger?.logTrace("Trigger", $"注销延迟队列中的触发器{trigger}");
@@ -100,20 +80,6 @@ namespace TouhouCardEngine
                 }
             }
             return false;
-        }
-        public bool remove<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getName<T>(), trigger);
-        }
-
-        public bool removeBefore<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getNameBefore<T>(), trigger);
-        }
-
-        public bool removeAfter<T>(ITrigger<T> trigger) where T : IEventArg
-        {
-            return remove(getNameAfter<T>(), trigger);
         }
         #endregion 移除
 
@@ -125,86 +91,15 @@ namespace TouhouCardEngine
                 return new ITrigger[0];
             return eventItem.triggerList.ToArray();
         }
-        public ITrigger<T>[] getTriggers<T>() where T : IEventArg
-        {
-            return getTriggers(getName<T>()).OfType<ITrigger<T>>().ToArray();
-        }
-        public ITrigger<T>[] getTriggersBefore<T>() where T : IEventArg
-        {
-            return getTriggers(getNameBefore<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
-        }
-
-        public ITrigger<T>[] getTriggersAfter<T>() where T : IEventArg
-        {
-            return getTriggers(getNameAfter<T>()).Where(t => t is ITrigger<T>).Cast<ITrigger<T>>().ToArray();
-        }
-        #endregion
-
-        #region 事件名称
-        public string getName<T>() where T : IEventArg
-        {
-            return getName(typeof(T));
-        }
-
-        public string getName(IEventArg eventArg)
-        {
-            return getName(eventArg.GetType());
-        }
-
-        public string getName(Type type)
-        {
-            string name = type.Name;
-            if (name.EndsWith("EventArg"))
-                name = string.Intern(name.Substring(0, name.Length - 3));
-            return name;
-        }
-
-        public string getNameBefore<T>() where T : IEventArg
-        {
-            return getNameBefore(getName<T>());
-        }
-
-        public string getNameBefore(IEventArg eventArg)
-        {
-            return getNameBefore(getName(eventArg));
-        }
-
-        public string getNameBefore(string eventName)
-        {
-            return string.Intern("Before" + eventName);
-        }
-
-        public string getNameAfter<T>() where T : IEventArg
-        {
-            return getNameAfter(getName<T>());
-        }
-
-        public string getNameAfter(IEventArg eventArg)
-        {
-            return getNameAfter(getName(eventArg));
-        }
-
-        public string getNameAfter(string eventName)
-        {
-            return string.Intern("After" + eventName);
-        }
         #endregion
 
         #region 执行事件
-
-        public Task<T> doEvent<T>(string[] eventNames, T eventArg, params object[] args) where T : IEventArg
-        {
-            eventArg.afterNames = eventNames;
-            eventArg.args = args;
-            return doEvent(eventArg);
-        }
-
-        public async Task<T> doEvent<T>(T eventArg) where T : IEventArg
+        public async Task<EventArg> doEvent(EventArg eventArg)
         {
             if (eventArg == null)
                 throw new ArgumentNullException(nameof(eventArg));
             // 如果该事件在一次事件中执行次数超过上限，停止执行新的动作。
-            if (eventOutOfLimit<T>())
+            if (eventOutOfLimit(eventArg.define))
                 return default;
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
@@ -229,12 +124,12 @@ namespace TouhouCardEngine
             eventArg.state = EventState.Before;
             var beforeNames = eventArg.beforeNames;
             if (beforeNames == null)
-                beforeNames = new string[] { getNameBefore<T>() };
+                beforeNames = new string[] { EventHelper.getNameBefore(eventArg.define) };
             else
-                beforeNames = beforeNames.Concat(new string[] { getNameBefore<T>() }).Distinct().ToArray();
+                beforeNames = beforeNames.Concat(new string[] { EventHelper.getNameBefore(eventArg.define) }).Distinct().ToArray();
             IEnumerable<ITrigger> beforeTriggers = getEventTriggerList(beforeNames, eventArg);
             // 执行事件前触发器。
-            await doEventBefore<T>(beforeTriggers, eventArg);
+            await doEventBefore(beforeTriggers, eventArg);
 
             // 执行事件。
             eventArg.state = EventState.Logic;
@@ -245,12 +140,12 @@ namespace TouhouCardEngine
             eventArg.state = EventState.After;
             var afterNames = eventArg.afterNames;
             if (afterNames == null)
-                afterNames = new string[] { getNameAfter<T>() };
+                afterNames = new string[] { EventHelper.getNameAfter(eventArg.define) };
             else
-                afterNames = afterNames.Concat(new string[] { getNameAfter<T>() }).Distinct().ToArray();
+                afterNames = afterNames.Concat(new string[] { EventHelper.getNameAfter(eventArg.define) }).Distinct().ToArray();
             IEnumerable<ITrigger> afterTriggers = getEventTriggerList(afterNames, eventArg);
             // 执行事件后触发器。
-            await doEventAfter<T>(afterTriggers, eventArg);
+            await doEventAfter(afterTriggers, eventArg);
 
             flushTriggersAfterEvent(eventArgItem, eventArg);
 
@@ -364,31 +259,16 @@ namespace TouhouCardEngine
             else
                 throw new RepeatRegistrationException(eventName, trigger);
         }
-        private async Task runTrigger<T>(ITrigger trigger, IEventArg eventArg) where T : IEventArg
+        private async Task runTrigger(ITrigger trigger, IEventArg eventArg)
         {
-            if (trigger is ITrigger<T> triggerT)
+            logger?.logTrace("Trigger", $"运行触发器{trigger}");
+            try
             {
-                logger?.logTrace("Trigger", $"运行触发器{triggerT}");
-                try
-                {
-                    await triggerT.invoke(eventArg);
-                }
-                catch (Exception e)
-                {
-                    logger?.logError("Trigger", $"运行触发器{triggerT}引发异常：{e}");
-                }
+                await trigger.invoke(eventArg);
             }
-            else
+            catch (Exception e)
             {
-                logger?.logTrace("Trigger", $"运行触发器{trigger}");
-                try
-                {
-                    await trigger.invoke(eventArg);
-                }
-                catch (Exception e)
-                {
-                    logger?.logError("Trigger", $"运行触发器{trigger}引发异常：{e}");
-                }
+                logger?.logError("Trigger", $"运行触发器{trigger}引发异常：{e}");
             }
         }
         private ITrigger[] getEventTriggerList(IEnumerable<string> names, IEventArg eventArg)
@@ -412,9 +292,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="eventArg"></param>
-        private void flushTriggersAfterEvent<T>(EventArgItem argItem, T eventArg) where T : IEventArg
+        private void flushTriggersAfterEvent(EventArgItem argItem, IEventArg eventArg)
         {
-            var eventName = getNameAfter<T>();
+            var eventName = EventHelper.getNameAfter(eventArg.define);
             var triggers = argItem.triggerList;
             foreach (var item in triggers)
             {
@@ -427,7 +307,7 @@ namespace TouhouCardEngine
         #endregion
 
         #region 执行事件
-        private async Task doEventBefore<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T: IEventArg
+        private async Task doEventBefore(IEnumerable<ITrigger> triggers, IEventArg eventArg)
         {
             //Callback
             try
@@ -442,7 +322,7 @@ namespace TouhouCardEngine
             {
                 if (eventArg.isCanceled)
                     break;
-                await runTrigger<T>(trigger, eventArg);
+                await runTrigger(trigger, eventArg);
             }
         }
         private async Task doEventFunc(IEventArg eventArg, EventRecord record)
@@ -471,7 +351,7 @@ namespace TouhouCardEngine
             eventArg.isCompleted = true;
             record.isCompleted = true;
         }
-        private async Task doEventAfter<T>(IEnumerable<ITrigger> triggers, IEventArg eventArg) where T : IEventArg
+        private async Task doEventAfter(IEnumerable<ITrigger> triggers, IEventArg eventArg)
         {
             //Callback
             try
@@ -487,18 +367,17 @@ namespace TouhouCardEngine
             {
                 if (eventArg.isCanceled)
                     break;
-                await runTrigger<T>(trigger, eventArg);
+                await runTrigger(trigger, eventArg);
             }
         }
         #endregion
 
-        private bool eventOutOfLimit<T>() where T : IEventArg
+        private bool eventOutOfLimit(EventDefine eventDefine)
         {
-            if (_executingEvents.Count(i => i.eventArg is T) >= MAX_EVENT_TIMES)
+            if (_executingEvents.Where(e => e.eventArg.define == eventDefine).Count() >= MAX_EVENT_TIMES)
             {
-                string eventName = getName<T>();
-                Debug.LogError($"事件{eventName}的执行次数超出上限！不再执行新的事件。");
-                logger?.logError("Trigger", $"事件{eventName}的执行次数超出上限！不再执行新的事件。");
+                Debug.LogError($"事件执行次数超出上限！不再执行新的事件。");
+                logger?.logError("Trigger", $"事件执行次数超出上限！不再执行新的事件。");
                 return true;
             }
             return false;

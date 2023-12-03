@@ -11,6 +11,11 @@ namespace TouhouCardEngine
                 name = string.Intern(name.Substring(0, name.Length - 6));
             return name;
         }
+        public static string getName<T>() where T : EventDefine
+        {
+            return getName(typeof(T));
+        }
+
         public static string getName(EventDefine eventDefine)
         {
             return getName(eventDefine.GetType());
@@ -30,6 +35,14 @@ namespace TouhouCardEngine
         public static string getNameAfter(EventDefine eventDefine)
         {
             return getNameAfter(getName(eventDefine));
+        }
+        public static string getNameBefore<T>() where T : EventDefine
+        {
+            return getNameBefore(getName<T>());
+        }
+        public static string getNameAfter<T>() where T : EventDefine
+        {
+            return getNameAfter(getName<T>());
         }
     }
 }
