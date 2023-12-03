@@ -6,6 +6,7 @@
     }
     public interface IChangeableCard : IChangeable
     {
+        int id { get; }
         void addBuff(Buff buff);
         void removeBuff(Buff buff);
         IChangeableBuff getBuff(int id);
@@ -16,5 +17,9 @@
     public abstract class CardChange : Change<IChangeableCard>
     {
         public CardChange(IChangeableCard target) : base(target) { }
+        public override bool compareTarget(IChangeableCard other)
+        {
+            return targetGeneric.id == other.id;
+        }
     }
 }

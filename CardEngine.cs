@@ -154,7 +154,7 @@ namespace TouhouCardEngine
                 id++;
             Card card = new Card(id, define);
             addCard(card);
-            addChange(new CreateCardChange(this, card));
+            triggers.addChange(new CreateCardChange(this, card));
             return card;
         }
         public Card getCard(int id)
@@ -180,9 +180,9 @@ namespace TouhouCardEngine
         /// <returns>卡牌快照。</returns>
         public CardSnapshot getCardSnapshotBeforeEvent(Card card, EventRecord record)
         {
-            var historyIndex = getCardHistoryIndexAfterRecord(card, record);
+            var eventIndex = triggers.getEventIndexBefore(record.eventArg);
             var snapshot = snapshotCard(card);
-            card.revertToHistory(snapshot, historyIndex);
+            triggers.revertChanges(snapshot, eventIndex);
             return snapshot;
         }
         /// <summary>
@@ -193,9 +193,9 @@ namespace TouhouCardEngine
         /// <returns>卡牌快照。</returns>
         public CardSnapshot getCardSnapshotOfEvent(Card card, EventRecord record)
         {
-            var historyIndex = getCardHistoryIndexAfterRecord(card, record) + 1;
+            var eventIndex = triggers.getEventIndexAfter(record.eventArg);
             var snapshot = snapshotCard(card);
-            card.revertToHistory(snapshot, historyIndex);
+            triggers.revertChanges(snapshot, eventIndex);
             return snapshot;
         }
         #endregion
@@ -215,7 +215,7 @@ namespace TouhouCardEngine
         {
             var beforeValue = getProp(propName);
             setPropRaw(propName, value);
-            addChange(new GamePropChange(this, propName, beforeValue, value));
+            triggers.addChange(new GamePropChange(this, propName, beforeValue, value));
         }
         public void setProp<T>(string propName, T value)
         {
@@ -275,13 +275,13 @@ namespace TouhouCardEngine
                 var beforeRandomInts = nextRandomIntList.ToArray();
                 nextRandomIntList.RemoveAt(0);
                 var afterRandomInts = nextRandomIntList.ToArray();
-                addChange(new SetNextRandomChange(this, beforeRandomInts, afterRandomInts));
+                triggers.addChange(new SetNextRandomChange(this, beforeRandomInts, afterRandomInts));
                 return result;
             }
             var beforeState = random.state;
             var randomResult = random.next(min, max + 1);
             var afterState = random.state;
-            addChange(new RandomChange(this, beforeState, afterState));
+            triggers.addChange(new RandomChange(this, beforeState, afterState));
             return randomResult;
         }
         /// <summary>
@@ -295,7 +295,7 @@ namespace TouhouCardEngine
             var beforeState = random.state;
             var result = (float)(random.nextDouble() * (max - min) + min);
             var afterState = random.state;
-            addChange(new RandomChange(this, beforeState, afterState));
+            triggers.addChange(new RandomChange(this, beforeState, afterState));
             return result;
         }
         public void setNextRandomInt(params int[] results)
@@ -303,7 +303,7 @@ namespace TouhouCardEngine
             var beforeRandomInts = nextRandomIntList.ToArray();
             setNextRandomIntRaw(results);
             var afterRandomInts = nextRandomIntList.ToArray();
-            addChange(new SetNextRandomChange(this, beforeRandomInts, afterRandomInts));
+            triggers.addChange(new SetNextRandomChange(this, beforeRandomInts, afterRandomInts));
         }
         /// <summary>
         /// 获取下一次的请求随机数。用于解决回放中，AI选择选项，或者卡牌选择超时后，随机选择的选项不会过随机数，导致炸rep的问题。
@@ -316,7 +316,7 @@ namespace TouhouCardEngine
             var beforeState = responseRNG.state;
             var result = responseRNG.next(min, max);
             var afterState = responseRNG.state;
-            addChange(new ResponseRNGChange(this, beforeState, afterState));
+            triggers.addChange(new ResponseRNGChange(this, beforeState, afterState));
             return result;
         }
         #endregion
@@ -363,17 +363,6 @@ namespace TouhouCardEngine
         {
             removeCard(cardId);
         }
-        private int getCardHistoryIndexAfterRecord(Card card, EventRecord record)
-        {
-            var records = triggers.getEventRecords();
-            var changes = card.getHistories();
-
-            // 目标记录索引。
-            var targetRecordIndex = Array.IndexOf(records, record);
-            // 获得目标事件记录，以及之前的所有事件记录中，最后一个对该卡牌产生的变更。
-            var olderChange = records.Take(targetRecordIndex + 1).SelectMany(rec => rec.getChanges()).LastOrDefault(change => change.target == card);
-            return olderChange != null ? Array.IndexOf(changes, olderChange) : 0;
-        }
         #endregion
         private void addCard(Card card)
         {
@@ -386,11 +375,6 @@ namespace TouhouCardEngine
         private void setPropRaw(string propName, object value)
         {
             dicVar[propName] = value;
-        }
-        private void addChange(GameChange change)
-        {
-            triggers.addChange(change);
-            _changes.Add(change);
         }
         private void setNextRandomIntRaw(int[] results)
         {
@@ -452,7 +436,6 @@ namespace TouhouCardEngine
 
         private Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
         private Dictionary<int, Card> cardIdDic { get; } = new Dictionary<int, Card>();
-        private List<GameChange> _changes = new List<GameChange>();
         #endregion
 
         #region 内部类

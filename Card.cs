@@ -65,7 +65,7 @@ namespace TouhouCardEngine
                     var argValue = arg.value;
 
                     argCard.setPropRaw(argName, argValue);
-                    argCard.addChange(game, new CardPropChange(argCard, argName, beforeValueRaw, argValue));
+                    game.triggers.addChange(new CardPropChange(argCard, argName, beforeValueRaw, argValue));
 
                     game.logger?.logTrace("Game", $"{argCard}的属性{argName}=>{StringHelper.propToString(argValue)}");
                     return Task.CompletedTask;
@@ -250,39 +250,6 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        #region 变更
-        public int addChange(IGame game, CardChange change)
-        {
-            game.triggers.addChange(change);
-            _changes.Add(change);
-            return getCurrentHistory();
-        }
-        public int getCurrentHistory()
-        {
-            return _changes.Count;
-        }
-        public CardChange getHistory(int index)
-        {
-            if (index < 0 || index >= _changes.Count)
-                return null;
-            return _changes[index];
-        }
-        public CardChange[] getHistories()
-        {
-            return _changes.ToArray();
-        }
-        public void revertToHistory(IChangeableCard trackable, int historyIndex)
-        {
-            if (historyIndex < 0)
-                historyIndex = 0;
-            for (int i = _changes.Count - 1; i >= historyIndex; i--)
-            {
-                var history = _changes[i];
-                history.revertFor((IChangeable)trackable);
-            }
-        }
-        #endregion
-
         #region 杂项
         public Player getOwner(CardEngine game)
         {
@@ -313,7 +280,7 @@ namespace TouhouCardEngine
                 }
                 //更换define
                 argCard.setDefineRaw(argDefine);
-                argCard.addChange(game, new SetCardDefineChange(argCard, argBeforeDefine, argAfterDefine));
+                game.triggers.addChange(new SetCardDefineChange(argCard, argBeforeDefine, argAfterDefine));
                 //激活效果
                 foreach (var effect in argCard.define.getEffects())
                 {
@@ -388,7 +355,6 @@ namespace TouhouCardEngine
         private List<Buff> buffList { get; } = new List<Buff>();
         private Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         private List<(IBuff buff, IEffect effect)> enabledEffects = new List<(IBuff buff, IEffect effect)>();
-        private List<CardChange> _changes = new List<CardChange>();
         #endregion
 
         #region 内嵌类

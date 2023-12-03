@@ -57,7 +57,7 @@ namespace TouhouCardEngine
             card.owner = to?.owner;
             disableCardEffects(game, card, from, to);
             enableCardEffects(game, card, from, to);
-            card.addChange(game, new CardMoveChange(card, from, to, fromPosition, toPosition));
+            game.triggers.addChange(new CardMoveChange(card, from, to, fromPosition, toPosition));
             return true;
         }
         public void shuffle(CardEngine engine)

@@ -48,7 +48,7 @@ namespace TouhouCardEngine
         {
             var beforeValue = getProp(propName);
             setPropRaw(propName, value);
-            addChange(game, new PlayerPropChange(this, propName, beforeValue, value));
+            game.triggers.addChange(new PlayerPropChange(this, propName, beforeValue, value));
         }
         public void setProp<T>(IGame game, string propName, T value)
         {
@@ -60,13 +60,13 @@ namespace TouhouCardEngine
         public void addPile(IGame game, Pile pile)
         {
             addPileRaw(pile);
-            addChange(game, new AddPileChange(this, pile));
+            game.triggers.addChange(new AddPileChange(this, pile));
         }
         public bool removePile(IGame game, Pile pile)
         {
             if (removePileRaw(pile))
             {
-                addChange(game, new RemovePileChange(this, pile));
+                game.triggers.addChange(new RemovePileChange(this, pile));
                 return true;
             }
             return false;
@@ -140,11 +140,6 @@ namespace TouhouCardEngine
         {
             propDict[propName] = value;
         }
-        private void addChange(IGame game, PlayerChange change)
-        {
-            game.triggers.addChange(change);
-            _changes.Add(change);
-        }
 
         #endregion
 
@@ -154,7 +149,6 @@ namespace TouhouCardEngine
         public Pile this[string pileName] => getPile(pileName);
         private Dictionary<string, object> propDict { get; } = new Dictionary<string, object>();
         private List<Pile> pileList { get; } = new List<Pile>();
-        private List<PlayerChange> _changes = new List<PlayerChange>();
         #endregion
     }
 }

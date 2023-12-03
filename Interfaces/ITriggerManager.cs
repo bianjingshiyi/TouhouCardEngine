@@ -33,7 +33,11 @@ namespace TouhouCardEngine.Interfaces
         IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = false);
         EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = false);
         EventRecord getEventRecord(IEventArg eventArg, bool includeCanceled = false, bool includeUncompleted = false);
+        int getCurrentEventIndex();
+        int getEventIndexBefore(IEventArg eventArg);
+        int getEventIndexAfter(IEventArg eventArg);
         void addChange(Change change);
+        void revertChanges(IChangeable target, int eventIndex);
     }
     public interface ITrigger
     {

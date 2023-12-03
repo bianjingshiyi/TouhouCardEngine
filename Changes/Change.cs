@@ -7,6 +7,10 @@
     public abstract class Change
     {
         public virtual IChangeable target { get; }
+        public virtual bool compareTarget(IChangeable other)
+        {
+            return target == other;
+        }
         public void apply() => applyFor(target);
         public void revert() => revertFor(target);
         public abstract void applyFor(IChangeable changeable);
@@ -34,7 +38,19 @@
                 revertFor(tObj);
             }
         }
+        public override sealed bool compareTarget(IChangeable other)
+        {
+            if (other is T tOther)
+            {
+                return compareTarget(tOther);
+            }
+            return false;
+        }
         public abstract void applyFor(T changeable);
         public abstract void revertFor(T changeable);
+        public virtual bool compareTarget(T other)
+        {
+            return targetGeneric.Equals(other);
+        }
     }
 }

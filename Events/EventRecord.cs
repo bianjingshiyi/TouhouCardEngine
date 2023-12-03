@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
@@ -11,8 +10,9 @@ namespace TouhouCardEngine
         #region 公有方法
 
         #region 构造器
-        public EventRecord(IEventArg arg)
+        public EventRecord(CardEngine game, IEventArg arg)
         {
+            this.game = game;
             eventArg = arg;
             isCanceled = arg.isCanceled;
         }
@@ -40,7 +40,7 @@ namespace TouhouCardEngine
                 setVar(varName, new CardState(null, -1));
                 return;
             }
-            int stateIdx = card.getCurrentHistory();
+            int stateIdx = game.triggers.getCurrentEventIndex();
             CardState state = new CardState(card, stateIdx);
             setVar(varName, state);
         }
@@ -57,7 +57,7 @@ namespace TouhouCardEngine
                     states[i] = new CardState(null, -1);
                     continue;
                 }
-                int stateIdx = card.getCurrentHistory();
+                int stateIdx = game.triggers.getCurrentEventIndex();
                 CardState state = new CardState(card, stateIdx);
                 states[i] = state;
             }
@@ -72,15 +72,6 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public void addChange(Change change)
-        {
-            _changes.Add(change);
-        }
-        public Change[] getChanges()
-        {
-            return _changes.ToArray();
-        }
-
         #endregion
 
         #region 属性字段
@@ -88,7 +79,7 @@ namespace TouhouCardEngine
         public bool isCanceled { get; internal set; }
         public bool isCompleted { get; set; }
         private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
-        private List<Change> _changes = new List<Change>();
+        private CardEngine game;
         #endregion
     }
 }

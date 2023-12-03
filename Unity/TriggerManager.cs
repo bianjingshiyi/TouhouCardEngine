@@ -227,7 +227,7 @@ namespace TouhouCardEngine
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 eventArg.setParent(currentEvent);
-            var record = new EventRecord(eventArg);
+            var record = new EventRecord(game, eventArg);
             eventArg.record = record;
             _executingEvents.Add(eventArgItem);
             _eventArgList.Add(eventArg);
@@ -332,8 +332,41 @@ namespace TouhouCardEngine
             var eventArg = currentEvent;
             if (eventArg == null)
                 return;
-            var eventRecord = getEventRecord(eventArg);
-            eventRecord.addChange(change);
+            eventArg.addChange(change);
+        }
+        public void revertChanges(IChangeable target, int eventIndex)
+        {
+            if (eventIndex < 0)
+                eventIndex = 0;
+            for (int i = _eventArgList.Count - 1; i >= eventIndex; i--)
+            {
+                var arg = _eventArgList[i];
+                foreach (var change in arg.getChanges().Reverse())
+                {
+                    if (!change.compareTarget(target))
+                        continue;
+                    change.revertFor(target);
+                }
+            }
+        }
+        public int getEventIndexBefore(IEventArg eventArg)
+        {
+            if (eventArg == null)
+                return -1;
+            return _eventArgList.IndexOf(eventArg);
+        }
+        public int getEventIndexAfter(IEventArg eventArg)
+        {
+            if (eventArg == null)
+                return -1;
+            var children = eventArg.getAllChildEvents();
+            var childrenEvents = _eventArgList.Where(e => children.Contains(e)).Prepend(eventArg).Select((e, index) => (e, index));
+            var index = childrenEvents.Max(pair => pair.index);
+            return index + 1;
+        }
+        public int getCurrentEventIndex()
+        {
+            return _eventArgList.Count;
         }
         public void Dispose()
         {
@@ -518,7 +551,7 @@ namespace TouhouCardEngine
         #endregion
 
         #region 属性字段
-        public IGame game { get; set; }
+        public CardEngine game { get; set; }
         public Shared.ILogger logger { get; set; } = null;
         public IEventArg currentEvent => _executingEvents.LastOrDefault()?.eventArg;
         private List<EventListItem> _triggerList = new List<EventListItem>();

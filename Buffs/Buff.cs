@@ -58,7 +58,7 @@ namespace TouhouCardEngine
 
                     // 设置增益的值。
                     argBuff.setPropRaw(argPropName, argValue);
-                    card.addChange(game, new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
+                    game.triggers.addChange(new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
                     game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
 
                     // 更新与该增益属性名绑定的修改器的值。
@@ -73,7 +73,7 @@ namespace TouhouCardEngine
             {
                 var beforeValue = getProp(propName);
                 setPropRaw(propName, value);
-                card.addChange(game, new BuffPropChange(card, instanceID, propName, beforeValue, value));
+                game.triggers.addChange(new BuffPropChange(card, instanceID, propName, beforeValue, value));
                 return Task.FromResult<PropertyChangeEventArg>(default);
             }
         }
