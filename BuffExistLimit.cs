@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
@@ -15,17 +15,7 @@ namespace TouhouCardEngine
             string eventName = define.eventName;
             string triggerName = getEffectName(buff, eventName);
             game.logger.logTrace("BuffExistLimit", $"{card}注册触发器{triggerName}");
-            Trigger trigger = new Trigger(
-                args =>
-                {
-                    return true;
-                },
-                args =>
-                {
-                    addCounter();
-                    update(game, card, buff);
-                    return Task.CompletedTask;
-                }, name: triggerName);
+            Trigger trigger = new BuffExistLimitTrigger(game, card, buff, this);
             this.trigger = trigger;
             game.triggers.registerDelayed(eventName, trigger);
         }
@@ -37,16 +27,10 @@ namespace TouhouCardEngine
             game.triggers.remove(eventName, trigger);
             trigger = null;
         }
-        public void addCounter()
+        public void addCounter(CardEngine game, Card card, Buff buff)
         {
             counter = counter + 1;
-        }
-        public void update(CardEngine game, Card card, Buff buff)
-        {
-            if (isFinished())
-            {
-                card.removeBuff(game, buff);
-            }
+            update(game, card, buff);
         }
         public bool isFinished()
         {
@@ -55,6 +39,13 @@ namespace TouhouCardEngine
         public BuffExistLimit clone()
         {
             return new BuffExistLimit(this);
+        }
+        private void update(CardEngine game, Card card, Buff buff)
+        {
+            if (isFinished())
+            {
+                card.removeBuff(game, buff);
+            }
         }
         #endregion
 

@@ -98,18 +98,6 @@ namespace TouhouCardEngine
             else
                 return -1;
         }
-        public IActiveEffect getActiveEffect()
-        {
-            return getEffects().FirstOrDefault(e => e is IActiveEffect) as IActiveEffect;
-        }
-        public ITriggerEffect getEffectOn<T>(ITriggerManager manager) where T : IEventArg
-        {
-            return getEffects().FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getName<T>())) as ITriggerEffect;
-        }
-        public ITriggerEffect getEffectAfter<T>(ITriggerManager manager) where T : IEventArg
-        {
-            return getEffects().FirstOrDefault(e => e is ITriggerEffect te && te.getEvents(manager).Contains(manager.getNameAfter<T>())) as ITriggerEffect;
-        }
         public GeneratedEffect[] getGeneratedEffects()
         {
             return _effectList.ToArray();

@@ -111,6 +111,7 @@ namespace TouhouCardEngine
         public List<IEventArg> afterChildrenEvents { get; } = new List<IEventArg>();
         public IEventArg parent { get; private set; }
         public EventState state { get; set; }
+        public IGame game { get; set; }
         private Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
         private List<Change> _changes = new List<Change>();
     }

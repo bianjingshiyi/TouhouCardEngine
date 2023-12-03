@@ -11,6 +11,7 @@ namespace TouhouCardEngine.Interfaces
         void register(string eventName, ITrigger trigger);
         void registerDelayed(string eventName, ITrigger trigger);
         bool remove(string eventName, ITrigger trigger);
+        ITrigger[] getTriggers(string eventName);
         void register<T>(ITrigger<T> trigger) where T : IEventArg;
         bool remove<T>(ITrigger<T> trigger) where T : IEventArg;
         ITrigger<T>[] getTriggers<T>() where T : IEventArg;
@@ -43,18 +44,17 @@ namespace TouhouCardEngine.Interfaces
     }
     public interface ITrigger
     {
-        int compare(ITrigger other, IEventArg arg);
         bool checkCondition(IEventArg arg);
         Task invoke(IEventArg arg);
     }
     public interface ITrigger<T> : ITrigger where T : IEventArg
     {
-        int compare(ITrigger<T> other, T arg);
         bool checkCondition(T arg);
         Task invoke(T arg);
     }
     public interface IEventArg
     {
+        IGame game { get; set; }
         string[] beforeNames { get; set; }
         string[] afterNames { get; set; }
         object[] args { get; set; }

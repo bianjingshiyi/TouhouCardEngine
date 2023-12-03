@@ -199,16 +199,6 @@ namespace TouhouCardEngine
             return doEvent(eventArg);
         }
 
-        public Task doEvent(string[] eventNames, object[] args)
-        {
-            return doEvent(getEventArg(eventNames, args));
-        }
-
-        public Task doEvent(string eventName, params object[] args)
-        {
-            return doEvent(new string[] { eventName }, args);
-        }
-
         public Task<T> doEvent<T>(string[] beforeNames, string[] afterNames, T eventArg, Func<T, Task> action, params object[] args) where T : IEventArg
         {
             eventArg.beforeNames = beforeNames;
@@ -227,6 +217,7 @@ namespace TouhouCardEngine
             EventArgItem eventArgItem = new EventArgItem(eventArg);
             if (currentEvent != null)
                 eventArg.setParent(currentEvent);
+            eventArg.game = game;
             var record = new EventRecord(game, eventArg);
             eventArg.record = record;
             _executingEvents.Add(eventArgItem);
@@ -320,11 +311,6 @@ namespace TouhouCardEngine
                 return null;
             return record;
         }
-        public IEventArg getEventArg(string[] eventNames, object[] args)
-        {
-            return new DynamicEventArg(eventNames, args);
-        }
-
         #endregion
 
         public void addChange(Change change)
@@ -431,14 +417,12 @@ namespace TouhouCardEngine
                 EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.eventName == eventName);
                 if (eventItem == null)
                     continue;
-                eventItem.triggerList.Sort((a, b) => a.compare(b, eventArg));
                 foreach (ITrigger item in eventItem.triggerList)
                 {
                     if (item.checkCondition(eventArg))
                         triggerList.Add(item);
                 }
             }
-            triggerList.Sort((a, b) => a.compare(b, eventArg));
             return triggerList.ToArray();
         }
         /// <summary>
@@ -585,155 +569,6 @@ namespace TouhouCardEngine
         }
 
         #endregion
-    }
-    public class Trigger : Trigger<IEventArg>
-    {
-        public Trigger(Func<object[], bool> condition = null, Func<object[], Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null) : base(
-            arg =>
-            {
-                if (condition != null)
-                    return condition.Invoke(new object[] { arg });
-                else
-                    return true;
-            },
-            arg =>
-            {
-                if (action != null)
-                    return action.Invoke(new object[] { arg });
-                else
-                    return Task.CompletedTask;
-            }, comparsion, name)
-        {
-        }
-    }
-    public class Trigger<T> : ITrigger<T> where T : IEventArg
-    {
-        public Func<ITrigger, ITrigger, IEventArg, int> comparsion { get; set; }
-        public Func<T, bool> condition { get; set; }
-        public Func<T, Task> action { get; set; }
-        string _name;
-        public Trigger(Func<T, bool> condition = null, Func<T, Task> action = null, Func<ITrigger, ITrigger, IEventArg, int> comparsion = null, string name = null)
-        {
-            this.condition = condition;
-            this.action = action;
-            this.comparsion = comparsion;
-            _name = name;
-        }
-        public int compare(ITrigger<T> other, T arg)
-        {
-            return compare(other, arg);
-        }
-        public int compare(ITrigger other, IEventArg arg)
-        {
-            if (comparsion != null)
-                return comparsion.Invoke(this, other, arg);
-            else
-                return 0;
-        }
-        public bool checkCondition(T arg)
-        {
-            if (condition != null)
-                return condition.Invoke(arg);
-            else
-                return true;
-        }
-        public bool checkCondition(IEventArg arg)
-        {
-            return checkCondition((T)arg);
-        }
-        public Task invoke(T arg)
-        {
-            if (action != null)
-                return action.Invoke(arg);
-            else
-                return Task.CompletedTask;
-        }
-        public Task invoke(IEventArg arg)
-        {
-            if (arg is T t)
-                return invoke(t);
-            else
-                return Task.CompletedTask;
-        }
-        public override string ToString()
-        {
-            return string.IsNullOrEmpty(_name) ? base.ToString() : _name;
-        }
-    }
-    public class DynamicEventArg : IEventArg
-    {
-        public DynamicEventArg(string[] eventNames, object[] args)
-        {
-            afterNames = eventNames;
-            this.args = args;
-        }
-        public IEventArg[] getAllChildEvents()
-        {
-            return childEventList.ToArray();
-        }
-        public IEventArg[] getChildEvents(EventState state)
-        {
-            return getAllChildEvents();
-        }
-        public object getVar(string varName)
-        {
-            if (varDict.TryGetValue(varName, out object value))
-                return value;
-            else
-                return null;
-        }
-        public void setVar(string varName, object value)
-        {
-            varDict[varName] = value;
-        }
-        public string[] getVarNames()
-        {
-            return varDict.Keys.ToArray();
-        }
-        public void Record(IGame game, EventRecord record)
-        {
-        }
-        public void addChange(Change change)
-        {
-            _changes.Add(change);
-        }
-        public Change[] getChanges()
-        {
-            return _changes.ToArray();
-        }
-        public void setParent(IEventArg value)
-        {
-            parent = value;
-            if (value is DynamicEventArg gea)
-                gea.childEventList.Add(this);
-        }
-        public string[] beforeNames { get; set; } = new string[0];
-        public string[] afterNames { get; set; } = new string[0];
-        public object[] args { get; set; }
-        public bool isCompleted { get; set; } = false;
-        public bool isCanceled { get; set; } = false;
-        public EventRecord record { get; set; }
-        public int repeatTime { get; set; } = 0;
-        public int flowNodeId { get; set; } = 0;
-        public Func<IEventArg, Task> action { get; set; }
-        public IEventArg parent { get; private set; }
-        public List<IEventArg> childEventList { get; } = new List<IEventArg>();
-        public EventState state { get; set; }
-        Dictionary<string, object> varDict { get; } = new Dictionary<string, object>();
-        private List<Change> _changes = new List<Change>();
-    }
-    public static class EventArgExtension
-    {
-        public static void replaceAction<T>(this T eventArg, Func<T, Task> action) where T : IEventArg
-        {
-            eventArg.action = arg =>
-            {
-                if (action != null)
-                    return action.Invoke(eventArg);
-                else
-                    return Task.CompletedTask;
-            };
-        }
     }
     [Serializable]
     public class RepeatRegistrationException : Exception

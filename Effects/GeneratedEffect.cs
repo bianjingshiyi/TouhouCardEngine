@@ -132,10 +132,6 @@ namespace TouhouCardEngine
             if (onDisableAction != null)
                 yield return onDisableAction;
         }
-        protected string getEffectName(ICard card, IBuff buff, string eventName)
-        {
-            return $"{(buff != null ? buff.instanceID.ToString() : string.Empty)}Effect{Array.IndexOf(card.define.getEffects(), this)}{eventName}";
-        }
         #endregion
         #region 属性字段
         public string name;
