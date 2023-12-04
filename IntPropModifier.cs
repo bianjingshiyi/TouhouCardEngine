@@ -1,7 +1,8 @@
-﻿using TouhouCardEngine.Interfaces;
+﻿using System;
+using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public class IntPropModifier : PropModifier<int>
+    public abstract class IntPropModifier : PropModifier<int>
     {
         #region 公有方法
         #region 构造方法
@@ -21,13 +22,6 @@ namespace TouhouCardEngine
             propertyName = propName;
             this.relatedPropName = relatedPropName;
             this.isSet = isSet;
-        }
-        protected IntPropModifier(IntPropModifier origin)
-        {
-            propertyName = origin.getPropName();
-            defaultValue = origin.defaultValue;
-            isSet = origin.isSet;
-            relatedPropName = origin.relatedPropName;
         }
         #endregion
         public override int calcGeneric(IGame game, ICardData card, int prop, int value)
@@ -65,5 +59,18 @@ namespace TouhouCardEngine
         public int minValue = int.MinValue;
         public int maxValue = int.MaxValue;
         #endregion
+    }
+    [Serializable]
+    public abstract class SerializableIntPropModifier : SerializablePropModifier<int>
+    {
+        public SerializableIntPropModifier(IntPropModifier modifier) : base(modifier)
+        {
+            isSet = modifier.isSet;
+        }
+        public bool isSet;
+        [Obsolete]
+        public int minValue;
+        [Obsolete]
+        public int maxValue;
     }
 }

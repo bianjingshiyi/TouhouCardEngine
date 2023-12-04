@@ -38,7 +38,7 @@ namespace TouhouCardEngine
             if (buffDefine == null)
                 throw new ArgumentNullException(nameof(buffDefine));
             id = buffDefine.id;
-            propModifierList = buffDefine.propModifierList != null ? buffDefine.propModifierList : new List<PropModifier>();
+            propModifierList = buffDefine.propModifierList != null ? buffDefine.propModifierList.ConvertAll(p => p.serialize()) : new List<SerializablePropModifier>();
             existLimitList = buffDefine.existLimitList != null ? buffDefine.existLimitList : new List<BuffExistLimitDefine>();
             effects = buffDefine.effectList != null ?
                 buffDefine.effectList.ConvertAll(e => e?.Serialize()) :
@@ -47,7 +47,7 @@ namespace TouhouCardEngine
         #endregion
         public GeneratedBuffDefine toGeneratedBuffDefine(INodeDefiner definer)
         {
-            GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine(id, propModifierList ?? new List<PropModifier>());
+            GeneratedBuffDefine generatedBuffDefine = new GeneratedBuffDefine(id, propModifierList.ConvertAll(p => p.deserialize()) ?? new List<PropModifier>());
             generatedBuffDefine.existLimitList = existLimitList ?? new List<BuffExistLimitDefine>();
             for (int i = 0; i < effects.Count; i++)
             {
@@ -67,7 +67,7 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         public int id;
-        public List<PropModifier> propModifierList;
+        public List<SerializablePropModifier> propModifierList;
         public List<BuffExistLimitDefine> existLimitList;
         public List<SerializableEffect> effects;
         [Obsolete]

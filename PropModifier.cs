@@ -2,10 +2,10 @@
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using TouhouCardEngine.Interfaces;
+using UnityEngine;
 
 namespace TouhouCardEngine
 {
-    [Serializable]
     public abstract class PropModifier : IPropModifier
     {
         #region 公有方法
@@ -29,6 +29,7 @@ namespace TouhouCardEngine
             }
             return getDefaultValue();
         }
+        public abstract SerializablePropModifier serialize();
 
         #region 添加/移除回调
         public virtual Task beforeAdd(IGame game, Card card, Buff buff)
@@ -51,9 +52,12 @@ namespace TouhouCardEngine
 
         #region 抽象方法
         public abstract object getDefaultValue();
-        public abstract string getPropName();
         public abstract object calc(IGame game, ICardData card, object prop, object value);
         #endregion
+        public string getPropName()
+        {
+            return propertyName;
+        }
 
         #endregion
 
@@ -77,9 +81,9 @@ namespace TouhouCardEngine
 
         #region 属性字段
         public string relatedPropName = null;
+        public string propertyName;
         #endregion
     }
-    [Serializable]
     public abstract class PropModifier<T> : PropModifier
     {
         #region 公有方法
@@ -121,10 +125,6 @@ namespace TouhouCardEngine
         {
             return defaultValue;
         }
-        public override string getPropName()
-        {
-            return propertyName;
-        }
         private T getValueGeneric(Buff buff)
         {
             if (relatedPropName != null && buff != null)
@@ -147,16 +147,40 @@ namespace TouhouCardEngine
         #endregion
 
         #region 属性字段
-        public string propertyName;
         public T defaultValue;
-        // 序列化兼容用
-        [Obsolete("使用defaultValue")]
-        [BsonElement]
-        public T value
-        {
-            get => defaultValue;
-            set => defaultValue = value;
-        }
         #endregion
+    }
+    [Serializable]
+    public abstract class SerializablePropModifier
+    {
+        public SerializablePropModifier(PropModifier modifier)
+        {
+            relatedPropName = modifier.relatedPropName;
+            propertyName = modifier.propertyName;
+        }
+        public abstract PropModifier deserialize();
+        public string relatedPropName;
+        public string propertyName;
+    }
+    [Serializable]
+    public abstract class SerializablePropModifier<T> : SerializablePropModifier
+    {
+        public SerializablePropModifier(PropModifier<T> modifier) : base(modifier)
+        {
+            defaultValue = modifier.defaultValue;
+        }
+        protected T getDefaultValue()
+        {
+            var defValue = default(T);
+            if (Equals(defaultValue, defValue) && !Equals(value, defValue))
+            {
+                return value;
+            }
+            return defaultValue;
+        }
+        public T defaultValue;
+        [Obsolete]
+        [BsonIgnoreIfDefault]
+        public T value;
     }
 }
