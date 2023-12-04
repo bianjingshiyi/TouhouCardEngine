@@ -8,7 +8,7 @@
     {
         int id { get; }
         void addBuff(Buff buff);
-        void removeBuff(Buff buff);
+        void removeBuff(int buffInstanceId);
         IChangeableBuff getBuff(int id);
         void setProp(string propName, object value);
         void setDefine(CardDefine define);

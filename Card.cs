@@ -168,14 +168,39 @@ namespace TouhouCardEngine
                 var argCard = arg.card;
                 var argBuff = arg.buff;
 
+                // 如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
+                var modifiers = argBuff.getModifiers();
+                List<CardModifierState> modifierStates = new List<CardModifierState>();
+                foreach (var modifier in modifiers)
+                {
+                    var state = new CardModifierState(game, modifier, argCard, argBuff);
+                    modifierStates.Add(state);
+                    // 调用beforeAdd。
+                    await modifier.beforeAdd(game, argCard, buff);
+                }
+
+                // 添加增益。
                 game?.logger?.logTrace("Buff", $"{argCard}获得增益{argBuff}");
                 var buffId = (argCard.buffList.Count > 0 ? argCard.buffList.Max(b => b.instanceID) : 0) + 1;
                 argBuff.card = argCard;
                 argBuff.instanceID = buffId;
                 argCard.addBuffRaw(argBuff);
+                game.triggers.addChange(new AddBuffChange(argCard, argBuff));
 
+                // 启用增益。
                 CardEngine engine = game as CardEngine;
                 await argBuff.enable(engine, argCard);
+
+                // 更新与该增益属性名绑定的修改器的值。
+                foreach (var state in modifierStates)
+                {
+                    var modifier = state.modifier;
+                    // 调用afterAdd。
+                    await modifier.afterAdd(game, argCard, argBuff);
+                    // 更新卡牌属性变动，以及修改器的值。
+                    await modifier.updateValue(game, argCard, argBuff, state.cardBeforeProperty, state.modifierBeforeValue);
+                }
+
             }
             var eventArg = new AddBuffEventArg(this, buff);
             return game.triggers.doEvent(eventArg, func);
@@ -199,11 +224,35 @@ namespace TouhouCardEngine
                 var argBuff = arg.buff;
                 if (argCard.buffList.Contains(argBuff))
                 {
+                    // 如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
+                    var modifiers = argBuff.getModifiers();
+                    List<CardModifierState> modifierStates = new List<CardModifierState>();
+                    foreach (var modifier in modifiers)
+                    {
+                        var state = new CardModifierState(game, modifier, argCard, argBuff);
+                        modifierStates.Add(state);
+                        // 调用BeforeRemove。
+                        await modifier.beforeRemove(game, argCard, argBuff);
+                    }
+
+                    // 移除增益
                     game?.logger?.logTrace("Buff", $"{argCard}移除增益{argBuff}");
                     argCard.buffList.Remove(argBuff);
+                    game.triggers.addChange(new RemoveBuffChange(argCard, argBuff));
+
                     var engine = game as CardEngine;
+                    // 禁用增益
                     await argBuff.disable(engine, argCard);
                     arg.removed = true;
+
+                    foreach (var state in modifierStates)
+                    {
+                        var modifier = state.modifier;
+                        // 调用AfterRemove。
+                        await modifier.afterRemove(game, argCard, argBuff);
+                        // 更新卡牌属性。
+                        await modifier.updateCardProp(game, argCard, state.cardBeforeProperty);
+                    }
                 }
             }
         }
@@ -318,7 +367,7 @@ namespace TouhouCardEngine
         void IChangeableCard.setProp(string propName, object value) => setPropRaw(propName, value);
         void IChangeableCard.setDefine(CardDefine define) => setDefineRaw(define);
         void IChangeableCard.addBuff(Buff buff) => addBuffRaw(buff);
-        void IChangeableCard.removeBuff(Buff buff) => removeBuffRaw(buff);
+        void IChangeableCard.removeBuff(int buffInstanceId) => removeBuffRaw(buffInstanceId);
         IChangeableBuff IChangeableCard.getBuff(int instanceId) => buffList.FirstOrDefault(b => b.instanceID == instanceId);
         void IChangeableCard.moveTo(Pile to, int position) => pile.moveCardRaw(this, to, position);
         #endregion
@@ -335,9 +384,9 @@ namespace TouhouCardEngine
         {
             buffList.Add(buff);
         }
-        private void removeBuffRaw(Buff buff)
+        private void removeBuffRaw(int buffInstanceId)
         {
-            buffList.Remove(buff);
+            buffList.RemoveAll(b => b.instanceID == buffInstanceId);
         }
         #endregion
 

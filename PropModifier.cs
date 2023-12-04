@@ -2,17 +2,16 @@
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using TouhouCardEngine.Interfaces;
-using UnityEngine;
 
 namespace TouhouCardEngine
 {
     public abstract class PropModifier : IPropModifier
     {
         #region 公有方法
-        public async Task updateValue(IGame game, Card card, object beforeCardProp, object beforeValue, object value)
+        public async Task updateValue(IGame game, Card card, Buff buff, object beforeCardProp, object beforeValue)
         {
             await updateCardProp(game, card, beforeCardProp);
-            await updateModifierValue(game, card, beforeValue, value);
+            await updateModifierValue(game, card, buff, beforeValue);
         }
         public object calcProp(IGame game, ICardData card, Buff buff, string propName, object prop)
         {
@@ -28,6 +27,20 @@ namespace TouhouCardEngine
                 return buff.getProp(relatedPropName);
             }
             return getDefaultValue();
+        }
+        public Task<Card.PropChangeEventArg> updateCardProp(IGame game, Card card, object beforeCardProp)
+        {
+            var propName = getPropName();
+            var afterCardProp = card.getProp(game, propName);
+            if (Equals(beforeCardProp, afterCardProp))
+                return Task.FromResult<Card.PropChangeEventArg>(null);
+            return game.triggers.doEvent(new Card.PropChangeEventArg()
+            {
+                card = card,
+                propName = propName,
+                beforeValue = beforeCardProp,
+                value = afterCardProp
+            });
         }
         public abstract SerializablePropModifier serialize();
 
@@ -62,21 +75,7 @@ namespace TouhouCardEngine
         #endregion
 
         #region 私有方法
-        protected abstract Task updateModifierValue(IGame game, Card card, object beforeValue, object value);
-        private Task<Card.PropChangeEventArg> updateCardProp(IGame game, Card card, object beforeCardProp)
-        {
-            var propName = getPropName();
-            var afterCardProp = card.getProp(game, propName);
-            if (Equals(beforeCardProp, afterCardProp))
-                return Task.FromResult<Card.PropChangeEventArg>(null);
-            return game.triggers.doEvent(new Card.PropChangeEventArg()
-            {
-                card = card,
-                propName = propName,
-                beforeValue = beforeCardProp,
-                value = afterCardProp
-            });
-        }
+        protected abstract Task updateModifierValue(IGame game, Card card, Buff buff, object beforeValue);
         #endregion
 
         #region 属性字段
@@ -99,9 +98,9 @@ namespace TouhouCardEngine
             else
                 return prop;
         }
-        protected override sealed Task updateModifierValue(IGame game, Card card, object beforeValue, object value)
+        protected override sealed Task updateModifierValue(IGame game, Card card, Buff buff, object beforeValue)
         {
-            return updateModifierValue(game, card, toGenericValue(beforeValue), toGenericValue(value));
+            return updateModifierValue(game, card, buff, toGenericValue(beforeValue));
         }
         #endregion
 
@@ -117,7 +116,7 @@ namespace TouhouCardEngine
         public virtual Task afterAdd(IGame game, Card card, T value) => Task.CompletedTask;
         public virtual Task beforeRemove(IGame game, Card card, T value) => Task.CompletedTask;
         public virtual Task afterRemove(IGame game, Card card, T value) => Task.CompletedTask;
-        public virtual Task updateModifierValue(IGame game, Card card, T beforeValue, T value) => Task.CompletedTask;
+        public virtual Task updateModifierValue(IGame game, Card card, Buff buff, T beforeValue) => Task.CompletedTask;
         public abstract T calcGeneric(IGame game, ICardData card, T prop, T value);
         #endregion
 
@@ -125,7 +124,7 @@ namespace TouhouCardEngine
         {
             return defaultValue;
         }
-        private T getValueGeneric(Buff buff)
+        protected T getValueGeneric(Buff buff)
         {
             if (relatedPropName != null && buff != null)
             {
@@ -182,5 +181,20 @@ namespace TouhouCardEngine
         [Obsolete]
         [BsonIgnoreIfDefault]
         public T value;
+    }
+    public struct CardModifierState
+    {
+        public PropModifier modifier;
+        public object modifierBeforeValue;
+        public object cardBeforeProperty;
+        public CardModifierState(IGame game, PropModifier modifier, Card card, Buff buff) : this(modifier, modifier.getValue(buff), card.getProp(game, modifier.getPropName()))
+        {
+        }
+        public CardModifierState(PropModifier modifier, object modifierBeforeValue, object cardBeforeProperty)
+        {
+            this.modifier = modifier;
+            this.modifierBeforeValue = modifierBeforeValue;
+            this.cardBeforeProperty = cardBeforeProperty;
+        }
     }
 }

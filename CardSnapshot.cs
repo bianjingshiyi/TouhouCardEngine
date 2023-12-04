@@ -95,7 +95,7 @@ namespace TouhouCardEngine
         }
         void IChangeableCard.setProp(string propName, object value) => setPropRaw(propName, value);
         void IChangeableCard.addBuff(Buff buff) => addBuffRaw(buff);
-        void IChangeableCard.removeBuff(Buff buff) => removeBuffRaw(buff);
+        void IChangeableCard.removeBuff(int buffInstanceId) => removeBuffRaw(buffInstanceId);
         IChangeableBuff IChangeableCard.getBuff(int id) => buffs.FirstOrDefault(b => b.instanceID == id);
         #endregion
         private void setPropRaw(string propName, object value)
@@ -109,9 +109,9 @@ namespace TouhouCardEngine
         {
             buffs.Add(buff);
         }
-        private void removeBuffRaw(Buff buff)
+        private void removeBuffRaw(int buffInstanceId)
         {
-            buffs.Remove(buff);
+            buffs.RemoveAll(b => b.instanceID == buffInstanceId);
         }
         #endregion
 

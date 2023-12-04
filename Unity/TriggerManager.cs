@@ -360,7 +360,9 @@ namespace TouhouCardEngine
             if (eventArg == null)
                 return -1;
             var children = eventArg.getAllChildEvents();
-            var childrenEvents = _eventArgList.Where(e => children.Contains(e)).Prepend(eventArg).Select((e, index) => (e, index));
+            var childrenEvents = _eventArgList
+                .Select((eventArg, index) => (eventArg, index))
+                .Where(e => children.Contains(e.eventArg) || e.eventArg == eventArg);
             var index = childrenEvents.Max(pair => pair.index);
             return index + 1;
         }

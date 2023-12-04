@@ -42,40 +42,30 @@ namespace TouhouCardEngine
         }
         public Task<PropertyChangeEventArg> setProp(CardEngine game, string propName, object value)
         {
-            if (game != null && game.triggers != null)
+            return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), async arg =>
             {
-                return game.triggers.doEvent(new PropertyChangeEventArg(this, propName, value, getProp(propName)), async arg =>
+                var argBuff = arg.buff;
+                var argPropName = arg.propName;
+                var argValue = arg.value;
+                var beforeValue = argBuff.getProp(argPropName);
+
+                // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
+                var modifiers = getModifiers().Where(m => m.relatedPropName == argPropName);
+                CardModifierState[] modiBeforeValues =
+                    modifiers.Select(m => new CardModifierState(game, m, card, argBuff)).ToArray();
+
+                // 设置增益的值。
+                argBuff.setPropRaw(argPropName, argValue);
+                game.triggers.addChange(new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
+                game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
+
+                // 更新与该增益属性名绑定的修改器的值。
+                foreach (var state in modiBeforeValues)
                 {
-                    var argBuff = arg.buff;
-                    var argPropName = arg.propName;
-                    var argValue = arg.value;
-                    var beforeValue = argBuff.getProp(argPropName);
-
-                    // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
-                    var modifiers = getModifiers().Where(m => m.relatedPropName == argPropName);
-                    (PropModifier modi, object modiBeforeValue, object cardBeforeProp)[] modiBeforeValues =
-                        modifiers.Select(m => (m, m.getValue(argBuff), card.getProp(game, m.getPropName()))).ToArray();
-
-                    // 设置增益的值。
-                    argBuff.setPropRaw(argPropName, argValue);
-                    game.triggers.addChange(new BuffPropChange(card, argBuff.instanceID, argPropName, beforeValue, argValue));
-                    game.logger?.logTrace("Game", $"{argBuff}的属性{argPropName}=>{StringHelper.propToString(argValue)}");
-
-                    // 更新与该增益属性名绑定的修改器的值。
-                    foreach (var (modifier, modiBefore, cardBeforeProp) in modiBeforeValues)
-                    {
-                        var propName = modifier.getPropName();
-                        await modifier.updateValue(game, card, cardBeforeProp, modiBefore, argValue);
-                    }
-                });
-            }
-            else
-            {
-                var beforeValue = getProp(propName);
-                setPropRaw(propName, value);
-                game.triggers.addChange(new BuffPropChange(card, instanceID, propName, beforeValue, value));
-                return Task.FromResult<PropertyChangeEventArg>(default);
-            }
+                    var modifier = state.modifier;
+                    await modifier.updateValue(game, card, argBuff, state.cardBeforeProperty, state.modifierBeforeValue);
+                }
+            });
         }
         #endregion
 
