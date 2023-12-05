@@ -112,10 +112,6 @@ namespace TouhouCardEngine
             var value = getValueGeneric(buff);
             return calcGeneric(game, card, prop, value);
         }
-        public virtual Task beforeAdd(IGame game, Card card, T value) => Task.CompletedTask;
-        public virtual Task afterAdd(IGame game, Card card, T value) => Task.CompletedTask;
-        public virtual Task beforeRemove(IGame game, Card card, T value) => Task.CompletedTask;
-        public virtual Task afterRemove(IGame game, Card card, T value) => Task.CompletedTask;
         public virtual Task updateModifierValue(IGame game, Card card, Buff buff, T beforeValue) => Task.CompletedTask;
         public abstract T calcGeneric(IGame game, ICardData card, T prop, T value);
         #endregion
