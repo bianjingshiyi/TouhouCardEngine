@@ -5,7 +5,7 @@ namespace TouhouCardEngine
 {
     public class EffectTrigger : Trigger
     {
-        public EffectTrigger(IGame game, ICard card, IBuff buff, IEventEffect effect)
+        public EffectTrigger(CardEngine game, Card card, Buff buff, IEventEffect effect)
         {
             this.game = game;
             this.card = card;
@@ -14,15 +14,17 @@ namespace TouhouCardEngine
         }
         public override bool checkCondition(IEventArg arg)
         {
-            return effect.checkCondition(game, card, buff, arg);
+            var effectEnv = new EffectEnv(game, card, card.define, buff, arg as EventArg, effect);
+            return effect.checkCondition(effectEnv);
         }
         public override Task invoke(IEventArg arg)
         {
-            return effect.onTrigger(game, card, buff, arg);
+            var effectEnv = new EffectEnv(game, card, card.define, buff, arg as EventArg, effect);
+            return effect.onTrigger(effectEnv);
         }
-        public IGame game;
-        public ICard card;
-        public IBuff buff;
+        public CardEngine game;
+        public Card card;
+        public Buff buff;
         public IEventEffect effect;
     }
 }

@@ -124,6 +124,8 @@ namespace TouhouCardEngine
         }
         public CardDefine getDefine(DefineReference defRef)
         {
+            if (defRef == null)
+                return null;
             return getDefine(defRef.cardPoolId, defRef.defineId);
         }
         public CardDefine[] getDefines()

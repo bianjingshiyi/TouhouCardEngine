@@ -36,11 +36,11 @@ namespace TouhouCardEngine
         {
             return cardList.Remove(card);
         }
-        public bool moveCard(IGame game, Card card, Pile to, int toPosition)
+        public bool moveCard(CardEngine game, Card card, Pile to, int toPosition)
         {
             return moveCard(game, card, this, to, toPosition);
         }
-        public static bool moveCard(IGame game, Card card, Pile from, Pile to, int toPosition)
+        public static bool moveCard(CardEngine game, Card card, Pile from, Pile to, int toPosition)
         {
             if (!canMove(card, from, to))
                 return false;
@@ -173,7 +173,7 @@ namespace TouhouCardEngine
             }
             return moveSuccess;
         }
-        private static void enableCardEffects(IGame game, Card card, Pile from, Pile to)
+        private static void enableCardEffects(CardEngine game, Card card, Pile from, Pile to)
         {
             if (to == null)
                 return;
@@ -205,7 +205,7 @@ namespace TouhouCardEngine
                 game.logger.logError($"将{card}从{from}移动到{to}时激活效果引发异常：{e}");
             }
         }
-        private static void disableCardEffects(IGame game, Card card, Pile from, Pile to)
+        private static void disableCardEffects(CardEngine game, Card card, Pile from, Pile to)
         {
             if (from == null)
                 return;
