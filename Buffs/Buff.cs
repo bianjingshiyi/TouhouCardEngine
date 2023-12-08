@@ -159,6 +159,7 @@ namespace TouhouCardEngine
         public abstract int id { get; }
         public int instanceID { get; set; }
         public Card card { get; set; }
+        public virtual bool canClone { get; set; } = true;
         protected List<PropModifier> _modifiers = new List<PropModifier>();
         protected List<IEffect> _effects = new List<IEffect>();
         protected List<BuffExistLimit> _existLimits = new List<BuffExistLimit>();

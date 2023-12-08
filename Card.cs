@@ -50,6 +50,10 @@ namespace TouhouCardEngine
         {
             return enabledEffects.Contains((buff, effect));
         }
+        public (IBuff buff, IEffect effect)[] getEnabledEffects()
+        {
+            return enabledEffects.ToArray();
+        }
         #endregion
 
         #region 属性
