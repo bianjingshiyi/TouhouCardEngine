@@ -58,7 +58,7 @@ namespace TouhouCardEngine
                 Flow childFlow = new Flow(env);
                 await setEntryNodeOutputValues(flow, childFlow, node);
                 await executeGraph(childFlow);
-                sendOuterNodeOutputValues(flow, childFlow, node);
+                await sendOuterNodeOutputValues(flow, childFlow, node);
             }
             return node.getOutputPort<ControlOutput>(exitPortName);
         }
@@ -295,14 +295,14 @@ namespace TouhouCardEngine
         /// <param name="node">自定义动作节点。</param>
         /// <param name="arg">事件。</param>
         /// <returns></returns>
-        private void sendOuterNodeOutputValues(Flow flow, Flow childFlow, Node node)
+        private async Task sendOuterNodeOutputValues(Flow flow, Flow childFlow, Node node)
         {
             var exitNode = getReturnNode();
             foreach (var outputDef in getValueOutputs())
             {
                 var input = exitNode.getInputPort<ValueInput>(outputDef.name);
                 var output = node.getOutputPort<ValueOutput>(outputDef.name);
-                flow.setValue(output, childFlow.getValue(input));
+                flow.setValue(output, await childFlow.getValue(input));
             }
         }
         /// <summary>
