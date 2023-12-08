@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
@@ -71,6 +72,8 @@ namespace TouhouCardEngine
                 bool isParams = paramAttr != null ? paramAttr.isParams : false;
                 bool isOut = paramAttr != null ? paramAttr.isOut : false;
 
+                var metaAttributes = paramInfo.GetCustomAttributes<NodeParamMetaAttribute>();
+
                 Type paramType = paramInfo.ParameterType;
                 if (paramType.IsByRef)
                 {
@@ -84,16 +87,17 @@ namespace TouhouCardEngine
                     }
                 }
 
+                var metas = metaAttributes.Select(m => m.toPortMeta());
                 if (paramInfo.ParameterType == typeof(ControlInput) && paramAttr != null)
                 {
                     //如果参数类型是动作节点，那么它是一个动作分支输出
-                    PortDefine controlDefine = PortDefine.Control(paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                    PortDefine controlDefine = PortDefine.Control(paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, metas: metas);
                     outputList.Add(controlDefine);
                 }
                 else if (paramInfo.IsOut || isOut)
                 {
                     //如果参数是out参数，那么它是一个输出
-                    PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                    PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, metas: metas);
                     outputList.Add(valueDefine);
                 }
                 else
@@ -103,13 +107,13 @@ namespace TouhouCardEngine
                         if (paramAttr.isConst)
                         {
                             //用特性指定是常量
-                            PortDefine constDefine = PortDefine.Const(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name);
+                            PortDefine constDefine = PortDefine.Const(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, metas: metas);
                             constList.Add(constDefine);
                         }
                         else
                         {
                             //用特性指定是输入
-                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams);
+                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams, metas: metas);
                             inputList.Add(valueDefine);
                         }
                     }
@@ -122,7 +126,7 @@ namespace TouhouCardEngine
                         !typeof(IEffect).IsAssignableFrom(paramInfo.ParameterType))
                     {
                         //不是Game,Card,Buff,EventArg,Flow,Effect, ActionNode这种可以缺省的参数也一定是输入
-                        PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams);
+                        PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams, metas: metas);
                         inputList.Add(valueDefine);
                     }
                 }
@@ -131,13 +135,15 @@ namespace TouhouCardEngine
             if (methodInfo.ReturnType != typeof(void) && methodInfo.ReturnType != typeof(Task))
             {
                 paramAttr = methodInfo.ReturnParameter.GetCustomAttribute<ActionNodeParamAttribute>();
+                var metaAttributes = methodInfo.ReturnParameter.GetCustomAttributes<NodeParamMetaAttribute>();
+                var returnMetas = metaAttributes.Select(m => m.toPortMeta());
                 Type returnType = methodInfo.ReturnType;
                 if (methodInfo.ReturnType.IsGenericType && methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
                     //如果返回类型为Task<T>，则返回值类型视为T
                     returnType = methodInfo.ReturnType.GetGenericArguments()[0];
                 }
-                outputList.Add(PortDefine.Value(returnType, returnValueName, paramAttr?.paramName ?? "Value"));
+                outputList.Add(PortDefine.Value(returnType, returnValueName, paramAttr?.paramName ?? "Value", metas: returnMetas));
             }
             //设置输入输出
             _inputs = inputList.ToArray();

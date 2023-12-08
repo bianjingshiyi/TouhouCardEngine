@@ -1,17 +1,19 @@
 ﻿using System;
-using TouhouCardEngine.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TouhouCardEngine
 {
     public class PortDefine
     {
         #region 公有方法
-        public PortDefine(Type type, string name, string displayName, bool isParams = false)
+        public PortDefine(Type type, string name, string displayName, bool isParams = false, IPortMeta[] metas = null)
         {
             this.type = type;
             this.name = name;
             this.displayName = displayName;
             this.isParams = isParams;
+            this.metas = metas;
         }
         public PortDefine(Type type, string name) : this(type, name, null)
         {
@@ -48,29 +50,29 @@ namespace TouhouCardEngine
             return hashCode;
         }
 
-        public static PortDefine Control(string name)
+        public static PortDefine Value(string name, IEnumerable<IPortMeta> metas = null)
         {
-            return Control(name, name);
+            return Control(name, name, metas);
         }
-        public static PortDefine Control(string name, string displayName)
+        public static PortDefine Control(string name, string displayName = null, IEnumerable<IPortMeta> metas = null)
         {
-            return new PortDefine(typeof(ActionNode), name, displayName);
+            return new PortDefine(typeof(ActionNode), name, displayName ?? name, false, metas?.ToArray());
         }
-        public static PortDefine Value(Type type, string name, bool isParams = false)
+        public static PortDefine Value(Type type, string name, bool isParams = false, IEnumerable<IPortMeta> metas = null)
         {
-            return Value(type, name, name, isParams);
+            return Value(type, name, name, isParams, metas);
         }
-        public static PortDefine Value(Type type, string name, string displayName, bool isParams = false)
+        public static PortDefine Value(Type type, string name, string displayName, bool isParams = false, IEnumerable<IPortMeta> metas = null)
         {
-            return new PortDefine(type, name, displayName, isParams);
+            return new PortDefine(type, name, displayName, isParams, metas?.ToArray());
         }
-        public static PortDefine Const(Type type, string name)
+        public static PortDefine Const(Type type, string name, IEnumerable<IPortMeta> metas = null)
         {
-            return Value(type, name);
+            return Value(type, name, false, metas);
         }
-        public static PortDefine Const(Type type, string name, string displayName)
+        public static PortDefine Const(Type type, string name, string displayName, IEnumerable<IPortMeta> metas = null)
         {
-            return Value(type, name, displayName);
+            return Value(type, name, displayName, false, metas);
         }
 
         public static bool CanTypeConvert(Type srcType, Type destType)
@@ -112,6 +114,7 @@ namespace TouhouCardEngine
         /// 如果该端口定义是输入端口，则表示该输入端口会变长。如果是输出端口，表示这是GeneratedActionEntryNode的变长输入值组成的数组。
         /// </summary>
         public bool isParams { get; set; }
+        public IPortMeta[] metas { get; }
         #endregion
     }
     [Serializable]
