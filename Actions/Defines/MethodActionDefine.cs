@@ -302,7 +302,15 @@ namespace TouhouCardEngine
                                 ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
                                 if (port != null)
                                 {
-                                    param = await flow.getValue(port);
+                                    var outputPort = port.getConnectedOutputPort();
+                                    if (outputPort == null && paramInfo.HasDefaultValue)
+                                    {
+                                        param = paramInfo.DefaultValue;
+                                    }
+                                    else
+                                    {
+                                        param = await flow.getValue(port);
+                                    }
                                 }
                             }
                         }
