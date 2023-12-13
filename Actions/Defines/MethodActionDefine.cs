@@ -157,11 +157,19 @@ namespace TouhouCardEngine
         }
         public override async Task<ControlOutput> run(Flow flow, Node node)
         {
-            var parameters = await getParameters(flow, node);
+            try
+            {
+                var parameters = await getParameters(flow, node);
 
-            object returnValue = _methodInfo.Invoke(null, parameters);
+                object returnValue = _methodInfo.Invoke(null, parameters);
 
-            await sendReturnValue(flow, node, returnValue, parameters);
+                await sendReturnValue(flow, node, returnValue, parameters);
+            }
+            catch (Exception e)
+            {
+                flow.env?.game?.logger?.logError($"执行节点({editorName})时出错：{e}");
+            }
+
             return node.getOutputPort<ControlOutput>(exitPortName);
         }
         #endregion
@@ -241,6 +249,16 @@ namespace TouhouCardEngine
                 param = unpackArrayToObject(param as Array);
             else if (param is Array array && isArrayNeedToCastForType(array, type))
                 param = castArrayToTargetTypeArray(flow, array, type.GetElementType());
+
+            if (param == null)
+            {
+                if (type.IsValueType)
+                    throw new InvalidCastException($"无法将null值转换为类型{type}。");
+            }
+            else if (!type.IsAssignableFrom(param.GetType()))
+            {
+                throw new InvalidCastException($"无法将{param.GetType()}类型的值\"{param}\"转换为类型{type}。");
+            }
             return param;
         }
 
