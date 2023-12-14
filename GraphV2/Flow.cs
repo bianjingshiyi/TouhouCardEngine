@@ -259,7 +259,7 @@ namespace TouhouCardEngine
                 if (e is TargetInvocationException targetInvocationException)
                     e = targetInvocationException.InnerException;
                 env.game.logger.logError("Game", $"执行动作{node}发生异常：{e}");
-                throw e;
+                return null;
             }
             finally
             {
@@ -288,7 +288,7 @@ namespace TouhouCardEngine
                 if (e is TargetInvocationException targetInvocationException)
                     e = targetInvocationException.InnerException;
                 env.game.logger.logError("Game", $"获取值{output}发生异常：{e}");
-                throw e;
+                return default;
             }
         }
 
