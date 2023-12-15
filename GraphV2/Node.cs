@@ -109,9 +109,11 @@ namespace TouhouCardEngine
             {
                 defaultValue = new InputDefaultValue(name, -1, value);
                 inputDefaultValueList.Add(defaultValue);
-                return;
             }
-            defaultValue.value = value;
+            else
+            {
+                defaultValue.value = value;
+            }
             updateInputDefaultValue(name, -1, value);
         }
         public void setInputDefaultValue(string name, int paramIndex, object value)
@@ -121,9 +123,11 @@ namespace TouhouCardEngine
             {
                 defaultValue = new InputDefaultValue(name, paramIndex, value);
                 inputDefaultValueList.Add(defaultValue);
-                return;
             }
-            defaultValue.value = value;
+            else
+            {
+                defaultValue.value = value;
+            }
             updateInputDefaultValue(name, paramIndex, value);
         }
         #endregion
