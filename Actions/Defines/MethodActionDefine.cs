@@ -242,7 +242,7 @@ namespace TouhouCardEngine
             if (param == null)
             {
                 if (type.IsValueType)
-                    throw new InvalidCastException($"无法将null值转换为类型{type}。");
+                    return Activator.CreateInstance(type);
             }
             else if (!type.IsAssignableFrom(param.GetType()))
             {

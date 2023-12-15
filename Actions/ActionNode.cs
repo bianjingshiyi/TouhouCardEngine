@@ -52,6 +52,12 @@ namespace TouhouCardEngine
             return new SerializableActionNode(this);
         }
         #endregion
+        protected override void updateInputDefaultValue(string name, int paramIndex, object value)
+        {
+            base.updateInputDefaultValue(name, paramIndex, value);
+            if (paramIndex >= 0)
+                Define();
+        }
         private void DefinitionInputs(ActionDefine define)
         {
             ValueInput valueInput(PortDefine def, int paramIndex)
@@ -74,13 +80,21 @@ namespace TouhouCardEngine
                         {
                             // 变长参数。
                             var count = 0;
+                            var inputDefaultValues = getParamInputDefaultValues(portDefine.name);
                             var paramInputs = getParamInputPorts(portDefine.name);
-                            for (int ci = paramInputs.Length - 1; ci >= 0; ci--)
+
+                            var defValMaxIndex = inputDefaultValues.Count() > 0 ? inputDefaultValues.Max(v => v.paramIndex) : 0;
+                            var portMaxIndex = paramInputs.Count() > 0 ? paramInputs.Max(p => p.paramIndex) : 0;
+                            var maxParamIndex = Math.Max(defValMaxIndex, portMaxIndex);
+
+                            for (int pi = maxParamIndex; pi >= 0; pi--)
                             {
-                                var paramInput = paramInputs[ci];
-                                if (paramInput == null || !(paramInput.connections.Any() || hasInputDefaultValue(portDefine.name, paramInput.paramIndex)))
+                                var paramInput = getParamInputPort(portDefine.name, pi);
+                                bool hasDefaultValue = hasInputDefaultValue(portDefine.name, pi);
+                                bool hasConnected = paramInput != null && paramInput.connections.Any();
+                                if (!hasDefaultValue && !hasConnected)
                                     continue;
-                                count = ci + 1;
+                                count = pi + 1;
                                 break;
                             }
                             count++;

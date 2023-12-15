@@ -72,6 +72,12 @@ namespace TouhouCardEngine
                 return false;
             return true;
         }
+        public InputDefaultValue[] getParamInputDefaultValues(string name)
+        {
+            if (inputDefaultValueList == null)
+                return Array.Empty<InputDefaultValue>();
+            return inputDefaultValueList.Where(v => v.name == name).ToArray();
+        }
         public object getInputDefaultValue(string name)
         {
             return getInputDefaultValue<object>(name);
@@ -106,6 +112,7 @@ namespace TouhouCardEngine
                 return;
             }
             defaultValue.value = value;
+            updateInputDefaultValue(name, -1, value);
         }
         public void setInputDefaultValue(string name, int paramIndex, object value)
         {
@@ -117,6 +124,7 @@ namespace TouhouCardEngine
                 return;
             }
             defaultValue.value = value;
+            updateInputDefaultValue(name, paramIndex, value);
         }
         #endregion
 
@@ -262,6 +270,10 @@ namespace TouhouCardEngine
             return propDict.Keys.ToArray();
         }
         #endregion
+
+        protected virtual void updateInputDefaultValue(string name, int paramIndex, object value)
+        {
+        }
 
         /// <summary>
         /// 该动作的输出端口。
