@@ -98,8 +98,6 @@ namespace TouhouCardEngine
         }
         public void setInputDefaultValue(string name, object value)
         {
-            if (!inputPorts.Any(p => p.name == name))
-                return;
             var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name);
             if (defaultValue == null)
             {
@@ -111,8 +109,6 @@ namespace TouhouCardEngine
         }
         public void setInputDefaultValue(string name, int paramIndex, object value)
         {
-            if (!inputPorts.Any(p => p.name == name && p is ValueInput valueInput && valueInput.paramIndex == paramIndex))
-                return;
             var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name && v.paramIndex == paramIndex);
             if (defaultValue == null)
             {
