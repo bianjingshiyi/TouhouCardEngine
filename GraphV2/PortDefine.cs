@@ -76,6 +76,15 @@ namespace TouhouCardEngine
                     return false;
                 return CanTypeConvert(srcType, genericArgs[0]);
             }
+            //如果其中有类型是NodeConstProxy，那么检测泛型类型
+            bool srcIsProxy = srcType.IsSubclassOfRawGeneric(typeof(NodeConstProxy<>), out var srcProxyGenArgs);
+            bool destIsProxy = destType.IsSubclassOfRawGeneric(typeof(NodeConstProxy<>), out var destProxyGenArgs);
+            if (srcIsProxy || destIsProxy)
+            {
+                var srcProxyType = srcIsProxy ? srcProxyGenArgs[0] : srcType;
+                var destProxyType = destIsProxy ? destProxyGenArgs[0] : destType;
+                return CanTypeConvert(srcProxyType, destProxyType);
+            }
             //类型之间可以相互转化
             if (destType.IsAssignableFrom(srcType) || srcType.IsAssignableFrom(destType))
             {
@@ -94,6 +103,7 @@ namespace TouhouCardEngine
             return false;
         }
         #endregion
+
         #region 属性字段
         public Type type { get; set; }
         public string name { get; set; }
