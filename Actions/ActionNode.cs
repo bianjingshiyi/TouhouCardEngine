@@ -74,11 +74,11 @@ namespace TouhouCardEngine
                         {
                             // 变长参数。
                             var count = 0;
-                            var connectedInputs = getParamInputPorts(portDefine.name);
-                            for (int ci = connectedInputs.Length - 1; ci >= 0; ci--)
+                            var paramInputs = getParamInputPorts(portDefine.name);
+                            for (int ci = paramInputs.Length - 1; ci >= 0; ci--)
                             {
-                                var connectedInput = connectedInputs[ci];
-                                if (connectedInput == null || !connectedInput.connections.Any())
+                                var paramInput = paramInputs[ci];
+                                if (paramInput == null || !(paramInput.connections.Any() || hasInputDefaultValue(portDefine.name, paramInput.paramIndex)))
                                     continue;
                                 count = ci + 1;
                                 break;
@@ -146,7 +146,6 @@ namespace TouhouCardEngine
         public SerializableActionNode(ActionNode actionNode) : base(actionNode)
         {
             defineRef = actionNode.defineRef;
-            inputDefaultValues = new Dictionary<string, object>(actionNode.inputDefaultValues);
         }
         #endregion
 
@@ -158,7 +157,9 @@ namespace TouhouCardEngine
                 posY = posY,
             };
             node.defineName = defineName;
-            var defaultValues = inputDefaultValues ?? constDict;
+            IEnumerable<InputDefaultValue> defaultValues = 
+                inputDefaultValues?.Select(dv => dv.deserialize()) 
+                ?? constDict?.Select(c => new InputDefaultValue(c.Key, -1, c.Value));
             InitNode(node, defaultValues, graph);
             return node;
         }

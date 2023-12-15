@@ -41,8 +41,37 @@ namespace TouhouCardEngine
                 }
             }
         }
-        #region 寻找端口
 
+        #region 输入默认值
+        public object getInputDefaultValue(string name, int paramIndex)
+        {
+            return getInputDefaultValue<object>(name, paramIndex);
+        }
+        public T getInputDefaultValue<T>(string name, int paramIndex)
+        {
+            if (inputDefaultValueList == null)
+                return default;
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name && v.paramIndex == paramIndex);
+            if (defaultValue == null)
+                return default;
+            if (!(defaultValue.value is T result))
+                return default;
+            return result;
+        }
+        public bool hasInputDefaultValue(string name, int paramIndex)
+        {
+            if (inputDefaultValueList == null)
+                return false;
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name && v.paramIndex == paramIndex);
+            if (defaultValue == null)
+                return false;
+            if (defaultValue.value == null)
+                return false;
+            var valueType = defaultValue.value.GetType();
+            if (valueType.IsValueType && defaultValue.value.Equals(Activator.CreateInstance(valueType)))
+                return false;
+            return true;
+        }
         public object getInputDefaultValue(string name)
         {
             return getInputDefaultValue<object>(name);
@@ -51,12 +80,51 @@ namespace TouhouCardEngine
         {
             if (inputDefaultValueList == null)
                 return default;
-            if (!inputDefaultValueList.TryGetValue(name, out object value))
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name);
+            if (defaultValue == null)
                 return default;
-            if (!(value is T result))
+            if (!(defaultValue.value is T result))
                 return default;
             return result;
         }
+        public bool hasInputDefaultValue(string name)
+        {
+            if (inputDefaultValueList == null)
+                return false;
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name);
+            if (defaultValue == null)
+                return false;
+            return true;
+        }
+        public void setInputDefaultValue(string name, object value)
+        {
+            if (!inputPorts.Any(p => p.name == name))
+                return;
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name);
+            if (defaultValue == null)
+            {
+                defaultValue = new InputDefaultValue(name, -1, value);
+                inputDefaultValueList.Add(defaultValue);
+                return;
+            }
+            defaultValue.value = value;
+        }
+        public void setInputDefaultValue(string name, int paramIndex, object value)
+        {
+            if (!inputPorts.Any(p => p.name == name && p is ValueInput valueInput && valueInput.paramIndex == paramIndex))
+                return;
+            var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name && v.paramIndex == paramIndex);
+            if (defaultValue == null)
+            {
+                defaultValue = new InputDefaultValue(name, paramIndex, value);
+                inputDefaultValueList.Add(defaultValue);
+                return;
+            }
+            defaultValue.value = value;
+        }
+        #endregion
+
+        #region 寻找端口
         public ValueInput getParamInputPort(string name, int index)
         {
             int curIndex = 0;
@@ -171,19 +239,6 @@ namespace TouhouCardEngine
         #endregion
 
         #region 设置端口
-        public void setInputDefaultValue(string name, object value)
-        {
-            if (!inputPorts.Any(p => p.name == name))
-                return;
-            if (!inputDefaultValueList.ContainsKey(name))
-            {
-                inputDefaultValueList.Add(name, value);
-            }
-            else
-            {
-                inputDefaultValueList[name] = value;
-            }
-        }
         public ValueInput extendParamsPort(string name)
         {
             var ports = getParamInputPorts(name);
@@ -223,10 +278,10 @@ namespace TouhouCardEngine
         /// <summary>
         /// 该动作的输入默认值列表。
         /// </summary>
-        private Dictionary<string, object> inputDefaultValueList = new Dictionary<string, object>();
+        private List<InputDefaultValue> inputDefaultValueList = new List<InputDefaultValue>();
         public IEnumerable<IPort> outputPorts => outputList;
         public IEnumerable<IPort> inputPorts => inputList;
-        public IDictionary<string, object> inputDefaultValues => inputDefaultValueList;
+        public IEnumerable<InputDefaultValue> inputDefaultValues => inputDefaultValueList;
         public int id { get; set; }
         public float posX { get; set; }
         public float posY { get; set; }
@@ -242,7 +297,7 @@ namespace TouhouCardEngine
             id = node.id;
             posX = node.posX;
             posY = node.posY;
-            inputDefaultValues = node.inputDefaultValues != null ? new Dictionary<string, object>(node.inputDefaultValues) : null;
+            inputDefaultValues = node.inputDefaultValues != null ? node.inputDefaultValues.Select(v => new SerializableInputDefaultValue(v)).ToList() : null;
             propDict = node.propDict != null ? new Dictionary<string, object>(node.propDict) : null;
         }
         public abstract Node ToNode(ActionGraph graph);
@@ -257,21 +312,21 @@ namespace TouhouCardEngine
                 }
             }
         }
-        protected void InitNode(Node node, Dictionary<string, object> defaultValues, ActionGraph graph)
+        protected void InitNode(Node node, IEnumerable<InputDefaultValue> defaultValues, ActionGraph graph)
         {
             InitNode(node, graph);
             if (defaultValues != null)
             {
-                foreach (var pair in defaultValues)
+                foreach (var defaultValue in defaultValues)
                 {
-                    node.setInputDefaultValue(pair.Key, pair.Value);
+                    node.setInputDefaultValue(defaultValue.name, defaultValue.paramIndex, defaultValue.value);
                 }
             }
         }
         public int id;
         public float posX;
         public float posY;
-        public Dictionary<string, object> inputDefaultValues;
+        public List<SerializableInputDefaultValue> inputDefaultValues;
         public Dictionary<string, object> propDict;
     }
 
