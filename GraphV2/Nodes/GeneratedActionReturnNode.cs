@@ -26,7 +26,7 @@ namespace TouhouCardEngine
         {
             DefinitionInputs(define);
         }
-        public override ISerializableNode ToSerializableNode()
+        public override SerializableNode ToSerializableNode()
         {
             return new SerializableGeneratedReturnNode(this);
         }
@@ -67,13 +67,10 @@ namespace TouhouCardEngine
     }
 
     [Serializable]
-    public class SerializableGeneratedReturnNode : ISerializableNode
+    public class SerializableGeneratedReturnNode : SerializableNode
     {
-        public SerializableGeneratedReturnNode(GeneratedActionReturnNode node)
+        public SerializableGeneratedReturnNode(GeneratedActionReturnNode node) : base(node)
         {
-            id = node.id;
-            posX = node.posX;
-            posY = node.posY;
         }
 
         public GeneratedActionReturnNode ToGeneratedEntryNode(ActionGraph graph)
@@ -84,13 +81,10 @@ namespace TouhouCardEngine
                 posX = posX,
                 posY = posY
             };
-            node.graph = graph;
+            InitNode(node, graph);
             return node;
         }
-        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
-        public int id;
-        public float posX;
-        public float posY;
+        public override Node ToNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
 
     }
 }

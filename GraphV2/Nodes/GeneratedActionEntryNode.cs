@@ -30,7 +30,7 @@ namespace TouhouCardEngine
         {
             return getOutputPort<ControlOutput>(ActionNode.enterControlName);
         }
-        public override ISerializableNode ToSerializableNode()
+        public override SerializableNode ToSerializableNode()
         {
             return new SerializableGeneratedEntryNode(this);
         }
@@ -63,10 +63,6 @@ namespace TouhouCardEngine
                 else
                     outputs.Add(valueOutput(def));
             }
-            foreach (var def in actionDefine.constDefines)
-            {
-                outputs.Add(valueConst(def));
-            }
 
 
             foreach (var lostPort in outputList.Except(outputs))
@@ -80,13 +76,10 @@ namespace TouhouCardEngine
         public GeneratedActionDefine define { get; set; }
     }
     [Serializable]
-    public class SerializableGeneratedEntryNode : ISerializableNode
+    public class SerializableGeneratedEntryNode : SerializableNode
     {
-        public SerializableGeneratedEntryNode(GeneratedActionEntryNode node)
+        public SerializableGeneratedEntryNode(GeneratedActionEntryNode node) : base(node)
         {
-            id = node.id;
-            posX = node.posX;
-            posY = node.posY;
         }
 
         public GeneratedActionEntryNode ToGeneratedEntryNode(ActionGraph graph)
@@ -97,13 +90,10 @@ namespace TouhouCardEngine
                 posX = posX,
                 posY = posY
             };
-            node.graph = graph;
+            InitNode(node, graph);
             return node;
         }
-        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
-        public int id;
-        public float posX;
-        public float posY;
+        public override Node ToNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
 
     }
 }

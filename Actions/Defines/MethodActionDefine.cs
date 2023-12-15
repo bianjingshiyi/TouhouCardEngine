@@ -58,7 +58,6 @@ namespace TouhouCardEngine
             {
                 inputList.Add(enterPortDefine);
             }
-            List<PortDefine> constList = new List<PortDefine>();
             List<PortDefine> outputList = new List<PortDefine>();
             if (type != NodeDefineType.Function)
             {
@@ -104,18 +103,9 @@ namespace TouhouCardEngine
                 {
                     if (paramAttr != null)
                     {
-                        if (paramAttr.isConst)
-                        {
-                            //用特性指定是常量
-                            PortDefine constDefine = PortDefine.Const(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, metas: metas);
-                            constList.Add(constDefine);
-                        }
-                        else
-                        {
-                            //用特性指定是输入
-                            PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams, metas: metas);
-                            inputList.Add(valueDefine);
-                        }
+                        //用特性指定是输入
+                        PortDefine inputDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams, isConst: paramAttr.isConst, metas: metas);
+                        inputList.Add(inputDefine);
                     }
                     else if (!typeof(IGame).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(ICard).IsAssignableFrom(paramInfo.ParameterType) &&
@@ -147,7 +137,6 @@ namespace TouhouCardEngine
             }
             //设置输入输出
             _inputs = inputList.ToArray();
-            _consts = constList.ToArray();
             _outputs = outputList.ToArray();
 
             // 设置过期提示
@@ -294,41 +283,34 @@ namespace TouhouCardEngine
                     else
                     {
                         object param = null;
-                        if (paramAttr.isConst)
+                        if (paramAttr.isParams)
                         {
-                            param = node.getConst(paramInfo.Name);
+                            var ports = node.getParamInputPorts(paramInfo.Name);
+                            // 这里要-1，少包括最后一个变长参数的内容。
+                            var array = new object[ports.Length - 1];
+                            for (int paramIndex = 0; paramIndex < array.Length; paramIndex++)
+                            {
+                                var port = ports[paramIndex];
+                                if (port != null)
+                                {
+                                    array[paramIndex] = await flow.getValue(port);
+                                }
+                            }
+                            param = array;
                         }
                         else
                         {
-                            if (paramAttr.isParams)
+                            ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
+                            if (port != null)
                             {
-                                var ports = node.getParamInputPorts(paramInfo.Name);
-                                // 这里要-1，少包括最后一个变长参数的内容。
-                                var array = new object[ports.Length - 1];
-                                for (int paramIndex = 0; paramIndex < array.Length; paramIndex++)
+                                var outputPort = port.getConnectedOutputPort();
+                                if (outputPort == null && paramInfo.HasDefaultValue)
                                 {
-                                    var port = ports[paramIndex];
-                                    if (port != null)
-                                    {
-                                        array[paramIndex] = await flow.getValue(port);
-                                    }
+                                    param = paramInfo.DefaultValue;
                                 }
-                                param = array;
-                            }
-                            else
-                            {
-                                ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
-                                if (port != null)
+                                else
                                 {
-                                    var outputPort = port.getConnectedOutputPort();
-                                    if (outputPort == null && paramInfo.HasDefaultValue)
-                                    {
-                                        param = paramInfo.DefaultValue;
-                                    }
-                                    else
-                                    {
-                                        param = await flow.getValue(port);
-                                    }
+                                    param = await flow.getValue(port);
                                 }
                             }
                         }
@@ -442,10 +424,8 @@ namespace TouhouCardEngine
         ActionNodeParamAttribute[] _paramAttributes;
 
         private PortDefine[] _inputs;
-        private PortDefine[] _consts;
         private PortDefine[] _outputs;
         public override IEnumerable<PortDefine> inputDefines => _inputs;
-        public override IEnumerable<PortDefine> constDefines => _consts;
         public override IEnumerable<PortDefine> outputDefines => _outputs;
     }
 }

@@ -47,7 +47,7 @@ namespace TouhouCardEngine
         {
             return getOutputPort<ControlOutput>(exitControlName);
         }
-        public override ISerializableNode ToSerializableNode()
+        public override SerializableNode ToSerializableNode()
         {
             return new SerializableActionNode(this);
         }
@@ -139,19 +139,14 @@ namespace TouhouCardEngine
     }
 
     [Serializable]
-    public sealed class SerializableActionNode : ISerializableNode
+    public sealed class SerializableActionNode : SerializableNode
     {
         #region 公有方法
         #region 构造函数
-        public SerializableActionNode(ActionNode actionNode)
+        public SerializableActionNode(ActionNode actionNode) : base(actionNode)
         {
-            if (actionNode == null)
-                throw new ArgumentNullException(nameof(actionNode));
-            id = actionNode.id;
             defineRef = actionNode.defineRef;
-            posX = actionNode.posX;
-            posY = actionNode.posY;
-            constDict = new Dictionary<string, object>(actionNode.consts);
+            inputDefaultValues = new Dictionary<string, object>(actionNode.inputDefaultValues);
         }
         #endregion
 
@@ -162,21 +157,16 @@ namespace TouhouCardEngine
                 posX = posX,
                 posY = posY,
             };
-            node.graph = graph;
             node.defineName = defineName;
-            foreach (var pair in constDict)
-            {
-                node.setConst(pair.Key, pair.Value);
-            }
+            var defaultValues = inputDefaultValues ?? constDict;
+            InitNode(node, defaultValues, graph);
             return node;
         }
-        Node ISerializableNode.ToActionNode(ActionGraph graph) => ToActionNode(graph);
+        public override Node ToNode(ActionGraph graph) => ToActionNode(graph);
         #endregion
         #region 属性字段
-        public int id;
         public ActionReference defineRef;
-        public float posX;
-        public float posY;
+        [Obsolete]
         public Dictionary<string, object> constDict;
 
         [Obsolete]

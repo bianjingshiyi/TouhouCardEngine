@@ -10,7 +10,7 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 构造方法
-        public GeneratedActionDefine(ActionGraph graph, int id, NodeDefineType type, string category, string editorName, PortDefine[] inputs, PortDefine[] consts, PortDefine[] outputs) : base(id, editorName)
+        public GeneratedActionDefine(ActionGraph graph, int id, NodeDefineType type, string category, string editorName, PortDefine[] inputs, PortDefine[] outputs) : base(id, editorName)
         {
             this.category = category;
             if (type != NodeDefineType.Function)
@@ -21,8 +21,6 @@ namespace TouhouCardEngine
             this.type = type;
             if (inputs != null)
                 _inputs.AddRange(inputs);
-            if (consts != null)
-                _consts.AddRange(consts);
             if (outputs != null)
                 _outputs.AddRange(outputs);
 
@@ -80,28 +78,24 @@ namespace TouhouCardEngine
         public string[] getBeforeEventArgVarNames()
         {
             var inputs = getValueInputs().Select(v => v.name);
-            var consts = _consts.Select(v => v.name);
-            return inputs.Concat(consts).ToArray();
+            return inputs.ToArray();
         }
         public string[] getAfterEventArgVarNames()
         {
             var inputs = getValueInputs().Select(v => v.name);
-            var consts = _consts.Select(v => v.name);
             var outputs = getValueOutputs().Select(v => v.name);
-            return inputs.Concat(consts).Concat(outputs).ToArray();
+            return inputs.Concat(outputs).ToArray();
         }
         public EventVariableInfo[] getBeforeEventArgVarInfos()
         {
             var inputs = getValueInputs().Select(v => portDefineToEventVarInfo(v));
-            var consts = _consts.Select(v => portDefineToEventVarInfo(v));
-            return inputs.Concat(consts).ToArray();
+            return inputs.ToArray();
         }
         public EventVariableInfo[] getAfterEventArgVarInfos()
         {
             var inputs = getValueInputs().Select(v => portDefineToEventVarInfo(v));
-            var consts = _consts.Select(v => portDefineToEventVarInfo(v));
             var outputs = getValueOutputs().Select(v => portDefineToEventVarInfo(v));
-            return inputs.Concat(consts).Concat(outputs).ToArray();
+            return inputs.Concat(outputs).ToArray();
         }
         public string getEventName()
         {
@@ -162,18 +156,6 @@ namespace TouhouCardEngine
         public bool removeInput(PortDefine define)
         {
             if (_inputs.Remove(define))
-            {
-                var entryNode = getEntryNode();
-                var port = entryNode.getOutputPort(define.name);
-                graph.disconnectAll(port);
-                return true;
-            }
-            return false;
-        }
-        public void addConst(PortDefine define) => _consts.Add(define);
-        public bool removeConst(PortDefine define)
-        {
-            if (_consts.Remove(define))
             {
                 var entryNode = getEntryNode();
                 var port = entryNode.getOutputPort(define.name);
@@ -244,13 +226,6 @@ namespace TouhouCardEngine
                     var value = await flow.getValue(outerInput);
                     variables.Add(inputName, value);
                 }
-            }
-            foreach (var constDef in constDefines)
-            {
-                // 输入常量
-                var inputName = constDef.name;
-                if (node.consts.TryGetValue(inputName, out object value))
-                    variables.Add(inputName, value);
             }
             return variables;
         }
@@ -333,11 +308,9 @@ namespace TouhouCardEngine
         public ActionGraph graph;
 
         private List<PortDefine> _inputs = new List<PortDefine>();
-        private List<PortDefine> _consts = new List<PortDefine>();
         private List<PortDefine> _outputs = new List<PortDefine>();
 
         public override IEnumerable<PortDefine> inputDefines => _inputs;
-        public override IEnumerable<PortDefine> constDefines => _consts;
         public override IEnumerable<PortDefine> outputDefines => _outputs;
         #endregion
     }
@@ -357,7 +330,6 @@ namespace TouhouCardEngine
             graph = new SerializableActionNodeGraph(generatedActionDefine.graph);
             // 不包括动作入口端点
             inputs.AddRange(generatedActionDefine.inputDefines.Where(d => d.name != ActionDefine.enterPortName).Select(d => new SerializablePortDefine(d)));
-            consts.AddRange(generatedActionDefine.constDefines.Select(d => new SerializablePortDefine(d)));
             // 不包括动作出口端点
             outputs.AddRange(generatedActionDefine.outputDefines.Where(d => d.name != ActionDefine.exitPortName).Select(d => new SerializablePortDefine(d)));
         }
@@ -369,9 +341,19 @@ namespace TouhouCardEngine
             var nodes = this.graph.GetNodes(graph);
             graph.AddNodes(nodes);
 
+            IEnumerable<SerializablePortDefine> inputPorts = inputs;
+            if (consts != null)
+            {
+                inputPorts = inputPorts.Concat(consts);
+                var paramsInput = inputPorts.FirstOrDefault(p => p.isParams);
+                if (paramsInput != null)
+                {
+                    inputPorts = inputPorts.Where(p => p != paramsInput).Append(paramsInput);
+                }
+            }
+            var inputDefines = inputPorts.Select(s => s.ToPortDefine(typeFinder)).ToArray();
             var define = new GeneratedActionDefine(graph, id, (NodeDefineType)type, category, name,
-                inputs.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
-                consts.Select(s => s.ToPortDefine(typeFinder)).ToArray(),
+                inputDefines,
                 outputs.Select(s => s.ToPortDefine(typeFinder)).ToArray());
             return define;
         }
@@ -383,6 +365,7 @@ namespace TouhouCardEngine
         public string category;
         public SerializableActionNodeGraph graph;
         public List<SerializablePortDefine> inputs = new List<SerializablePortDefine>();
+        [Obsolete]
         public List<SerializablePortDefine> consts = new List<SerializablePortDefine>();
         public List<SerializablePortDefine> outputs = new List<SerializablePortDefine>();
 

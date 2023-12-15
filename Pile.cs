@@ -184,7 +184,7 @@ namespace TouhouCardEngine
                 {
                     if (effect is IPileRangedEffect pileEffect)
                     {
-                        if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
+                        if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
                             pileEffect.onEnable(game, card, null);
                     }
                 }
@@ -194,7 +194,7 @@ namespace TouhouCardEngine
                     {
                         if (effect is IPileRangedEffect pileEffect)
                         {
-                            if ((from == null || !pileEffect.piles.Contains(from.name)) && pileEffect.piles.Contains(to.name))
+                            if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
                                 pileEffect.onEnable(game, card, buff);
                         }
                     }
@@ -216,7 +216,7 @@ namespace TouhouCardEngine
                 {
                     if (effect is IPileRangedEffect pileEffect)
                     {
-                        if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
+                        if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
                             pileEffect.onDisable(game, card, null);
                     }
                 }
@@ -226,7 +226,7 @@ namespace TouhouCardEngine
                     {
                         if (effect is IPileRangedEffect pileEffect)
                         {
-                            if (pileEffect.piles.Contains(from.name) && (to == null || !pileEffect.piles.Contains(to.name)))
+                            if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
                                 pileEffect.onDisable(game, card, buff);
                         }
                     }

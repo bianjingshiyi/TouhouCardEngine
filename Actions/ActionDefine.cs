@@ -91,10 +91,6 @@ namespace TouhouCardEngine
         {
             return inputDefines.FirstOrDefault(d => d.name == name);
         }
-        public PortDefine getConstDefine(string name)
-        {
-            return constDefines.FirstOrDefault(d => d.name == name);
-        }
         public PortDefine getOutputDefine(string name)
         {
             return outputDefines.FirstOrDefault(d => d.name == name);
@@ -123,7 +119,6 @@ namespace TouhouCardEngine
         public NodeDefineType type;
 
         public abstract IEnumerable<PortDefine> inputDefines { get; }
-        public abstract IEnumerable<PortDefine> constDefines { get; }
         public abstract IEnumerable<PortDefine> outputDefines { get; }
 
         public const string enterPortName = "enter";

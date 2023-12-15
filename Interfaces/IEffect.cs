@@ -24,13 +24,13 @@ namespace TouhouCardEngine.Interfaces
     /// </summary>
     public interface IPileRangedEffect : IPassiveEffect
     {
-        string[] piles { get; }
+        string[] getPiles();
     }
     /// <summary>
     /// 可以使用<see cref="EffectTriggerEventDefine"/>触发的效果。
     /// </summary>
     public interface ITriggerEventEffect : IEffect
     {
-        Task runEffect(EffectEnv envS, string portName);
+        Task runEffect(EffectEnv env, string portName);
     }
 }

@@ -287,7 +287,7 @@ namespace TouhouCardEngine
         }
         public Node[] GetNodes(ActionGraph graph)
         {
-            return nodes.ConvertAll(n => n.ToActionNode(graph)).ToArray();
+            return nodes.ConvertAll(n => n.ToNode(graph)).ToArray();
         }
         public NodeConnection[] GetConnections(ActionGraph graph)
         {
@@ -295,7 +295,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
-        public List<ISerializableNode> nodes = new List<ISerializableNode>();
+        public List<SerializableNode> nodes = new List<SerializableNode>();
         public List<SerializableConnection> connections = new List<SerializableConnection>();
         #endregion
     }

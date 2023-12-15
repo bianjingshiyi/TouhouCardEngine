@@ -9,7 +9,7 @@ namespace TouhouCardEngine
     public abstract class Node : ITraversable
     {
         public abstract Task<ControlOutput> run(Flow flow);
-        public abstract ISerializableNode ToSerializableNode();
+        public abstract SerializableNode ToSerializableNode();
         public virtual void traverse(Action<Node> action, HashSet<Node> traversedNodes = null)
         {
             if (action == null)
@@ -30,19 +30,6 @@ namespace TouhouCardEngine
                     port.traverse(action, traversedNodes);
                 }
             }
-            //遍历常量
-            if (constList != null)
-            {
-                foreach (var cst in constList.Values)
-                {
-                    if (cst == null)
-                        continue;
-                    if (cst is ITraversable traversable)
-                    {
-                        traversable.traverse(action, traversedNodes);
-                    }
-                }
-            }
             //遍历后续
             if (outputList != null)
             {
@@ -56,15 +43,15 @@ namespace TouhouCardEngine
         }
         #region 寻找端口
 
-        public object getConst(string name)
+        public object getInputDefaultValue(string name)
         {
-            return getConst<object>(name);
+            return getInputDefaultValue<object>(name);
         }
-        public T getConst<T>(string name)
+        public T getInputDefaultValue<T>(string name)
         {
-            if (constList == null)
+            if (inputDefaultValueList == null)
                 return default;
-            if (!constList.TryGetValue(name, out object value))
+            if (!inputDefaultValueList.TryGetValue(name, out object value))
                 return default;
             if (!(value is T result))
                 return default;
@@ -182,16 +169,19 @@ namespace TouhouCardEngine
             yield break;
         }
         #endregion
+
         #region 设置端口
-        public void setConst(string name, object value)
+        public void setInputDefaultValue(string name, object value)
         {
-            if (!constList.ContainsKey(name))
+            if (!inputPorts.Any(p => p.name == name))
+                return;
+            if (!inputDefaultValueList.ContainsKey(name))
             {
-                constList.Add(name, value);
+                inputDefaultValueList.Add(name, value);
             }
             else
             {
-                constList[name] = value;
+                inputDefaultValueList[name] = value;
             }
         }
         public ValueInput extendParamsPort(string name)
@@ -204,6 +194,24 @@ namespace TouhouCardEngine
             return valueInput;
         }
         #endregion
+
+        #region 节点属性
+        public void setProp(string name, object value)
+        {
+            propDict[name] = value;
+        }
+        public T getProp<T>(string name)
+        {
+            if (propDict.TryGetValue(name, out var value) && value is T tValue)
+                return tValue;
+            return default;
+        }
+        public string[] getPropNames()
+        {
+            return propDict.Keys.ToArray();
+        }
+        #endregion
+
         /// <summary>
         /// 该动作的输出端口。
         /// </summary>
@@ -213,20 +221,58 @@ namespace TouhouCardEngine
         /// </summary>
         protected List<IPort> inputList = new List<IPort>();
         /// <summary>
-        /// 该动作的常量列表。
+        /// 该动作的输入默认值列表。
         /// </summary>
-        protected Dictionary<string, object> constList = new Dictionary<string, object>();
+        private Dictionary<string, object> inputDefaultValueList = new Dictionary<string, object>();
         public IEnumerable<IPort> outputPorts => outputList;
         public IEnumerable<IPort> inputPorts => inputList;
-        public IDictionary<string, object> consts => constList;
+        public IDictionary<string, object> inputDefaultValues => inputDefaultValueList;
         public int id { get; set; }
         public float posX { get; set; }
         public float posY { get; set; }
         public ActionGraph graph { get; set; }
+        internal Dictionary<string, object> propDict = new Dictionary<string, object>();
     }
-    public interface ISerializableNode
+    public abstract class SerializableNode
     {
-        Node ToActionNode(ActionGraph graph);
+        public SerializableNode(Node node)
+        {
+            if (node == null)
+                throw new ArgumentNullException(nameof(node));
+            id = node.id;
+            posX = node.posX;
+            posY = node.posY;
+            inputDefaultValues = node.inputDefaultValues != null ? new Dictionary<string, object>(node.inputDefaultValues) : null;
+            propDict = node.propDict != null ? new Dictionary<string, object>(node.propDict) : null;
+        }
+        public abstract Node ToNode(ActionGraph graph);
+        protected void InitNode(Node node, ActionGraph graph)
+        {
+            node.graph = graph;
+            if (propDict != null)
+            {
+                foreach (var pair in propDict)
+                {
+                    node.setProp(pair.Key, pair.Value);
+                }
+            }
+        }
+        protected void InitNode(Node node, Dictionary<string, object> defaultValues, ActionGraph graph)
+        {
+            InitNode(node, graph);
+            if (defaultValues != null)
+            {
+                foreach (var pair in defaultValues)
+                {
+                    node.setInputDefaultValue(pair.Key, pair.Value);
+                }
+            }
+        }
+        public int id;
+        public float posX;
+        public float posY;
+        public Dictionary<string, object> inputDefaultValues;
+        public Dictionary<string, object> propDict;
     }
 
 }
