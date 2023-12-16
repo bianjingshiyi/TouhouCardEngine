@@ -238,16 +238,6 @@ namespace TouhouCardEngine
                 param = unpackArrayToObject(param as Array);
             else if (param is Array array && isArrayNeedToCastForType(array, type))
                 param = castArrayToTargetTypeArray(flow, array, type.GetElementType());
-
-            if (param == null)
-            {
-                if (type.IsValueType)
-                    return Activator.CreateInstance(type);
-            }
-            else if (!type.IsAssignableFrom(param.GetType()))
-            {
-                throw new InvalidCastException($"无法将{param.GetType()}类型的值\"{param}\"转换为类型{type}。");
-            }
             return param;
         }
 
