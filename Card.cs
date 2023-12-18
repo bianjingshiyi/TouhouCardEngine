@@ -69,18 +69,8 @@ namespace TouhouCardEngine
             else if (define.hasProp(propName) && define[propName] is T dt)
                 value = dt;
             if (!raw)
-            {
-                foreach (var buff in buffList)
-                {
-                    foreach (var modifier in buff.getModifiers())
-                    {
-                        if (modifier is not PropModifier<T> tModi)
-                            continue;
-                        value = tModi.calcProp(game, this, buff, propName, value);
-                    }
-                }
-            }
-            return (T)(object)value;
+                value = modifyProp(game, propName, value);
+            return value;
         }
         public object getProp(IGame game, string propName, bool raw)
         {
@@ -90,13 +80,29 @@ namespace TouhouCardEngine
             else if (define.hasProp(propName))
                 value = define[propName];
             if (!raw)
+                value = modifyProp(game, propName, value);
+            return value;
+        }
+        public T modifyProp<T>(IGame game, string propName, T value)
+        {
+            foreach (var buff in buffList)
             {
-                foreach (var buff in buffList)
+                foreach (var modifier in buff.getModifiers())
                 {
-                    foreach (var modifier in buff.getModifiers())
-                    {
-                        value = modifier.calcProp(game, this, buff, propName, value);
-                    }
+                    if (modifier is not PropModifier<T> tModi)
+                        continue;
+                    value = tModi.calcProp(game, this, buff, propName, value);
+                }
+            }
+            return value;
+        }
+        public object modifyProp(IGame game, string propName, object value)
+        {
+            foreach (var buff in buffList)
+            {
+                foreach (var modifier in buff.getModifiers())
+                {
+                    value = modifier.calcProp(game, this, buff, propName, value);
                 }
             }
             return value;

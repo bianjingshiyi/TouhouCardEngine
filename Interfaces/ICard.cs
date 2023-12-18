@@ -39,6 +39,8 @@ namespace TouhouCardEngine.Interfaces
         CardDefine define { get; }
         T getProp<T>(IGame game, string propName);
         object getProp(IGame game, string propName);
+        T modifyProp<T>(IGame game, string propName, T value);
+        object modifyProp(IGame game, string propName, object value);
         Buff[] getBuffs();
         Player[] getCardVisiblePlayers();
     }
