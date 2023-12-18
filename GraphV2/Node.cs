@@ -63,12 +63,7 @@ namespace TouhouCardEngine
             if (inputDefaultValueList == null)
                 return false;
             var defaultValue = inputDefaultValueList.FirstOrDefault(v => v.name == name && v.paramIndex == paramIndex);
-            if (defaultValue == null)
-                return false;
-            if (defaultValue.value == null)
-                return false;
-            var valueType = defaultValue.value.GetType();
-            if (valueType.IsValueType && defaultValue.value.Equals(Activator.CreateInstance(valueType)))
+            if (defaultValue?.value == null)
                 return false;
             return true;
         }
@@ -129,6 +124,15 @@ namespace TouhouCardEngine
                 defaultValue.value = value;
             }
             updateInputDefaultValue(name, paramIndex, value);
+        }
+        public int removeInputDefaultValue(string name, int paramIndex = -1)
+        {
+            int count = inputDefaultValueList.RemoveAll(d => d.name == name && (paramIndex < 0 || d.paramIndex == paramIndex));
+            if (count > 0)
+            {
+                updateInputDefaultValue(name, paramIndex, null);
+            }
+            return count;
         }
         #endregion
 
