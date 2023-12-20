@@ -53,10 +53,13 @@ namespace TouhouCardEngine
             var output = input.getConnectedOutputPort();
             if (output == null)
             {
-                var defVal = input.node.getInputDefaultValue<T>(input.name, input.paramIndex);
-                if (defVal != null)
+                var defVal = input.node.getInputDefaultValue(input.name, input.paramIndex);
+                if (tryConvertTo(defVal, out T result))
+                {
                     scope.setLocalVar(input, defVal);
-                return defVal;
+                    return result;
+                }
+                return default;
             }
             var gotResult = await getValue<T>(output, scope);
             scope.setLocalVar(input, gotResult);
