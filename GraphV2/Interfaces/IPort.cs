@@ -8,6 +8,8 @@ namespace TouhouCardEngine.Interfaces
         bool canConnectTo(IPort other);
         string name { get; }
         NodeConnection connect(IPort other);
+        void onConnected(NodeConnection connection);
+        void onDisconnected(NodeConnection connection);
         PortType GetPortType();
         Node node { get; }
         IEnumerable<NodeConnection> connections { get; }

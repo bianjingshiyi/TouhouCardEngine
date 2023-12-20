@@ -20,6 +20,8 @@ namespace TouhouCardEngine
             this.define = define;
         }
         NodeConnection IPort.connect(IPort other) => connect((TValidOtherPort)other);
+        void IPort.onConnected(NodeConnection connection) => onConnected(connection);
+        void IPort.onDisconnected(NodeConnection connection) => onDisconnected(connection);
         public virtual bool canConnectTo(IPort other)
         {
             if (other == null)
@@ -40,6 +42,8 @@ namespace TouhouCardEngine
         }
         public abstract void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null);
         public abstract NodeConnection connect(TValidOtherPort other);
+        protected virtual void onConnected(NodeConnection connection) { }
+        protected virtual void onDisconnected(NodeConnection connection) { }
 
         public override string ToString()
         {
@@ -74,24 +78,30 @@ namespace TouhouCardEngine
                 connection.traverse(action, traversedActionNodeSet);
             }
         }
-        public override IEnumerable<NodeConnection> connections => node?.graph?.connections.Where(c => c.destination == this) ?? Enumerable.Empty<NodeConnection>();
-
+        protected override void onConnected(NodeConnection connection)
+        {
+            _connection = connection;
+            _connnectedOutput = connection.source as ValueOutput;
+        }
+        protected override void onDisconnected(NodeConnection connection)
+        {
+            _connection = null;
+            _connnectedOutput = null;
+        }
         public ValueOutput getConnectedOutputPort()
         {
-            var connections = node?.graph?.connections;
-            if (connections == null)
-                return null;
-            foreach (var connection in connections)
-            {
-                if (connection == null)
-                    continue;
-                if (connection.destination == this && connection.source is ValueOutput result)
-                {
-                    return result;
-                }
-            }
-            return null;
+            return _connnectedOutput;
         }
+        public override IEnumerable<NodeConnection> connections 
+        {
+            get 
+            {
+                if (_connection != null)
+                    yield return _connection;
+            }
+        }
+        private NodeConnection _connection;
+        private ValueOutput _connnectedOutput;
         public int paramIndex;
         public override bool isOutput => false;
     }
@@ -153,25 +163,31 @@ namespace TouhouCardEngine
                 connection.traverse(action, traversedActionNodeSet);
             }
         }
-        public override IEnumerable<NodeConnection> connections =>
-            node?.graph?.connections.Where(c => c.source == this) ?? Enumerable.Empty<NodeConnection>();
 
+        protected override void onConnected(NodeConnection connection)
+        {
+            _connection = connection;
+            _connnectedInput = connection.destination as ControlInput;
+        }
+        protected override void onDisconnected(NodeConnection connection)
+        {
+            _connection = null;
+            _connnectedInput = null;
+        }
         public ControlInput getConnectedInputPort()
         {
-            var connections = node?.graph?.connections;
-            if (connections == null)
-                return null;
-            foreach (var connection in connections)
-            {
-                if (connection == null)
-                    continue;
-                if (connection.source == this && connection.destination is ControlInput result)
-                {
-                    return result;
-                }
-            }
-            return null;
+            return _connnectedInput;
         }
+        public override IEnumerable<NodeConnection> connections
+        {
+            get
+            {
+                if (_connection != null)
+                    yield return _connection;
+            }
+        }
+        private NodeConnection _connection;
+        private ControlInput _connnectedInput;
         public override bool isOutput => true;
     }
 }

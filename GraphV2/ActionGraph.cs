@@ -93,7 +93,7 @@ namespace TouhouCardEngine
             if (port1.canConnectTo(port2) && !isConnected(port1, port2))
             {
                 var connection = port1.connect(port2);
-                _connections.Add(connection);
+                addConnection(connection);
                 UpdateParamsInputs(connection.destination.node as ActionNode);
                 return connection;
             }
@@ -103,6 +103,7 @@ namespace TouhouCardEngine
         {
             if (connection == null)
                 return false;
+            connection.notifyDisconnect();
             var connected = _connections.Remove(connection);
             UpdateParamsInputs(connection.destination?.node as ActionNode);
             return connected;
@@ -114,7 +115,15 @@ namespace TouhouCardEngine
         }
         public int disconnectAll(IPort port)
         {
-            return _connections.RemoveAll(c => c.source == port || c.destination == port);
+            var connections = _connections.Where(c => c.source == port || c.destination == port).ToArray();
+            int count = 0;
+            foreach (var connection in connections)
+            {
+                connection.notifyDisconnect();
+                _connections.Remove(connection);
+                count++;
+            }
+            return count;
         }
         public int disconnectAll(Node node)
         {
@@ -239,6 +248,7 @@ namespace TouhouCardEngine
             if (_connections.Contains(connection))
                 return;
             _connections.Add(connection);
+            connection.notifyConnect();
         }
         public void AddConnections(IEnumerable<NodeConnection> connections)
         {

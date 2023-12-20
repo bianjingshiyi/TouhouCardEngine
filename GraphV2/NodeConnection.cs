@@ -17,6 +17,20 @@ namespace TouhouCardEngine
             }
             return PortType.Control;
         }
+        public void notifyConnect()
+        {
+            if (source == null || destination == null)
+                return;
+            source.onConnected(this);
+            destination.onConnected(this);
+        }
+        public void notifyDisconnect()
+        {
+            if (source == null || destination == null)
+                return;
+            source.onDisconnected(this);
+            destination.onDisconnected(this);
+        }
         public void traverse(Action<Node> action, HashSet<Node> traversedActionNodeSet = null)
         {
             if (source == null || destination == null)
