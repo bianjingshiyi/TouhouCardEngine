@@ -114,9 +114,13 @@ namespace TouhouCardEngine
         {
             throw new NotImplementedException();
         }
+        public override string ToString()
+        {
+            return $"{{{cardPoolId},{id}}}";
+        }
         public string getFormatString()
         {
-            return $"{{card:{cardPoolId},{id}}}";
+            return $"{{cardDefine:{cardPoolId},{id}}}";
         }
         #endregion
         #region 属性字段

@@ -199,13 +199,13 @@ namespace TouhouCardEngine
         public override string ToString()
         {
             if (define != null)
-                return $"Card({id})<{define.GetType().Name}>";
+                return $"Card({id}){define}";
             else
                 return $"Card({id})";
         }
         public string getFormatString()
         {
-            return define.getFormatString();
+            return $"{{card:{id}}}";
         }
         #endregion
 
