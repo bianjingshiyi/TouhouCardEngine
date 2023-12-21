@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
@@ -141,6 +140,53 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        #region 属性可见性
+        public void setPropInvisibleTo(string propName, Player player, bool invisible)
+        {
+            if (invisible)
+            {
+                if (!_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList = new List<Player>();
+                    _invisibleProps.Add(propName, playerList);
+                }
+                if (!playerList.Contains(player))
+                    playerList.Add(player);
+            }
+            else
+            {
+                if (_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList.Remove(player);
+                    if (playerList.Count <= 0)
+                    {
+                        _invisibleProps.Remove(propName);
+                    }
+                }
+            }
+        }
+        public bool isPropInvisibleTo(string propName, Player player)
+        {
+            if (_invisibleProps.TryGetValue(propName, out var playerList))
+            {
+                return playerList.Contains(player);
+            }
+            return false;
+        }
+        public string[] getInvisibleProps()
+        {
+            return _invisibleProps.Keys.ToArray();
+        }
+        public Player[] getPropInvisiblePlayers(string propName)
+        {
+            if (_invisibleProps.TryGetValue(propName, out var playerList))
+            {
+                return playerList.ToArray();
+            }
+            return null;
+        }
+        #endregion
+
         #region 增益
         public void addBuff(Buff buff)
         {
@@ -241,6 +287,7 @@ namespace TouhouCardEngine
         public CardDefine define { get; private set; } = null;
         private List<Buff> buffList { get; } = new List<Buff>();
         private Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
+        private Dictionary<string, List<Player>> _invisibleProps { get; } = new Dictionary<string, List<Player>>();
         private List<(IBuff buff, IEffect effect)> enabledEffects = new List<(IBuff buff, IEffect effect)>();
         #endregion
     }

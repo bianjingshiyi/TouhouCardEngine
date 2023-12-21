@@ -46,6 +46,53 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        #region 属性可见性
+        public void setPropInvisibleTo(string propName, Player player, bool invisible)
+        {
+            if (invisible)
+            {
+                if (!_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList = new List<Player>();
+                    _invisibleProps.Add(propName, playerList);
+                }
+                if (!playerList.Contains(player))
+                    playerList.Add(player);
+            }
+            else
+            {
+                if (_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList.Remove(player);
+                    if (playerList.Count <= 0)
+                    {
+                        _invisibleProps.Remove(propName);
+                    }
+                }
+            }
+        }
+        public bool isPropInvisibleTo(string propName, Player player)
+        {
+            if (_invisibleProps.TryGetValue(propName, out var playerList))
+            {
+                return playerList.Contains(player);
+            }
+            return false;
+        }
+        public string[] getInvisibleProps()
+        {
+            return _invisibleProps.Keys.ToArray();
+        }
+        public Player[] getPropInvisiblePlayers(string propName)
+        {
+            if (_invisibleProps.TryGetValue(propName, out var playerList))
+            {
+                return playerList.ToArray();
+            }
+            return null;
+        }
+        #endregion
+
         public PropModifier[] getModifiers()
         {
             return _modifiers.ToArray();
@@ -118,6 +165,10 @@ namespace TouhouCardEngine
             _modifiers.AddRange(other._modifiers);
             _existLimits.AddRange(other._existLimits.Select(e => e.clone()));
             _effects.AddRange(other._effects);
+            foreach (var pair in other._invisibleProps)
+            {
+                _invisibleProps.Add(pair.Key, pair.Value.ToList());
+            }
         }
         #endregion
 
@@ -137,6 +188,7 @@ namespace TouhouCardEngine
         protected List<IEffect> _effects = new List<IEffect>();
         protected List<BuffExistLimit> _existLimits = new List<BuffExistLimit>();
         private Dictionary<string, object> propDict = new Dictionary<string, object>();
+        private Dictionary<string, List<Player>> _invisibleProps { get; } = new Dictionary<string, List<Player>>();
         #endregion
 
     }
