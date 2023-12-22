@@ -279,6 +279,20 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        protected IPort getOrCreateInputPort(PortDefine portDefine)
+        {
+            var existing = inputList.FirstOrDefault(d => d != null && d.define.Equals(portDefine));
+            if (existing != null)
+                return existing;
+            return portDefine.GetPortType() == PortType.Control ? new ControlInput(this, portDefine) : new ValueInput(this, portDefine);
+        }
+        protected IPort getOrCreateOutputPort(PortDefine portDefine)
+        {
+            var existing = outputList.FirstOrDefault(d => d != null && d.define.Equals(portDefine));
+            if (existing != null)
+                return existing;
+            return portDefine.GetPortType() == PortType.Control ? new ControlOutput(this, portDefine) : new ValueOutput(this, portDefine);
+        }
         protected virtual void updateInputDefaultValue(string name, int paramIndex, object value)
         {
         }
