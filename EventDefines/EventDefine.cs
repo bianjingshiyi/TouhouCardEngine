@@ -8,7 +8,7 @@ namespace TouhouCardEngine
     {
         public virtual EventReference getReference()
         {
-            return new EventReference(0, eventName);
+            return new EventReference(cardPoolId, eventName);
         }
         public bool isReference(EventReference reference)
         {
