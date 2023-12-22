@@ -17,7 +17,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 静态方法
-        public static Task<Dictionary<int, ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<List<ActionDefine>> loadDefinesFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => loadDefinesFromAssemblies(assemblies));
         }
@@ -26,9 +26,9 @@ namespace TouhouCardEngine
         /// </summary>
         /// <param name="assemblies"></param>
         /// <returns></returns>
-        public static Dictionary<int, ActionDefine> loadDefinesFromAssemblies(Assembly[] assemblies)
+        public static List<ActionDefine> loadDefinesFromAssemblies(Assembly[] assemblies)
         {
-            Dictionary<int, ActionDefine> defineDict = new Dictionary<int, ActionDefine>();
+            List<ActionDefine> defineDict = new List<ActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -39,14 +39,13 @@ namespace TouhouCardEngine
                         type.GetConstructor(new Type[0]) is ConstructorInfo constructor)
                     {
                         ActionDefine actionDefine = (ActionDefine)constructor.Invoke(new object[0]);
-                        int id = actionDefine.defineId;
-                        defineDict.Add(id, actionDefine);
+                        defineDict.Add(actionDefine);
                     }
                 }
             }
-            foreach (var pair in MethodActionDefine.loadMethodsFromAssemblies(assemblies))
+            foreach (var define in MethodActionDefine.loadMethodsFromAssemblies(assemblies))
             {
-                defineDict.Add(pair.Key, pair.Value);
+                defineDict.Add(define);
             }
             return defineDict;
         }

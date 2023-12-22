@@ -317,7 +317,7 @@ namespace TouhouCardEngine
             propDict = node.propDict != null ? new Dictionary<string, object>(node.propDict) : null;
         }
         public abstract Node ToNode(ActionGraph graph);
-        protected void InitNode(Node node, ActionGraph graph)
+        protected void InitNode(Node node, ActionGraph graph, IEnumerable<InputDefaultValue> defaultValues = null)
         {
             node.graph = graph;
             if (propDict != null)
@@ -327,10 +327,7 @@ namespace TouhouCardEngine
                     node.setProp(pair.Key, pair.Value);
                 }
             }
-        }
-        protected void InitNode(Node node, IEnumerable<InputDefaultValue> defaultValues, ActionGraph graph)
-        {
-            InitNode(node, graph);
+            defaultValues = defaultValues ?? inputDefaultValues?.ConvertAll(s => s.deserialize());
             if (defaultValues != null)
             {
                 foreach (var defaultValue in defaultValues)

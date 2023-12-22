@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using NitoriNetwork.Common;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 using TouhouCardEngine.Shared;
@@ -20,106 +18,78 @@ namespace TouhouCardEngine
         #region 公共方法
 
         #region 构造器
-        public CardEngine(Rule rule)
+        public CardEngine()
         {
             random = new RNG(0);
             responseRNG = new RNG(0);
-            this.rule = rule;
-        }
-        public CardEngine() : this(null)
-        {
-
         }
         #endregion
 
         #region 游戏流程
-        public Task init(Assembly[] assemblies, Rule rule, GameOption options, IRoomPlayer[] players)
+        public async Task init(CardDefine[] cards, BuffDefine[] buffs, Rule[] rules, GameOption options, Player[] players)
         {
-            this.rule = rule;
             if (isInited)
             {
                 logger.logError("游戏已经初始化");
-                return Task.CompletedTask;
+                return;
             }
             isInited = true;
+            option = options;
+            this.rules.AddRange(rules);
+            this.cards.AddRange(cards);
+            this.buffs.AddRange(buffs);
             //初始化随机
             random = new RNG(options.randomSeed);
             responseRNG = new RNG(options.randomSeed);
-            //初始化动作定义
-            foreach (var pair in ActionDefine.loadDefinesFromAssemblies(assemblies))
+
+            foreach (var player in players)
             {
-                addActionDefine(new ActionReference(0, pair.Key), pair.Value);
+                if (this.players.Any(p => p.id == player.id))
+                    throw new ArgumentException($"已经存在ID为{player.id}的玩家");
+                addPlayer(player);
+                foreach (var rule in this.rules)
+                {
+                    await rule.onPlayerInit(this, player);
+                }
             }
-            return rule.onGameInit(this, options, players);
+            foreach (var rule in this.rules)
+            {
+                await rule.onGameInit(this, options);
+            }
         }
-        public Task run()
+        public async Task run()
         {
             if (!isInited)
             {
                 logger.logError("游戏未初始化");
-                return Task.CompletedTask;
+                return;
             }
             if (isRunning)
             {
                 logger.logError("游戏已开始");
-                return Task.CompletedTask;
+                return;
             }
             isRunning = true;
-            return rule.onGameRun(this);
+            foreach (var rule in rules)
+            {
+                await rule.onGameRun(this);
+            }
         }
-
-        public void initAndRun(Rule rule, GameOption options, IRoomPlayer[] players)
+        public async void close()
         {
-            this.rule = rule;
-            rule.onGameInit(this, options, players);
-            isInited = true;
-            isRunning = true;
-            rule.onGameRun(this);
-        }
-        /// <summary>
-        /// 开始游戏
-        /// </summary>
-        /// <returns></returns>
-        public async Task startGame()
-        {
-            await rule.onGameStart(this);
-        }
-
-        public void close()
-        {
-            rule.onGameClose(this);
+            foreach (var rule in rules)
+            {
+                await rule.onGameClose(this);
+            }
         }
         #endregion
 
         #region CardDefine
-        public T getDefine<T>() where T : CardDefine
-        {
-            foreach (var cardPool in rule.cardDict)
-            {
-                foreach (var card in cardPool.Value)
-                {
-                    if (card.Value is T t)
-                        return t;
-                }
-            }
-            return null;
-        }
-        public T getDefine<T>(long cardPoolId, int cardId) where T : CardDefine
-        {
-            if (rule.cardDict.TryGetValue(cardPoolId, out var cardPool))
-            {
-                if (cardPool.TryGetValue(cardId, out CardDefine cardDefine) && cardDefine is T t)
-                    return t;
-            }
-            return default;
-        }
         public CardDefine getDefine(long cardPoolId, int id)
         {
-            if (rule.cardDict.TryGetValue(cardPoolId, out var cardDefineDict))
-            {
-                if (cardDefineDict.TryGetValue(id, out var cardDefine))
-                    return cardDefine;
-            }
+            var cardDefine = cards.FirstOrDefault(c => c.cardPoolId == cardPoolId && c.id == id);
+            if (cardDefine != null)
+                return cardDefine;
             throw new UnknowDefineException(id);
         }
         public CardDefine getDefine(DefineReference defRef)
@@ -130,12 +100,7 @@ namespace TouhouCardEngine
         }
         public CardDefine[] getDefines()
         {
-            IEnumerable<CardDefine> cardDefines = Enumerable.Empty<CardDefine>();
-            foreach (var cardPool in rule.cardDict.Values)
-            {
-                cardDefines = cardDefines.Concat(cardPool.Values);
-            }
-            return cardDefines.ToArray();
+            return cards.ToArray();
         }
         public CardDefine[] getDefines(IEnumerable<DefineReference> cardRefs)
         {
@@ -246,10 +211,6 @@ namespace TouhouCardEngine
         public void addPlayer(Player player)
         {
             playerList.Add(player);
-        }
-        public async Task initPlayer(Player player)
-        {
-            await rule.onPlayerInit(this, player);
         }
         #endregion
 
@@ -386,7 +347,7 @@ namespace TouhouCardEngine
         #endregion
 
         #region 属性字段
-        public Rule rule { get; set; }
+        public List<Rule> rules { get; private set; } = new List<Rule>();
 
         #region 管理器
         public ITimeManager time { get; set; } = null;
@@ -438,6 +399,7 @@ namespace TouhouCardEngine
 
         private Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
         private Dictionary<int, Card> cardIdDic { get; } = new Dictionary<int, Card>();
+        public List<CardDefine> cards = new List<CardDefine>();
         #endregion
     }
 }

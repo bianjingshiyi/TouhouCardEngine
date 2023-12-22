@@ -14,13 +14,13 @@ namespace TouhouCardEngine
     {
         #region 公有方法
         #region 静态方法
-        public static Task<Dictionary<int, MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
+        public static Task<List<MethodActionDefine>> loadMethodsFromAssembliesAsync(Assembly[] assemblies)
         {
             return Task.Run(() => Task.FromResult(loadMethodsFromAssemblies(assemblies)));
         }
-        public static Dictionary<int, MethodActionDefine> loadMethodsFromAssemblies(Assembly[] assemblies)
+        public static List<MethodActionDefine> loadMethodsFromAssemblies(Assembly[] assemblies)
         {
-            Dictionary<int, MethodActionDefine> defineDict = new Dictionary<int, MethodActionDefine>();
+            List<MethodActionDefine> defineDict = new List<MethodActionDefine>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetTypes())
@@ -30,7 +30,7 @@ namespace TouhouCardEngine
                         if (method.GetCustomAttribute<ActionNodeMethodAttribute>() is ActionNodeMethodAttribute attribute)
                         {
                             var define = new MethodActionDefine(attribute, method);
-                            defineDict.Add(define.defineId, define);
+                            defineDict.Add(define);
                         }
                     }
                 }

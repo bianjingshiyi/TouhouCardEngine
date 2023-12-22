@@ -174,7 +174,7 @@ namespace TouhouCardEngine
             IEnumerable<InputDefaultValue> defaultValues = 
                 inputDefaultValues?.Select(dv => dv.deserialize()) 
                 ?? constDict?.Select(c => new InputDefaultValue(c.Key, -1, c.Value));
-            InitNode(node, defaultValues, graph);
+            InitNode(node, graph, defaultValues);
             return node;
         }
         public override Node ToNode(ActionGraph graph) => ToActionNode(graph);

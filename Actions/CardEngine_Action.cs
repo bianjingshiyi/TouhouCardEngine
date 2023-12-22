@@ -3,28 +3,19 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
-using UnityEngine;
 
 namespace TouhouCardEngine
 {
     public partial class CardEngine
     {
         #region 公有方法
-        public void addActionDefine(ActionReference actRef, ActionDefine actionDefine)
+        public void addActionDefine(ActionDefine actionDefine)
         {
-            addActionDefine(actRef.cardPoolId, actRef.defineId, actionDefine);
-        }
-        public void addActionDefine(long cardPoolId, int actionId, ActionDefine actionDefine)
-        {
-            if (!actionDefineDict.TryGetValue(cardPoolId, out var cardPoolActions))
-            {
-                cardPoolActions = new Dictionary<int, ActionDefine>();
-                actionDefineDict.Add(cardPoolId, cardPoolActions);
-            }
-
-            if (cardPoolActions.ContainsKey(actionId))
+            var cardPoolId = actionDefine.cardPoolId;
+            var actionId = actionDefine.defineId;
+            if (actionDefines.Exists(def => def.cardPoolId == cardPoolId && def.defineId == actionId))
                 throw new InvalidOperationException($"已存在卡池为{cardPoolId}，ID为{actionId}的动作定义");
-            cardPoolActions.Add(actionId, actionDefine);
+            actionDefines.Add(actionDefine);
         }
         public ActionDefine getActionDefine(ActionReference actRef)
         {
@@ -32,12 +23,7 @@ namespace TouhouCardEngine
         }
         public ActionDefine getActionDefine(long cardPoolId, int actionId)
         {
-            if (actionDefineDict.TryGetValue(cardPoolId, out var cardPool))
-            {
-                if (cardPool.TryGetValue(actionId, out ActionDefine actionDefine))
-                    return actionDefine;
-            }
-            return default;
+            return actionDefines.Find(def => def.cardPoolId == cardPoolId && def.defineId == actionId);
         }
         public async Task runActions(Flow flow, ControlInput inputPort)
         {
@@ -92,7 +78,7 @@ namespace TouhouCardEngine
         }
         #endregion
         public Flow currentFlow => _flowStack.Count > 0 ? _flowStack.Peek() : null;
-        Dictionary<long, Dictionary<int, ActionDefine>> actionDefineDict { get; } = new Dictionary<long, Dictionary<int, ActionDefine>>();
+        List<ActionDefine> actionDefines { get; } = new List<ActionDefine>();
         Stack<Flow> _flowStack = new Stack<Flow>();
     }
     [Serializable]
