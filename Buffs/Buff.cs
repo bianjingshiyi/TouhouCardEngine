@@ -47,30 +47,11 @@ namespace TouhouCardEngine
         #endregion
 
         #region 属性可见性
-        public void setPropInvisibleTo(string propName, Player player, bool invisible)
+        public Task<EventArg> setPropInvisibleTo(CardEngine game, string propName, Player player, bool invisible)
         {
-            if (invisible)
-            {
-                if (!_invisibleProps.TryGetValue(propName, out var playerList))
-                {
-                    playerList = new List<Player>();
-                    _invisibleProps.Add(propName, playerList);
-                }
-                if (!playerList.Contains(player))
-                    playerList.Add(player);
-            }
-            else
-            {
-                if (_invisibleProps.TryGetValue(propName, out var playerList))
-                {
-                    playerList.Remove(player);
-                    if (playerList.Count <= 0)
-                    {
-                        _invisibleProps.Remove(propName);
-                    }
-                }
-            }
+            return ChangeBuffPropVisibilityEventDefine.doEvent(game, this, propName, player, invisible);
         }
+
         public bool isPropInvisibleTo(string propName, Player player)
         {
             if (_invisibleProps.TryGetValue(propName, out var playerList))
@@ -174,8 +155,39 @@ namespace TouhouCardEngine
 
         #region 接口实现
         void IChangeableBuff.setProp(string propName, object value) => setProp(propName, value);
+        void IChangeableBuff.setPropInvisible(string propName, Player player, bool invisible) => setPropInvisible(propName, player, invisible);
         #endregion
-
+        internal bool setPropInvisible(string propName, Player player, bool invisible)
+        {
+            if (invisible)
+            {
+                if (!_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList = new List<Player>();
+                    _invisibleProps.Add(propName, playerList);
+                }
+                if (!playerList.Contains(player))
+                {
+                    playerList.Add(player);
+                    return true;
+                }
+            }
+            else
+            {
+                if (_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    if (playerList.Remove(player))
+                    {
+                        if (playerList.Count <= 0)
+                        {
+                            _invisibleProps.Remove(propName);
+                        }
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         #endregion
 
         #region 属性字段

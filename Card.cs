@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
@@ -140,30 +141,27 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        #region 属性可见性
-        public void setPropInvisibleTo(string propName, Player player, bool invisible)
+        #region 卡牌可见性
+        public Task<EventArg> setCardVisibleTo(CardEngine game, Player player, bool visible)
         {
-            if (invisible)
-            {
-                if (!_invisibleProps.TryGetValue(propName, out var playerList))
-                {
-                    playerList = new List<Player>();
-                    _invisibleProps.Add(propName, playerList);
-                }
-                if (!playerList.Contains(player))
-                    playerList.Add(player);
-            }
-            else
-            {
-                if (_invisibleProps.TryGetValue(propName, out var playerList))
-                {
-                    playerList.Remove(player);
-                    if (playerList.Count <= 0)
-                    {
-                        _invisibleProps.Remove(propName);
-                    }
-                }
-            }
+            if (visible == isCardVisibleTo(player))
+                return Task.FromResult<EventArg>(null);
+            return ChangeCardVisibilityEventDefine.doEvent(game, this, player, visible);
+        }
+        public bool isCardVisibleTo(Player player)
+        {
+            return _visiblePlayers.Contains(player);
+        }
+        public Player[] getCardVisiblePlayers()
+        {
+            return _visiblePlayers.ToArray();
+        }
+        #endregion
+
+        #region 属性可见性
+        public Task<EventArg> setPropInvisibleTo(CardEngine game, string propName, Player player, bool invisible)
+        {
+            return ChangeCardPropVisibilityEventDefine.doEvent(game, this, propName, player, invisible);
         }
         public bool isPropInvisibleTo(string propName, Player player)
         {
@@ -266,8 +264,60 @@ namespace TouhouCardEngine
         void IChangeableCard.removeBuff(int buffInstanceId) => removeBuffRaw(buffInstanceId);
         IChangeableBuff IChangeableCard.getBuff(int instanceId) => buffList.FirstOrDefault(b => b.instanceID == instanceId);
         void IChangeableCard.moveTo(Pile to, int position) => pile.moveCardRaw(this, to, position);
+        void IChangeableCard.setVisible(Player player, bool visible) => setVisible(player, visible);
+        void IChangeableCard.setPropInvisible(string propName, Player player, bool invisible) => setPropInvisible(propName, player, invisible);
         #endregion
 
+        internal bool setVisible(Player player, bool visible)
+        {
+            if (visible)
+            {
+                if (!_visiblePlayers.Contains(player))
+                {
+                    _visiblePlayers.Add(player);
+                    return true;
+                }
+            }
+            else
+            {
+                if (_visiblePlayers.Remove(player))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        internal bool setPropInvisible(string propName, Player player, bool invisible)
+        {
+            if (invisible)
+            {
+                if (!_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    playerList = new List<Player>();
+                    _invisibleProps.Add(propName, playerList);
+                }
+                if (!playerList.Contains(player))
+                {
+                    playerList.Add(player);
+                    return true;
+                }
+            }
+            else
+            {
+                if (_invisibleProps.TryGetValue(propName, out var playerList))
+                {
+                    if (playerList.Remove(player))
+                    {
+                        if (playerList.Count <= 0)
+                        {
+                            _invisibleProps.Remove(propName);
+                        }
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         private void removeBuffRaw(int buffInstanceId)
         {
             buffList.RemoveAll(b => b.instanceID == buffInstanceId);
@@ -287,6 +337,7 @@ namespace TouhouCardEngine
         public CardDefine define { get; private set; } = null;
         private List<Buff> buffList { get; } = new List<Buff>();
         private Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
+        private List<Player> _visiblePlayers { get; } = new List<Player>();
         private Dictionary<string, List<Player>> _invisibleProps { get; } = new Dictionary<string, List<Player>>();
         private List<(IBuff buff, IEffect effect)> enabledEffects = new List<(IBuff buff, IEffect effect)>();
         #endregion

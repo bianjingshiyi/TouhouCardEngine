@@ -3,6 +3,7 @@
     public interface IChangeableBuff
     {
         void setProp(string propName, object value);
+        void setPropInvisible(string propName, Player player, bool invisible);
     }
     public interface IChangeableCard : IChangeable
     {
@@ -11,6 +12,8 @@
         void removeBuff(int buffInstanceId);
         IChangeableBuff getBuff(int id);
         void setProp(string propName, object value);
+        void setPropInvisible(string propName, Player player, bool invisible);
+        void setVisible(Player player, bool visible);
         void setDefine(CardDefine define);
         void moveTo(Pile to, int position);
     }

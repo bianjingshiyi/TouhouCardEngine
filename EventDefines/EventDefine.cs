@@ -19,7 +19,10 @@ namespace TouhouCardEngine
             return type == EventTriggerTimeType.Before ? beforeVariableInfos : afterVariableInfos;
         }
         [Obsolete]
-        public abstract void Record(CardEngine game, EventArg arg, EventRecord record);
+        public virtual void Record(CardEngine game, EventArg arg, EventRecord record)
+        {
+
+        }
         public abstract Task execute(IEventArg arg);
         public virtual string toString(EventArg arg) => ToString();
         #region 属性字段

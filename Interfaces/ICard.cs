@@ -40,6 +40,7 @@ namespace TouhouCardEngine.Interfaces
         T getProp<T>(IGame game, string propName);
         object getProp(IGame game, string propName);
         Buff[] getBuffs();
+        Player[] getCardVisiblePlayers();
     }
     public interface IPropModifier
     {
