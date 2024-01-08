@@ -8,7 +8,7 @@ namespace TouhouCardEngine
 {
     public class SetCardDefineEventDefine : EventDefine, ICardEventDefine
     {
-        public override Task execute(IEventArg arg)
+        public override async Task execute(IEventArg arg)
         {
             var game = arg.game;
             var argCard = arg.getVar<Card>(VAR_CARD);
@@ -18,7 +18,7 @@ namespace TouhouCardEngine
             //禁用之前的所有效果
             foreach (var effect in argCard.define.getEffects())
             {
-                effect.onDisable(game, argCard, null);
+                await effect.onDisable(game, argCard, null);
             }
             //更换define
             argCard.setDefine(argAfterDefine);
@@ -26,17 +26,8 @@ namespace TouhouCardEngine
             //激活效果
             foreach (var effect in argCard.define.getEffects())
             {
-                if (effect is IPileRangedEffect pileEffect)
-                {
-                    if (pileEffect.getPiles().Contains(argCard.pile?.name))
-                        effect.onEnable(game, argCard, null);
-                }
-                else
-                {
-                    effect.onEnable(game, argCard, null);
-                }
+                await effect.updateEnable(game, argCard, null);
             }
-            return Task.CompletedTask;
         }
         [Obsolete]
         public override void Record(CardEngine game, EventArg arg, EventRecord record)

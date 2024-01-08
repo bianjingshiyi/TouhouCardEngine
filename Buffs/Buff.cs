@@ -94,15 +94,7 @@ namespace TouhouCardEngine
             {
                 foreach (var effect in effects)
                 {
-                    if (effect is IPileRangedEffect pileEffect)
-                    {
-                        if (pileEffect.getPiles().Contains(card.pile?.name))
-                            await effect.onEnable(game, card, this);
-                    }
-                    else
-                    {
-                        await effect.onEnable(game, card, this);
-                    }
+                    await effect.updateEnable(game, card, this);
                 }
             }
             if (existLimits != null)
