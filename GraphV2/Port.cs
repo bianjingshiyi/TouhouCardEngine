@@ -92,6 +92,10 @@ namespace TouhouCardEngine
         {
             return _connnectedOutput;
         }
+        public bool hasValue()
+        {
+            return getConnectedOutputPort() != null || node.hasInputDefaultValue(name, paramIndex);
+        }
         public override IEnumerable<NodeConnection> connections 
         {
             get 
