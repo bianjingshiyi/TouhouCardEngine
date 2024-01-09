@@ -245,7 +245,7 @@ namespace TouhouCardEngine
         }
         public void addConnection(NodeConnection connection)
         {
-            if (_connections.Contains(connection))
+            if (_connections.Any(c => c.source == connection.source && c.destination == connection.destination))
                 return;
             _connections.Add(connection);
             connection.notifyConnect();
