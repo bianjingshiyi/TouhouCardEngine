@@ -34,11 +34,6 @@ namespace TouhouCardEngine
         #endregion
         private void DefinitionInputs(GeneratedActionDefine actionDefine)
         {
-            ControlInput controlInput(PortDefine def)
-                => getInputPorts<ControlInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ControlInput(this, def);
-            ValueInput valueInput(PortDefine def)
-                => getInputPorts<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(def)) ?? new ValueInput(this, def, -1);
-
             List<IPort> inputs = new List<IPort>();
 
             if (actionDefine.outputDefines != null)
@@ -47,10 +42,7 @@ namespace TouhouCardEngine
                 {
                     if (def == ActionDefine.exitPortDefine)
                         continue;
-                    if (def.GetPortType() == PortType.Control)
-                        inputs.Add(controlInput(def));
-                    else
-                        inputs.Add(valueInput(def));
+                    inputs.Add(getOrCreateInputPort(def));
                 }
             }
 
