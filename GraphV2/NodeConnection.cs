@@ -104,11 +104,11 @@ namespace TouhouCardEngine
                     }
                 }
                 destPort = destNode.getParamInputPort(destName, paramIndex);
-                if (destPort == null)
-                    throw new NullReferenceException($"无法找到节点“{destNode}”的，名为{destName}，索引{paramIndex}的变长参数端口。");
             }
             else
+            {
                 destPort = destNode.getInputPort(destName);
+            }
             if (sourcePort == null || destPort == null)
                 return new InvalidNodeConnection(sourcePort, sourceName, sourceNodeId, destPort, destName, destNodeId, destParamIndex);
 
