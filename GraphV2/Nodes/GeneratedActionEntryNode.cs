@@ -39,12 +39,20 @@ namespace TouhouCardEngine
 
         private void DefinitionOutputs(GeneratedActionDefine actionDefine)
         {
-            List<IPort> outputs = new List<IPort>();
+            IPort valueOutput(PortDefine inputDef)
+            {
+                if (inputDef.isParams && inputDef == actionDefine.inputDefines.LastOrDefault())
+                {
+                    inputDef = PortDefine.Value(inputDef.type.MakeArrayType(), inputDef.name, inputDef.displayName);
+                }
+                return getOrCreateOutputPort(inputDef);
+            }
 
+            List<IPort> outputs = new List<IPort>();
 
             foreach (var def in actionDefine.inputDefines)
             {
-                outputs.Add(getOrCreateOutputPort(def));
+                outputs.Add(valueOutput(def));
             }
 
 
