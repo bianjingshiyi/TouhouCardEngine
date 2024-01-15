@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
 
@@ -36,11 +37,11 @@ namespace TouhouCardEngine
         {
             return cardList.Remove(card);
         }
-        public bool moveCard(CardEngine game, Card card, Pile to, int toPosition)
+        public async Task<bool> moveCard(CardEngine game, Card card, Pile to, int toPosition)
         {
-            return moveCard(game, card, this, to, toPosition);
+            return await moveCard(game, card, this, to, toPosition);
         }
-        public static bool moveCard(CardEngine game, Card card, Pile from, Pile to, int toPosition)
+        public static async Task<bool> moveCard(CardEngine game, Card card, Pile from, Pile to, int toPosition)
         {
             if (!canMove(card, from, to))
                 return false;
@@ -55,8 +56,7 @@ namespace TouhouCardEngine
                 to.insertCard(card, toPosition);
             card.pile = to;
             card.owner = to?.owner;
-            disableCardEffects(game, card, from, to);
-            enableCardEffects(game, card, from, to);
+            await updateCardEnableStates(game, card, from, to);
             game.triggers.addChange(new CardMoveChange(card, from, to, fromPosition, toPosition));
             return true;
         }
@@ -77,6 +77,73 @@ namespace TouhouCardEngine
             if (to != null && to.isFull)
                 return false;
             return true;
+        }
+        public static async Task updateCardEnableStates(CardEngine game, Card card, Pile from, Pile to)
+        {
+            await disableCardEffects(game, card, from, to);
+            await enableCardEffects(game, card, from, to);
+        }
+        public static (Buff buff, IEffect effect)[] getMoveShouldEnableCardEffects(Card card, Pile from, Pile to)
+        {
+            List<(Buff buff, IEffect effect)> effects = new List<(Buff buff, IEffect effect)>();
+            if (to == null)
+                return effects.ToArray();
+
+            foreach (var effect in card.define.getEffects())
+            {
+                if (effect is IPileRangedEffect pileEffect)
+                {
+                    if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
+                    {
+                        effects.Add((null, effect));
+                    }
+                }
+            }
+            foreach (var buff in card.getBuffs())
+            {
+                foreach (var effect in buff.getEffects())
+                {
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
+                        {
+                            effects.Add((buff, effect));
+                        }
+                    }
+                }
+            }
+            return effects.ToArray();
+        }
+        public static (Buff buff, IEffect effect)[] getMoveShouldDisableCardEffects(Card card, Pile from, Pile to)
+        {
+            List<(Buff buff, IEffect effect)> effects = new List<(Buff buff, IEffect effect)>();
+            if (from == null)
+                return effects.ToArray();
+
+            foreach (var effect in card.define.getEffects())
+            {
+                if (effect is IPileRangedEffect pileEffect)
+                {
+                    if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
+                    {
+                        effects.Add((null, effect));
+                    }
+                }
+            }
+            foreach (var buff in card.getBuffs())
+            {
+                foreach (var effect in buff.getEffects())
+                {
+                    if (effect is IPileRangedEffect pileEffect)
+                    {
+                        if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
+                        {
+                            effects.Add((buff, effect));
+                        }
+                    }
+                }
+            }
+            return effects.ToArray();
         }
 
         public Card getCard<T>() where T : CardDefine
@@ -173,31 +240,17 @@ namespace TouhouCardEngine
             }
             return moveSuccess;
         }
-        private static void enableCardEffects(CardEngine game, Card card, Pile from, Pile to)
+        private static async Task enableCardEffects(CardEngine game, Card card, Pile from, Pile to)
         {
             if (to == null)
                 return;
 
             try
             {
-                foreach (var effect in card.define.getEffects())
+                var effects = getMoveShouldEnableCardEffects(card, from, to);
+                foreach (var (buff, effect) in effects)
                 {
-                    if (effect is IPileRangedEffect pileEffect)
-                    {
-                        if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
-                            pileEffect.onEnable(game, card, null);
-                    }
-                }
-                foreach (var buff in card.getBuffs())
-                {
-                    foreach (var effect in buff.getEffects())
-                    {
-                        if (effect is IPileRangedEffect pileEffect)
-                        {
-                            if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
-                                pileEffect.onEnable(game, card, buff);
-                        }
-                    }
+                    await effect.onEnable(game, card, null);
                 }
             }
             catch (Exception e)
@@ -205,31 +258,17 @@ namespace TouhouCardEngine
                 game.logger.logError($"将{card}从{from}移动到{to}时激活效果引发异常：{e}");
             }
         }
-        private static void disableCardEffects(CardEngine game, Card card, Pile from, Pile to)
+        private static async Task disableCardEffects(CardEngine game, Card card, Pile from, Pile to)
         {
             if (from == null)
                 return;
 
             try
             {
-                foreach (var effect in card.define.getEffects())
+                var effects = getMoveShouldDisableCardEffects(card, from, to);
+                foreach (var (buff, effect) in effects)
                 {
-                    if (effect is IPileRangedEffect pileEffect)
-                    {
-                        if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
-                            pileEffect.onDisable(game, card, null);
-                    }
-                }
-                foreach (var buff in card.getBuffs())
-                {
-                    foreach (var effect in buff.getEffects())
-                    {
-                        if (effect is IPileRangedEffect pileEffect)
-                        {
-                            if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
-                                pileEffect.onDisable(game, card, buff);
-                        }
-                    }
+                    await effect.onDisable(game, card, buff);
                 }
             }
             catch (Exception e)
