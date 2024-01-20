@@ -216,8 +216,7 @@ namespace TouhouCardEngine
                             ValueInput port = node.getInputPort<ValueInput>(paramInfo.Name);
                             if (port != null)
                             {
-                                var outputPort = port.getConnectedOutputPort();
-                                if (outputPort == null && paramInfo.HasDefaultValue)
+                                if (!port.hasValue() && paramInfo.HasDefaultValue)
                                 {
                                     param = paramInfo.DefaultValue;
                                 }
