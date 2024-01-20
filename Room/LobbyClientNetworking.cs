@@ -40,6 +40,11 @@ namespace TouhouCardEngine
             lobby.Clear();
             foreach (var item in roomInfos)
             {
+                if (cachedRoomData != null && item.RoomID == cachedRoomData.ID)
+                {
+                    // 如果这个房间是之前退出的房间，就不显示，以避免大厅服务器因为延迟还没有销毁房间，导致客户端看到自己之前退出的空房间
+                    continue;
+                }
                 lobby[item.RoomID] = item;
             }
             OnRoomListUpdate?.Invoke(lobby);
@@ -83,6 +88,12 @@ namespace TouhouCardEngine
         {
             // 直接断开就好了吧
             net.DisconnectPeer(hostPeer);
+            if (cachedRoomData.playerDataList.Count > 1)
+            {
+                // 如果房间里还有其他玩家，就不保存房间缓存。
+                // 缓存的房间不会在大厅列表中显示，避免玩家看到自己退出的空房间。
+                cachedRoomData = null;
+            }
         }
 
         public override T GetRoomProp<T>(string name)
