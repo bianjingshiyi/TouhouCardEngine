@@ -74,7 +74,7 @@ namespace TouhouCardEngine
         {
             if (from != null && !from.Contains(card))
                 return false;
-            if (to != null && to.isFull)
+            if (to != null && to.isFull && from != to)
                 return false;
             return true;
         }
