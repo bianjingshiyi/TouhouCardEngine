@@ -222,9 +222,8 @@ namespace TouhouCardEngine
         public bool hasBuff(BuffDefine buffDefine)
         {
             return buffList.Exists(b =>
-                b is GeneratedBuff generatedBuff &&
-                generatedBuff.defineRef.cardPoolId == buffDefine.cardPoolId &&
-                generatedBuff.defineRef.defineId == buffDefine.id);
+                b.define.cardPoolId == buffDefine.cardPoolId &&
+                b.define.id == buffDefine.id);
         }
         #endregion
 

@@ -7,20 +7,16 @@ using TouhouCardEngine.Interfaces;
 
 namespace TouhouCardEngine
 {
-    [Serializable]
-    public abstract class Buff : IBuff, IChangeableBuff
+    public class Buff : IBuff, IChangeableBuff
     {
         #region 公有方法
 
         #region 构造器
-        public Buff(IEnumerable<PropModifier> modifiers = null, IEnumerable<IEffect> effects = null, IEnumerable<BuffExistLimit> existLimits = null)
+        public Buff(BuffDefine define)
         {
-            if (modifiers != null)
-                _modifiers.AddRange(modifiers);
-            if (effects != null)
-                _effects.AddRange(effects);
-            if (existLimits != null)
-                _existLimits.AddRange(existLimits);
+            this.define = define;
+            if (define.existLimitList != null)
+                _existLimits.AddRange(define.existLimitList.Select(e => new BuffExistLimit(e)));
         }
         #endregion
 
@@ -76,11 +72,15 @@ namespace TouhouCardEngine
 
         public PropModifier[] getModifiers()
         {
-            return _modifiers.ToArray();
+            if (define == null)
+                return Array.Empty<PropModifier>();
+            return define.propModifierList.ToArray();
         }
         public IEffect[] getEffects()
         {
-            return _effects.ToArray();
+            if (define == null)
+                return Array.Empty<IEffect>();
+            return define.getEffects();
         }
         public BuffExistLimit[] getExistLimits()
         {
@@ -88,8 +88,8 @@ namespace TouhouCardEngine
         }
         public async Task enable(CardEngine game, Card card)
         {
-            var effects = _effects;
-            var existLimits = _existLimits;
+            var effects = getEffects();
+            var existLimits = getExistLimits();
             if (effects != null)
             {
                 foreach (var effect in effects)
@@ -107,8 +107,8 @@ namespace TouhouCardEngine
         }
         public async Task disable(CardEngine game, Card card)
         {
-            var effects = _effects;
-            var existLimits = _existLimits;
+            var effects = getEffects();
+            var existLimits = getExistLimits();
             foreach (var effect in effects)
             {
                 await effect.onDisable(game, card, this);
@@ -121,7 +121,10 @@ namespace TouhouCardEngine
                 }
             }
         }
-        public abstract Buff clone();
+        public Buff clone()
+        {
+            return new Buff(this);
+        }
         #endregion
 
         #region 私有方法
@@ -135,9 +138,8 @@ namespace TouhouCardEngine
             {
                 propDict.Add(pair.Key, pair.Value);
             }
-            _modifiers.AddRange(other._modifiers);
+            define = other.define;
             _existLimits.AddRange(other._existLimits.Select(e => e.clone()));
-            _effects.AddRange(other._effects);
             foreach (var pair in other._invisibleProps)
             {
                 _invisibleProps.Add(pair.Key, pair.Value.ToList());
@@ -183,13 +185,10 @@ namespace TouhouCardEngine
         #endregion
 
         #region 属性字段
-        [Obsolete]
-        public abstract int id { get; }
         public int instanceID { get; set; }
+        public BuffDefine define { get; set; }
         public Card card { get; set; }
         public virtual bool canClone { get; set; } = true;
-        protected List<PropModifier> _modifiers = new List<PropModifier>();
-        protected List<IEffect> _effects = new List<IEffect>();
         protected List<BuffExistLimit> _existLimits = new List<BuffExistLimit>();
         private Dictionary<string, object> propDict = new Dictionary<string, object>();
         private Dictionary<string, List<Player>> _invisibleProps { get; } = new Dictionary<string, List<Player>>();

@@ -24,6 +24,10 @@ namespace TouhouCardEngine
         {
             return string.Intern(string.Format("Buff<{0}>", id));
         }
+        public DefineReference getDefineRef()
+        {
+            return new DefineReference(cardPoolId, id);
+        }
         #endregion
 
         #region 属性字段

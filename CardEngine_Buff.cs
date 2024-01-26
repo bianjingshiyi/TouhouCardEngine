@@ -16,10 +16,14 @@ namespace TouhouCardEngine
                 return null;
             return getBuffDefine(defRef.cardPoolId, defRef.defineId);
         }
+        public void addBuffDefine(BuffDefine buffDefine)
+        {
+            buffs.Add(buffDefine);
+        }
         #endregion
 
         #region 属性字段
-        public List<BuffDefine> buffs = new List<BuffDefine>();
+        private List<BuffDefine> buffs = new List<BuffDefine>();
         #endregion
     }
 }
