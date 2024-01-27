@@ -5,7 +5,7 @@ namespace TouhouCardEngine
 {
     public class EffectTrigger : Trigger
     {
-        public EffectTrigger(CardEngine game, Card card, Buff buff, IEventEffect effect)
+        public EffectTrigger(CardEngine game, Card card, Buff buff, Effect effect)
         {
             this.game = game;
             this.card = card;
@@ -20,11 +20,15 @@ namespace TouhouCardEngine
         public override Task invoke(IEventArg arg)
         {
             var effectEnv = new EffectEnv(game, card, buff, arg as EventArg, effect);
-            return effect.onTrigger(effectEnv);
+            if (effect is IEventEffect eventEffect)
+            {
+                return eventEffect.onTrigger(effectEnv);
+            }
+            return Task.CompletedTask;
         }
         public CardEngine game;
         public Card card;
         public Buff buff;
-        public IEventEffect effect;
+        public Effect effect;
     }
 }

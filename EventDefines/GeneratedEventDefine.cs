@@ -20,7 +20,7 @@ namespace TouhouCardEngine
 
             var card = arg.getVar<Card>(VAR_CARD);
             var buff = arg.getVar<Buff>(VAR_BUFF);
-            var effect = arg.getVar<IEffect>(VAR_EFFECT);
+            var effect = arg.getVar<Effect>(VAR_EFFECT);
             var flowEnv = new FlowEnv(game, card, buff, arg, effect);
             Flow flow = new Flow(flowEnv);
             // 为事件设置输入变量。

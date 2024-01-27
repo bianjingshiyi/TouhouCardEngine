@@ -2,25 +2,14 @@
 
 namespace TouhouCardEngine.Interfaces
 {
-    public interface IEffect
-    {
-        DefineReference cardDefineRef { get; set; }
-        DefineReference buffDefineRef { get; set; }
-        Task enable(CardEngine game, Card card, Buff buff);
-        Task disable(CardEngine game, Card card, Buff buff);
-        Task onEnable(EffectEnv env);
-        Task onDisable(EffectEnv env);
-        bool checkCondition(EffectEnv env);
-        Task execute(EffectEnv env);
-    }
-    public interface IPassiveEffect : IEffect
+    public interface IPassiveEffect
     {
     }
     public interface IEventEffect : IPassiveEffect
     {
         Task onTrigger(EffectEnv env);
     }
-    public interface IActiveEffect : IEffect
+    public interface IActiveEffect
     {
     }
     /// <summary>

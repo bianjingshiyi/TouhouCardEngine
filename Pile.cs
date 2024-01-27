@@ -83,9 +83,9 @@ namespace TouhouCardEngine
             await disableCardEffects(game, card, from, to);
             await enableCardEffects(game, card, from, to);
         }
-        public static (Buff buff, IEffect effect)[] getMoveShouldEnableCardEffects(Card card, Pile from, Pile to)
+        public static (Buff buff, Effect effect)[] getMoveShouldEnableCardEffects(Card card, Pile from, Pile to)
         {
-            List<(Buff buff, IEffect effect)> effects = new List<(Buff buff, IEffect effect)>();
+            List<(Buff buff, Effect effect)> effects = new List<(Buff buff, Effect effect)>();
             if (to == null)
                 return effects.ToArray();
 
@@ -114,9 +114,9 @@ namespace TouhouCardEngine
             }
             return effects.ToArray();
         }
-        public static (Buff buff, IEffect effect)[] getMoveShouldDisableCardEffects(Card card, Pile from, Pile to)
+        public static (Buff buff, Effect effect)[] getMoveShouldDisableCardEffects(Card card, Pile from, Pile to)
         {
-            List<(Buff buff, IEffect effect)> effects = new List<(Buff buff, IEffect effect)>();
+            List<(Buff buff, Effect effect)> effects = new List<(Buff buff, Effect effect)>();
             if (from == null)
                 return effects.ToArray();
 

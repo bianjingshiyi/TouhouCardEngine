@@ -19,7 +19,7 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public abstract IEffect[] getEffects();
+        public abstract Effect[] getEffects();
         public override string ToString()
         {
             return string.Intern(string.Format("Buff<{0}>", id));

@@ -3,6 +3,6 @@
     public interface IEffectEventDefine
     {
         Card getCard(EventArg arg);
-        IEffect getEffect(EventArg arg);
+        Effect getEffect(EventArg arg);
     }
 }

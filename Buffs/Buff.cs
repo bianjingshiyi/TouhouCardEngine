@@ -76,10 +76,10 @@ namespace TouhouCardEngine
                 return Array.Empty<PropModifier>();
             return define.propModifierList.ToArray();
         }
-        public IEffect[] getEffects()
+        public Effect[] getEffects()
         {
             if (define == null)
-                return Array.Empty<IEffect>();
+                return Array.Empty<Effect>();
             return define.getEffects();
         }
         public BuffExistLimit[] getExistLimits()

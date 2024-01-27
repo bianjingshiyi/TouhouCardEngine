@@ -21,7 +21,7 @@ namespace TouhouCardEngine
                 effectList.AddRange(effects);
         }
 
-        public override IEffect[] getEffects()
+        public override Effect[] getEffects()
         {
             return effectList.ToArray();
         }

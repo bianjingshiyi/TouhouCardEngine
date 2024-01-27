@@ -18,7 +18,7 @@ namespace TouhouCardEngine
             rootScope = currentScope;
             this.env = env;
         }
-        public Flow(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
+        public Flow(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, Effect effect) : this(new FlowEnv(game, card, buff, eventArg, effect))
         {
         }
         #endregion
@@ -320,9 +320,9 @@ namespace TouhouCardEngine
         public ICard card { get; private set; }
         public IBuff buff { get; private set; }
         public IEventArg eventArg { get; private set; }
-        public IEffect effect { get; private set; }
+        public Effect effect { get; private set; }
         private Dictionary<string, object> arguments;
-        public FlowEnv(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, IEffect effect)
+        public FlowEnv(CardEngine game, ICard card, IBuff buff, IEventArg eventArg, Effect effect)
         {
             this.game = game;
             this.card = card;

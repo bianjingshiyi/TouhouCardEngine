@@ -38,19 +38,19 @@ namespace TouhouCardEngine
         #endregion
 
         #region 效果
-        public void enableEffect(IBuff buff, IEffect effect)
+        public void enableEffect(IBuff buff, Effect effect)
         {
             enabledEffects.Add((buff, effect));
         }
-        public void disableEffect(IBuff buff, IEffect effect)
+        public void disableEffect(IBuff buff, Effect effect)
         {
             enabledEffects.Remove((buff, effect));
         }
-        public bool isEffectEnabled(IBuff buff, IEffect effect)
+        public bool isEffectEnabled(IBuff buff, Effect effect)
         {
             return enabledEffects.Contains((buff, effect));
         }
-        public (IBuff buff, IEffect effect)[] getEnabledEffects()
+        public (IBuff buff, Effect effect)[] getEnabledEffects()
         {
             return enabledEffects.ToArray();
         }
@@ -344,7 +344,7 @@ namespace TouhouCardEngine
         private Dictionary<string, object> propDic { get; } = new Dictionary<string, object>();
         private List<Player> _visiblePlayers { get; } = new List<Player>();
         private Dictionary<string, List<Player>> _invisibleProps { get; } = new Dictionary<string, List<Player>>();
-        private List<(IBuff buff, IEffect effect)> enabledEffects = new List<(IBuff buff, IEffect effect)>();
+        private List<(IBuff buff, Effect effect)> enabledEffects = new List<(IBuff buff, Effect effect)>();
         #endregion
     }
 }

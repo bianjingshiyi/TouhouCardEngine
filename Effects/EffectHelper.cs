@@ -15,7 +15,7 @@ namespace TouhouCardEngine
         /// <param name="card">效果所依附的卡牌。</param>
         /// <param name="buff">效果所属增益。</param>
         /// <returns></returns>
-        public static async Task updateEnable(this IEffect effect, CardEngine game, Card card, Buff buff)
+        public static async Task updateEnable(this Effect effect, CardEngine game, Card card, Buff buff)
         {
             if (effect is IPileRangedEffect pileEffect)
             {

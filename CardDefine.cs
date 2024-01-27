@@ -73,13 +73,13 @@ namespace TouhouCardEngine
         {
             get { return getProp<object>(propName); }
         }
-        public virtual IEffect[] getEffects()
+        public virtual Effect[] getEffects()
         {
             if (_effectList != null && _effectList.Count > 0)
                 return _effectList.ToArray();
             return _runtimeEffects;
         }
-        public virtual void setEffects(IEffect[] value)
+        public virtual void setEffects(Effect[] value)
         {
             if (value is GeneratedEffect[] generatedEffects)
             {
@@ -89,7 +89,7 @@ namespace TouhouCardEngine
             else
                 _runtimeEffects = value;
         }
-        public int getEffectIndex(IEffect effect)
+        public int getEffectIndex(Effect effect)
         {
             if (effect is GeneratedEffect generatedEffect)
             {
@@ -150,7 +150,7 @@ namespace TouhouCardEngine
         [BsonElement]
         List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
-        IEffect[] _runtimeEffects = new IEffect[0];
+        Effect[] _runtimeEffects = new Effect[0];
         #endregion
     }
     [Serializable]

@@ -11,7 +11,7 @@ namespace TouhouCardEngine
             this.cardDefine = cardDefine;
             this.effectIndex = effectIndex;
         }
-        public IEffect getEffect()
+        public Effect getEffect()
         {
             if (effectIndex < 0)
                 return null;
@@ -19,19 +19,19 @@ namespace TouhouCardEngine
                 return null;
             return buffDefine != null ? buffDefine.getEffects()[effectIndex] : cardDefine.getEffects()[effectIndex];
         }
-        public static EffectReference fromCardDefine(CardDefine cardDefine, IEffect effect)
+        public static EffectReference fromCardDefine(CardDefine cardDefine, Effect effect)
         {
             var defineEffects = cardDefine.getEffects();
             var effectIndex = Array.IndexOf(defineEffects, effect);
             return new EffectReference(null, cardDefine, effectIndex);
         }
-        public static EffectReference fromBuffDefine(BuffDefine buffDefine, IEffect effect)
+        public static EffectReference fromBuffDefine(BuffDefine buffDefine, Effect effect)
         {
             var buffEffects = buffDefine.getEffects();
             var effectIndex = Array.IndexOf(buffEffects, effect);
             return new EffectReference(buffDefine, null, effectIndex);
         }
-        public static EffectReference fromAny(CardDefine cardDefine, BuffDefine buffDefine, IEffect effect)
+        public static EffectReference fromAny(CardDefine cardDefine, BuffDefine buffDefine, Effect effect)
         {
             if (buffDefine != null)
             {

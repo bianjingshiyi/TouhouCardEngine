@@ -113,7 +113,7 @@ namespace TouhouCardEngine
                         !typeof(IEventArg).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(Flow).IsAssignableFrom(paramInfo.ParameterType) &&
                         !typeof(ActionNode).IsAssignableFrom(paramInfo.ParameterType) &&
-                        !typeof(IEffect).IsAssignableFrom(paramInfo.ParameterType))
+                        !typeof(Effect).IsAssignableFrom(paramInfo.ParameterType))
                     {
                         //不是Game,Card,Buff,EventArg,Flow,Effect, ActionNode这种可以缺省的参数也一定是输入
                         PortDefine valueDefine = PortDefine.Value(paramType, paramInfo.Name, paramAttr?.paramName ?? paramInfo.Name, paramAttr.isParams, metas: metas);
@@ -271,7 +271,7 @@ namespace TouhouCardEngine
                         //可以省略的Node
                         parameters[i] = node as ActionNode;
                     }
-                    else if (typeof(IEffect).IsAssignableFrom(paramInfo.ParameterType))
+                    else if (typeof(Effect).IsAssignableFrom(paramInfo.ParameterType))
                     {
                         //可以省略的EventArg
                         parameters[i] = flow.env.effect;

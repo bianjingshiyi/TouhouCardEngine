@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public abstract class GeneratedEffect : IEffect
+    public abstract class GeneratedEffect : Effect
     {
         #region 公有方法
 
@@ -16,30 +16,6 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public async Task enable(CardEngine game, Card card, Buff buff)
-        {
-            if (!isDisabled(game, card, buff))
-                return;
-
-            await EffectActivationEventDefine.doEvent(game, card, buff, this, true);
-        }
-        public async Task disable(CardEngine game, Card card, Buff buff)
-        {
-            if (isDisabled(game, card, buff))
-                return;
-
-            await EffectActivationEventDefine.doEvent(game, card, buff, this, false);
-            // 设置该Effect已被禁用。
-            card.disableEffect(buff, this);
-
-            if (onDisableAction != null)
-            {
-            }
-        }
-        public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
-        {
-            return !card.isEffectEnabled(buff, this);
-        }
         public T getProp<T>(string name)
         {
             var value = getProp(name);
@@ -102,22 +78,15 @@ namespace TouhouCardEngine
         public virtual void Init()
         {
         }
-        public abstract Task execute(EffectEnv env);
         public abstract void setTags(params string[] tags);
         public abstract string[] getTags();
         public abstract bool hasTag(string tag);
-        public abstract bool checkCondition(EffectEnv env);
         public abstract SerializableEffect Serialize();
         #endregion
 
         #region 私有方法
 
-        #region 接口实现
-        Task IEffect.onEnable(EffectEnv env) => onEnable(env);
-        Task IEffect.onDisable(EffectEnv env) => onDisable(env);
-        #endregion
-
-        protected virtual Task onEnable(EffectEnv env)
+        protected override Task onEnable(EffectEnv env)
         {
             if (onEnableAction != null)
             {
@@ -127,7 +96,7 @@ namespace TouhouCardEngine
             }
             return Task.CompletedTask;
         }
-        protected virtual Task onDisable(EffectEnv env)
+        protected override Task onDisable(EffectEnv env)
         {
             if (onDisableAction != null)
             {
@@ -147,8 +116,6 @@ namespace TouhouCardEngine
         #endregion
         #region 属性字段
         public string name;
-        public DefineReference buffDefineRef { get; set;  }
-        public DefineReference cardDefineRef { get; set; }
         public ActionGraph graph { get; set; }
         public Dictionary<string, object> propDict = new Dictionary<string, object>();
         public virtual ControlOutput onEnableAction => null;

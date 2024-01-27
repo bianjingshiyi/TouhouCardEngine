@@ -28,9 +28,9 @@ namespace TouhouCardEngine.Interfaces
         T getProp<T>(IGame game, string propName, bool raw);
         object getProp(IGame game, string propName, bool raw);
         void setProp(string propName, object value);
-        void enableEffect(IBuff buff, IEffect effect);
-        void disableEffect(IBuff buff, IEffect effect);
-        bool isEffectEnabled(IBuff buff, IEffect effect);
+        void enableEffect(IBuff buff, Effect effect);
+        void disableEffect(IBuff buff, Effect effect);
+        bool isEffectEnabled(IBuff buff, Effect effect);
     }
     public interface ICardData
     {
