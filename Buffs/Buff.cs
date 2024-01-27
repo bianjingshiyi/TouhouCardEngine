@@ -111,7 +111,7 @@ namespace TouhouCardEngine
             var existLimits = getExistLimits();
             foreach (var effect in effects)
             {
-                await effect.onDisable(game, card, this);
+                await effect.disable(game, card, this);
             }
             if (existLimits != null)
             {

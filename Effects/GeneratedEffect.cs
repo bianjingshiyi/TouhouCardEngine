@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
-    public abstract class GeneratedEffect : IEffect, ITriggerEventEffect
+    public abstract class GeneratedEffect : IEffect
     {
         #region 公有方法
 
@@ -16,32 +16,24 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public virtual async Task onEnable(CardEngine game, Card card, Buff buff)
+        public async Task enable(CardEngine game, Card card, Buff buff)
         {
             if (!isDisabled(game, card, buff))
                 return;
 
-            if (onEnableAction != null)
-            {
-                var env = new EffectEnv(game, card, card.define, buff, null, this);
-                await EffectTriggerEventDefine.doEvent(env, onEnableAction.name);
-            }
-
-            // 设置该Effect已被启用。
-            card.enableEffect(buff, this);
+            await EffectActivationEventDefine.doEvent(game, card, buff, this, true);
         }
-        public virtual async Task onDisable(CardEngine game, Card card, Buff buff)
+        public async Task disable(CardEngine game, Card card, Buff buff)
         {
             if (isDisabled(game, card, buff))
                 return;
 
+            await EffectActivationEventDefine.doEvent(game, card, buff, this, false);
             // 设置该Effect已被禁用。
             card.disableEffect(buff, this);
 
             if (onDisableAction != null)
             {
-                var env = new EffectEnv(game, card, card.define, buff, null, this);
-                await EffectTriggerEventDefine.doEvent(env, onDisableAction.name);
             }
         }
         public virtual bool isDisabled(IGame game, ICard card, IBuff buff)
@@ -110,10 +102,7 @@ namespace TouhouCardEngine
         public virtual void Init()
         {
         }
-        public Task execute(EffectEnv env)
-        {
-            return EffectTriggerEventDefine.doEvent(env, executePort?.name);
-        }
+        public abstract Task execute(EffectEnv env);
         public abstract void setTags(params string[] tags);
         public abstract string[] getTags();
         public abstract bool hasTag(string tag);
@@ -123,7 +112,31 @@ namespace TouhouCardEngine
 
         #region 私有方法
 
-        Task ITriggerEventEffect.runEffect(EffectEnv env, string portName) => runEffect(env, portName);
+        #region 接口实现
+        Task IEffect.onEnable(EffectEnv env) => onEnable(env);
+        Task IEffect.onDisable(EffectEnv env) => onDisable(env);
+        #endregion
+
+        protected virtual Task onEnable(EffectEnv env)
+        {
+            if (onEnableAction != null)
+            {
+                var flowEnv = env.toFlowEnv();
+                var flow = new Flow(flowEnv);
+                return env.game.runActions(flow, onEnableAction);
+            }
+            return Task.CompletedTask;
+        }
+        protected virtual Task onDisable(EffectEnv env)
+        {
+            if (onDisableAction != null)
+            {
+                var flowEnv = env.toFlowEnv();
+                var flow = new Flow(flowEnv);
+                return env.game.runActions(flow, onDisableAction);
+            }
+            return Task.CompletedTask;
+        }
         protected virtual IEnumerable<ITraversable> getTraversableProps()
         {
             if (onEnableAction != null)
@@ -131,7 +144,6 @@ namespace TouhouCardEngine
             if (onDisableAction != null)
                 yield return onDisableAction;
         }
-        protected abstract Task runEffect(EffectEnv env, string portName);
         #endregion
         #region 属性字段
         public string name;

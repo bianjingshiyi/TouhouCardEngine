@@ -18,7 +18,7 @@ namespace TouhouCardEngine
             //禁用之前的所有效果
             foreach (var effect in argCard.define.getEffects())
             {
-                await effect.onDisable(game, argCard, null);
+                await effect.disable(game, argCard, null);
             }
             //更换define
             argCard.setDefine(argAfterDefine);

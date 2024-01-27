@@ -14,12 +14,12 @@ namespace TouhouCardEngine
         }
         public override bool checkCondition(IEventArg arg)
         {
-            var effectEnv = new EffectEnv(game, card, card.define, buff, arg as EventArg, effect);
+            var effectEnv = new EffectEnv(game, card, buff, arg as EventArg, effect);
             return effect.checkCondition(effectEnv);
         }
         public override Task invoke(IEventArg arg)
         {
-            var effectEnv = new EffectEnv(game, card, card.define, buff, arg as EventArg, effect);
+            var effectEnv = new EffectEnv(game, card, buff, arg as EventArg, effect);
             return effect.onTrigger(effectEnv);
         }
         public CardEngine game;

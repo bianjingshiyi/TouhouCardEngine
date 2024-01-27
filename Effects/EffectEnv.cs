@@ -4,11 +4,10 @@ namespace TouhouCardEngine
 {
     public class EffectEnv
     {
-        public EffectEnv(CardEngine game, Card card, CardDefine sourceCardDefine, Buff buff, EventArg eventArg, IEffect effect)
+        public EffectEnv(CardEngine game, Card card, Buff buff, EventArg eventArg, IEffect effect)
         {
             this.game = game;
             this.card = card;
-            this.sourceCardDefine = sourceCardDefine;
             this.buff = buff;
             this.eventArg = eventArg;
             this.effect = effect;
@@ -19,7 +18,6 @@ namespace TouhouCardEngine
         }
         public CardEngine game;
         public Card card;
-        public CardDefine sourceCardDefine;
         public Buff buff;
         public EventArg eventArg;
         public IEffect effect;

@@ -20,11 +20,11 @@ namespace TouhouCardEngine
             if (effect is IPileRangedEffect pileEffect)
             {
                 if (pileEffect.getPiles().Contains(card.pile?.name))
-                    await effect.onEnable(game, card, buff);
+                    await effect.enable(game, card, buff);
             }
             else
             {
-                await effect.onEnable(game, card, buff);
+                await effect.enable(game, card, buff);
             }
         }
     }

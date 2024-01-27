@@ -250,7 +250,7 @@ namespace TouhouCardEngine
                 var effects = getMoveShouldEnableCardEffects(card, from, to);
                 foreach (var (buff, effect) in effects)
                 {
-                    await effect.onEnable(game, card, null);
+                    await effect.enable(game, card, null);
                 }
             }
             catch (Exception e)
@@ -268,7 +268,7 @@ namespace TouhouCardEngine
                 var effects = getMoveShouldDisableCardEffects(card, from, to);
                 foreach (var (buff, effect) in effects)
                 {
-                    await effect.onDisable(game, card, buff);
+                    await effect.disable(game, card, buff);
                 }
             }
             catch (Exception e)

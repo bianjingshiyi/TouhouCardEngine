@@ -45,6 +45,8 @@ namespace TouhouCardEngine
         }
         public static object packObjectToArray(object obj, Type elementType)
         {
+            if (obj == null)
+                return Array.CreateInstance(elementType, 0);
             Array array = Array.CreateInstance(elementType, 1);
             array.SetValue(obj, 0);
             return array;

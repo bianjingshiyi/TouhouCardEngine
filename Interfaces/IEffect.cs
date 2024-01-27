@@ -6,8 +6,10 @@ namespace TouhouCardEngine.Interfaces
     {
         DefineReference cardDefineRef { get; set; }
         DefineReference buffDefineRef { get; set; }
-        Task onEnable(CardEngine game, Card card, Buff buff);
-        Task onDisable(CardEngine game, Card card, Buff buff);
+        Task enable(CardEngine game, Card card, Buff buff);
+        Task disable(CardEngine game, Card card, Buff buff);
+        Task onEnable(EffectEnv env);
+        Task onDisable(EffectEnv env);
         bool checkCondition(EffectEnv env);
         Task execute(EffectEnv env);
     }
@@ -27,12 +29,5 @@ namespace TouhouCardEngine.Interfaces
     public interface IPileRangedEffect : IPassiveEffect
     {
         string[] getPiles();
-    }
-    /// <summary>
-    /// 可以使用<see cref="EffectTriggerEventDefine"/>触发的效果。
-    /// </summary>
-    public interface ITriggerEventEffect : IEffect
-    {
-        Task runEffect(EffectEnv env, string portName);
     }
 }
