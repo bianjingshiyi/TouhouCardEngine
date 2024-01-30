@@ -47,6 +47,11 @@ namespace TouhouCardEngine
             effects = buffDefine.effectList != null ?
                 buffDefine.effectList.ConvertAll(e => e?.Serialize()) :
                 new List<SerializableEffect>();
+            props = new Dictionary<string, object>();
+            foreach (var propName in buffDefine.getPropNames())
+            {
+                props.Add(propName, buffDefine.getProp(propName));
+            }
         }
         #endregion
         public GeneratedBuffDefine toGeneratedBuffDefine(INodeDefiner definer)
@@ -66,6 +71,13 @@ namespace TouhouCardEngine
                     throw new FormatException($"反序列化增益定义{id}的效果{i}失败", e);
                 }
             }
+            if (props != null)
+            {
+                foreach (var pair in props)
+                {
+                    generatedBuffDefine.setProp(pair.Key, pair.Value);
+                }
+            }
             return generatedBuffDefine;
         }
         #endregion
@@ -74,6 +86,7 @@ namespace TouhouCardEngine
         public List<SerializablePropModifier> propModifierList;
         public List<SerializableBuffExistLimitDefine> existLimitList;
         public List<SerializableEffect> effects;
+        public Dictionary<string, object> props;
         [Obsolete]
         public List<SerializableGeneratedEffect> effectList;
         #endregion

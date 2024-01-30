@@ -24,17 +24,16 @@ namespace TouhouCardEngine
         public object getProp(string propName)
         {
             if (propDict.TryGetValue(propName, out object value))
-            {
                 return value;
-            }
+            if (define.hasProp(propName))
+                return define.getProp(propName);
             return null;
         }
         public T getProp<T>(string propName)
         {
-            if (propDict.TryGetValue(propName, out object value) && value is T t)
+            if (getProp(propName) is T t)
                 return t;
-            else
-                return default;
+            return default;
         }
         public void setProp(string propName, object value)
         {
