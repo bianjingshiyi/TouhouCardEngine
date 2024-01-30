@@ -4,6 +4,8 @@ namespace TouhouCardEngine.Interfaces
 {
     public interface IEffect
     {
+        DefineReference cardDefineRef { get; set; }
+        DefineReference buffDefineRef { get; set; }
         Task onEnable(CardEngine game, Card card, Buff buff);
         Task onDisable(CardEngine game, Card card, Buff buff);
         bool checkCondition(EffectEnv env);
