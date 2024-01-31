@@ -245,6 +245,7 @@ namespace TouhouCardEngine
             {
                 eventItem.triggerList.Add(trigger);
                 logger?.logTrace("Trigger", $"注册触发器{trigger}");
+                eventItem.triggerList.Sort((a, b) => b.getPriority().CompareTo(a.getPriority()));
             }
             else
                 throw new RepeatRegistrationException(triggerTime, trigger);

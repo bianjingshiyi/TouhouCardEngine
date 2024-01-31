@@ -26,6 +26,10 @@ namespace TouhouCardEngine
             }
             return Task.CompletedTask;
         }
+        public override int getPriority()
+        {
+            return effect.getPriority();
+        }
         public CardEngine game;
         public Card card;
         public Buff buff;

@@ -121,6 +121,7 @@ namespace TouhouCardEngine
         public virtual ControlOutput onEnableAction => null;
         public virtual ControlOutput onDisableAction => null;
         public abstract ControlOutput executePort { get; }
+        public abstract ValueInput priorityPort { get; }
         #endregion
     }
 

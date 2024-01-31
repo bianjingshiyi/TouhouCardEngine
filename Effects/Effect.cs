@@ -25,6 +25,7 @@ namespace TouhouCardEngine
         }
         public abstract bool checkCondition(EffectEnv env);
         public abstract Task execute(EffectEnv env);
+        public abstract int getPriority();
         internal Task onEnableInternal(EffectEnv env) => onEnable(env);
         internal Task onDisableInternal(EffectEnv env) => onDisable(env);
         protected virtual Task onEnable(EffectEnv env)

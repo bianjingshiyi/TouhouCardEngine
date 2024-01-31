@@ -23,6 +23,7 @@ namespace TouhouCardEngine
             limit.addCounter(game, card, buff);
             return Task.CompletedTask;
         }
+        public override int getPriority() => 0;
         public Card card;
         public Buff buff;
         public BuffExistLimit limit;

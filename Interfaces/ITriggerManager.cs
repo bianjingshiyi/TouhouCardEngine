@@ -30,6 +30,7 @@ namespace TouhouCardEngine.Interfaces
     {
         bool checkCondition(IEventArg arg);
         Task invoke(IEventArg arg);
+        int getPriority();
     }
     public interface IEventArg
     {

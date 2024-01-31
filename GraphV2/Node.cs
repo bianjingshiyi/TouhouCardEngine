@@ -286,6 +286,13 @@ namespace TouhouCardEngine
                 return existing;
             return portDefine.GetPortType() == PortType.Control ? new ControlInput(this, portDefine) : new ValueInput(this, portDefine);
         }
+        protected ValueInput getOrCreateParamsValueInput(PortDefine portDefine, int paramIndex)
+        {
+            var existing = getInputPorts<ValueInput>().FirstOrDefault(d => d != null && d.define.Equals(portDefine) && d.paramIndex == paramIndex);
+            if (existing != null)
+                return existing;
+            return new ValueInput(this, portDefine, paramIndex);
+        }
         protected IPort getOrCreateOutputPort(PortDefine portDefine)
         {
             var existing = outputList.FirstOrDefault(d => d != null && d.define.Equals(portDefine));

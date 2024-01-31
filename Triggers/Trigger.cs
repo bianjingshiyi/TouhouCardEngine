@@ -10,5 +10,6 @@ namespace TouhouCardEngine
         }
         public abstract bool checkCondition(IEventArg arg);
         public abstract Task invoke(IEventArg arg);
+        public abstract int getPriority();
     }
 }

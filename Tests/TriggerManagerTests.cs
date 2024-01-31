@@ -30,7 +30,7 @@ namespace Tests
         {
             public Func<IEventArg, bool> condition { get; set; }
             public IEventArg eventArg;
-            public TestTrigger(Func<IEventArg, bool> condition = null, IEventArg eventArg = null)
+            public TestTrigger(Func<IEventArg, bool> condition = null, IEventArg eventArg = null) : base()
             {
                 this.condition = condition;
                 this.eventArg = eventArg;
@@ -42,6 +42,7 @@ namespace Tests
                 else
                     return true;
             }
+            public override int getPriority() => 0;
             public override Task invoke(IEventArg arg)
             {
                 if (eventArg != null)
