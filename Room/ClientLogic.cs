@@ -41,11 +41,11 @@ namespace TouhouCardEngine
             // lobby.addRoom(room); // 不要在自己的房间列表里面显示自己的房间。
             //this.room.maxPlayerCount = MAX_PLAYER_COUNT;
         }
-        public Task createLocalRoom()
+        public Task createLocalRoom(string playerName)
         {
             logger?.logTrace("客户端创建本地房间");
             room = new RoomData(string.Empty);
-            localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), "本地玩家", RoomPlayerType.human);
+            localPlayer = new RoomPlayerData(Guid.NewGuid().GetHashCode(), playerName, RoomPlayerType.human);
             room.playerDataList.Add(localPlayer);
             room.ownerId = localPlayer.id;
 

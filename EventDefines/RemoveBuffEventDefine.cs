@@ -86,6 +86,6 @@ namespace TouhouCardEngine
         }
         public const string VAR_CARD = "卡牌";
         public const string VAR_BUFF = "增益";
-        public const string VAR_REMOVED = "是否成功移除";
+        public const string VAR_REMOVED = "是否成功";
     }
 }

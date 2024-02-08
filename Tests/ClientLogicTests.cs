@@ -27,7 +27,7 @@ namespace Tests
         {
             using (ClientLogic client = new ClientLogic("Room", logger: new UnityLogger("Room")))
             {
-                var task = client.createLocalRoom();
+                var task = client.createLocalRoom("本地玩家");
                 yield return task.wait();
                 yield return onAssert(client);
             }
