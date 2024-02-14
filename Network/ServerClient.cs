@@ -125,7 +125,7 @@ namespace NitoriNetwork.Common
                 if (cookie.Name == "Session")
                 {
                     UserSession = cookie.Value;
-                } 
+                }
             }
         }
 
@@ -205,6 +205,182 @@ namespace NitoriNetwork.Common
         }
 
         #endregion
+        #region Kratos
+        /// <summary>
+        /// Kratos 认证客户端
+        /// </summary>
+        public KratosClient Kratos { get; set; }
+
+        /// <summary>
+        /// 云下发的服务器配置
+        /// </summary>
+        struct KratosServerConfig
+        {
+            public string url { get; set; }
+        }
+
+        /// <summary>
+        /// 新增一个认证客户端。后续账户认证相关都需要经过这个客户端。
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="NetClientException"></exception>
+        public async Task<bool> NewKratosClient()
+        {
+            RestRequest request = new RestRequest("/api/User/auth/kratos", Method.GET);
+
+            var response = await client.ExecuteAsync<KratosServerConfig>(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new NetClientException(response.StatusDescription);
+            }
+
+            Kratos = new KratosClient(response.Data.url, client.CookieContainer, client.UserAgent, logger);
+            return true;
+        }
+
+        /// <summary>
+        /// 使用邮箱注册
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="password"></param>
+        /// <param name="nickname"></param>
+        /// <returns></returns>
+        public async Task<bool> RegisterViaPassword(string mail, string password, string nickname)
+        {
+            string flow = await Kratos.CreateRegistrationFlow();
+            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.PasswordRegistrationRequest(mail, password, nickname));
+        }
+
+        /// <summary>
+        /// 使用Steam注册
+        /// </summary>
+        /// <param name="client">客户端ID，根据客户端版本不同设置不同的值</param>
+        /// <param name="ticket"></param>
+        /// <param name="nickname"></param>
+        /// <returns></returns>
+        public async Task<bool> RegisterViaSteam(string client, string ticket, string nickname)
+        {
+            string flow = await Kratos.CreateRegistrationFlow();
+            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, nickname));
+        }
+
+        /// <summary>
+        /// 使用密码登录
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public async Task<bool> LoginViaPassword(string mail, string password)
+        {
+            string flow = await Kratos.CreateLoginFlow();
+            return await Kratos.UpdateLoginFlow(flow, new KratosClient.PasswordLoginRequest(mail, password));
+        }
+
+        /// <summary>
+        /// 使用Steam登录
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="ticket"></param>
+        /// <returns></returns>
+        public async Task<bool> LoginViaSteam(string client, string ticket)
+        {
+            string flow = await Kratos.CreateLoginFlow();
+            return await Kratos.UpdateLoginFlow(flow, new KratosClient.SteamLoginRequest(client, ticket));
+        }
+
+        /// <summary>
+        /// 登录
+        /// </summary>
+        /// <remarks>
+        /// 在登录前必须调用LoginViaXXX获取Kratos的登录凭证。可以通过Kratos.WhoAmI方法验证是否已经有对应登录凭证
+        /// </remarks>
+        /// <returns></returns>
+        public async Task<bool> LoginByKratosAsync()
+        {
+            // 防止重复登录
+            if (UID != 0)
+                clearUserCookie();
+
+            RestRequest request = new RestRequest("/api/User/session", Method.POST);
+            request.AddParameter("type", "kratos");
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            if (response.ErrorException != null)
+            {
+                throw new NetClientException(response.ErrorException, request.Resource);
+            }
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    // 登录失败
+                    if (response.Data.code == ResultCode.Fail) return false;
+
+                    throw new NetClientException(response.Data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+
+            if (response.Data.code != ResultCode.Success)
+            {
+                return false;
+            }
+
+            saveCookie();
+            // 登录换取的是Token，我们需要Session
+            await GetSessionAsync();
+
+            return true;
+        }
+
+        /// <summary>
+        /// 当前登录信息绑定Steam账户
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="ticket"></param>
+        /// <returns></returns>
+        public async Task<bool> LinkSteam(string client, string ticket)
+        {
+            string flow = await Kratos.CreateSettingFlow();
+            return await Kratos.UpdateSettingFlow(flow, KratosClient.SteamSettingRequest.Link(client, ticket));
+        }
+
+        /// <summary>
+        /// 当前账户解绑Steam登录信息
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> UnlinkSteam()
+        {
+            string flow = await Kratos.CreateSettingFlow();
+            return await Kratos.UpdateSettingFlow(flow, KratosClient.SteamSettingRequest.Unlink());
+        }
+
+        /// <summary>
+        /// 修改当前登录账户的密码
+        /// </summary>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public async Task<bool> ChangePassword(string password)
+        {
+            string flow = await Kratos.CreateSettingFlow();
+            return await Kratos.UpdateSettingFlow(flow, new KratosClient.PasswordSettingRequest(password));
+        }
+
+        /// <summary>
+        /// 请求找回账户，账户找回请求会发送到对应邮箱
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <returns></returns>
+        public async Task<bool> RecoveryRequest(string mail)
+        {
+            string flow = await Kratos.CreateRecoveryFlow();
+            return await Kratos.UpdateRecoveryFlow(flow, new KratosClient.EmailRecoveryRequest(mail));
+        }
+
+        #endregion
         #region Login
         /// <summary>
         /// 用户登录
@@ -215,6 +391,7 @@ namespace NitoriNetwork.Common
         /// <param name="captcha">验证码</param>
         /// <exception cref="NetClientException"></exception>
         /// <returns></returns>
+        [Obsolete]
         public bool Login(string user, string pass, string captcha)
         {
             // 防止重复登录
@@ -263,6 +440,7 @@ namespace NitoriNetwork.Common
         /// <param name="captcha">验证码</param>
         /// <exception cref="NetClientException"></exception>
         /// <returns></returns>
+        [Obsolete]
         public async Task<bool> LoginAsync(string user, string pass, string captcha)
         {
             // 防止重复登录
@@ -359,7 +537,7 @@ namespace NitoriNetwork.Common
         /// 游客登录
         /// </summary>
         /// <return>是否登录成功，失败则意味着服务器压力过大</return>
-        public bool GuestLogin() 
+        public bool GuestLogin()
         {
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
@@ -382,7 +560,7 @@ namespace NitoriNetwork.Common
         /// <summary>
         /// 游客登录
         /// </summary>
-        public async Task<bool> GuestLoginAsync() 
+        public async Task<bool> GuestLoginAsync()
         {
             RestRequest request = new RestRequest("/api/User/guest", Method.POST);
 
@@ -414,6 +592,7 @@ namespace NitoriNetwork.Common
         /// <param name="nickname"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
+        [Obsolete("Use kratos")]
         public void Register(string username, string mail, string password, string nickname, string invite, string captcha)
         {
             RestRequest request = new RestRequest("/api/User", Method.POST);
@@ -442,6 +621,7 @@ namespace NitoriNetwork.Common
         /// <param name="nickname"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
+        [Obsolete("Use kratos")]
         public async Task RegisterAsync(string username, string mail, string password, string nickname, string invite, string captcha)
         {
             RestRequest request = new RestRequest("/api/User", Method.POST);
@@ -635,6 +815,7 @@ namespace NitoriNetwork.Common
         /// <param name="oldPass">旧密码，不更新保持空</param>
         /// <param name="newPass">新密码，不更新保持空</param>
         /// <returns></returns>
+        [Obsolete("Use kratos, or ChangeUserInfoAsync")]
         public async Task PatchUserInfoAsync(string nickname = "", string oldPass = "", string newPass = "")
         {
             RestRequest request = new RestRequest("/api/User", Method.PATCH);
@@ -648,9 +829,24 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
+        /// 更新用户信息
+        /// </summary>
+        /// <param name="nickname">要更新的昵称</param>
+        public async Task ChangeUserInfoAsync(string nickname = "")
+        {
+            RestRequest request = new RestRequest("/api/User", Method.PATCH);
+            request.AddParameter("nickname", nickname);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+
+            errorHandler(response, response.Data, request);
+        }
+
+        /// <summary>
         /// 注销
         /// </summary>
-        public void Logout() 
+        [Obsolete("Use kratos")]
+        public void Logout()
         {
             RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
 
@@ -666,7 +862,8 @@ namespace NitoriNetwork.Common
         /// 注销
         /// </summary>
         /// <returns></returns>
-        public async Task LogoutAsync() 
+        [Obsolete("Use kratos")]
+        public async Task LogoutAsync()
         {
             RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
 
@@ -772,6 +969,7 @@ namespace NitoriNetwork.Common
         /// </summary>
         /// <param name="mail"></param>
         /// <param name="captcha"></param>
+        [Obsolete("Use kratos")]
         public void RecoverRequest(string mail, string captcha)
         {
             RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
@@ -788,6 +986,7 @@ namespace NitoriNetwork.Common
         /// <param name="mail"></param>
         /// <param name="captcha"></param>
         /// <returns></returns>
+        [Obsolete("Use kratos")]
         public async Task RecoverRequestAsync(string mail, string captcha)
         {
             RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
@@ -805,6 +1004,7 @@ namespace NitoriNetwork.Common
         /// <param name="captcha"></param>
         /// <param name="code"></param>
         /// <param name="password"></param>
+        [Obsolete("Use kratos")]
         public void RecoverPassword(string mail, string code, string password, string captcha)
         {
             RestRequest request = new RestRequest("/api/User/recover", Method.POST);
@@ -825,6 +1025,7 @@ namespace NitoriNetwork.Common
         /// <param name="captcha"></param>
         /// <param name="code"></param>
         /// <param name="password"></param>
+        [Obsolete("Use kratos")]
         public async Task RecoverPasswordAsync(string mail, string code, string password, string captcha)
         {
             RestRequest request = new RestRequest("/api/User/recover", Method.POST);
@@ -954,15 +1155,15 @@ namespace NitoriNetwork.Common
     {
         public string Url { get; }
         public NetClientException() { }
-        public NetClientException(string message, string url = "") : base(message) 
+        public NetClientException(string message, string url = "") : base(message)
         {
             Url = url;
         }
-        public NetClientException(HttpStatusCode code, string url = "") : base($"HTTP {(int)code}: {code}") 
+        public NetClientException(HttpStatusCode code, string url = "") : base($"HTTP {(int)code}: {code}")
         {
             Url = url;
         }
-        public NetClientException(Exception inner, string url = "") : base(inner.Message) 
+        public NetClientException(Exception inner, string url = "") : base(inner.Message)
         {
             Url = url;
         }
