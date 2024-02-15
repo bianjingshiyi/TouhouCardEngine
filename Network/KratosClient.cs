@@ -211,6 +211,15 @@ namespace NitoriNetwork.Common
         [BsonIgnoreExtraElements]
         public class LoginResponse : CommonResponse
         {
+            public Session session { get; set; }
+
+            /// <summary>
+            /// The Session Token
+            /// 
+            /// A session token is equivalent to a session cookie, but it can be sent in the HTTP Authorization Header.
+            /// The session token is only issued for API flows, not for Browser flows!
+            /// </summary>
+            public string session_token { get; set; }
         }
         #endregion
         #region 注册
@@ -433,7 +442,7 @@ namespace NitoriNetwork.Common
         /// <param name="req">登录凭证</param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
-        public async Task<bool> UpdateLoginFlow(string loginFlow, MethodRequest req)
+        public async Task<string> UpdateLoginFlow(string loginFlow, MethodRequest req)
         {
             RestRequest request = new RestRequest("/self-service/login", Method.POST);
             request.AddQueryParameter("flow", loginFlow);
@@ -443,7 +452,7 @@ namespace NitoriNetwork.Common
             handleError(response, response.Data, request.Resource);
 
             if (response.StatusCode == HttpStatusCode.OK)
-                return true;
+                return response.Data.session_token;
 
             logger.log(response.Data.ToString());
             throw new NetClientException("internal error");

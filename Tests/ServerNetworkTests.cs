@@ -28,9 +28,9 @@ namespace Tests
             }
             catch (Exception) { }
 
-            Assert.False(await serverClient.LoginViaPassword("test1@igsk.fun", "654321"));
+            Assert.True(string.IsNullOrEmpty(await serverClient.LoginViaPassword("test1@igsk.fun", "654321")));
             var success = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
-            Assert.True(success);
+            Assert.False(string.IsNullOrEmpty(success));
             Assert.False(string.IsNullOrEmpty(serverClient.UserSession));
             Assert.NotZero(serverClient.UID);
         }
@@ -47,12 +47,8 @@ namespace Tests
                 await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
             }
             catch { }
-            bool success = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
-            if (!success)
-            {
-                throw new Exception("测试用账户无法登录，请确保测试用服务器数据库干净");
-            }
-            await serverClient.LoginByKratosAsync();
+            var session = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
+            await serverClient.LoginByKratosAsync(session);
         }
 
         /// <summary>
@@ -157,8 +153,8 @@ namespace Tests
                 await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
             }
             catch { }
-            await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
-            await serverClient.LoginByKratosAsync();
+            var session = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
+            await serverClient.LoginByKratosAsync(session);
             return await serverClient.GetSessionAsync();
         }
 

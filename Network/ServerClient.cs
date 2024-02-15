@@ -314,7 +314,7 @@ namespace NitoriNetwork.Common
         /// <param name="mail"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public async Task<bool> LoginViaPassword(string mail, string password)
+        public async Task<string> LoginViaPassword(string mail, string password)
         {
             string flow = await Kratos.CreateLoginFlow();
             return await Kratos.UpdateLoginFlow(flow, new KratosClient.PasswordLoginRequest(mail, password));
@@ -326,7 +326,7 @@ namespace NitoriNetwork.Common
         /// <param name="client"></param>
         /// <param name="ticket"></param>
         /// <returns></returns>
-        public async Task<bool> LoginViaSteam(string client, string ticket)
+        public async Task<string> LoginViaSteam(string client, string ticket)
         {
             string flow = await Kratos.CreateLoginFlow();
             return await Kratos.UpdateLoginFlow(flow, new KratosClient.SteamLoginRequest(client, ticket));
@@ -338,8 +338,9 @@ namespace NitoriNetwork.Common
         /// <remarks>
         /// 在登录前必须调用LoginViaXXX获取Kratos的登录凭证。可以通过Kratos.WhoAmI方法验证是否已经有对应登录凭证
         /// </remarks>
+        /// <param name="sessionToken">LoginViaXXX得到的登录凭证</param>
         /// <returns></returns>
-        public async Task<bool> LoginByKratosAsync()
+        public async Task<bool> LoginByKratosAsync(string sessionToken)
         {
             // 防止重复登录
             if (UID != 0)
@@ -347,6 +348,7 @@ namespace NitoriNetwork.Common
 
             RestRequest request = new RestRequest("/api/User/session", Method.POST);
             request.AddParameter("type", "kratos");
+            request.AddParameter("session", sessionToken);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
             if (!errorHandlerLogin(response, response.Data, request))
