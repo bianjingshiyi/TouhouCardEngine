@@ -368,21 +368,24 @@ namespace NitoriNetwork.Common
         /// <param name="mail"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public async Task<bool> LogoutKratos()
+        public async Task LogoutKratos()
         {
-            if (await Kratos.Logout())
+            try
             {
-                RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
-
-                var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-                errorHandler(response, response.Data, request);
-
-                UID = 0;
-                UserSession = "";
-                saveCookie();
-                return true;
+                await Kratos.Logout();
             }
-            return false;
+            catch (Exception e)
+            {
+                logger?.logError($"Kratos登出失败：{e}");
+            }
+            RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+            errorHandler(response, response.Data, request);
+
+            UID = 0;
+            UserSession = "";
+            saveCookie();
         }
 
 

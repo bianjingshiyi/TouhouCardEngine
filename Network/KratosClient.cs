@@ -507,7 +507,7 @@ namespace NitoriNetwork.Common
             throw new NetClientException("internal error");
         }
 
-        struct LogoutRequest
+        class LogoutRequest
         {
             public string session_token { get; set; }
 
@@ -524,15 +524,16 @@ namespace NitoriNetwork.Common
         public async Task<bool> Logout()
         {
             RestRequest request = new RestRequest("/self-service/logout/api", Method.DELETE);
-            request.AddJsonBody(new LogoutRequest("")); // todo: body 需要有一个 session_token
+            request.AddJsonBody(new LogoutRequest(SessionToken));
             var response = await client.ExecuteAsync(request);
+            if (response.ErrorException != null)
+                throw new NetClientException(response.ErrorException.Message);
+
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
                 SessionToken = "";
                 return true;
             }
-
-            // todo: error handler
             return false;
         }
     
@@ -569,7 +570,7 @@ namespace NitoriNetwork.Common
         /// <exception cref="NetClientException"></exception>
         public async Task<bool> UpdateRecoveryFlow(string recoveryFlow, EmailRecoveryRequest req)
         {
-            RestRequest request = new RestRequest("/self-service/settings", Method.POST);
+            RestRequest request = new RestRequest("/self-service/recovery", Method.POST);
             request.AddQueryParameter("flow", recoveryFlow);
             request.AddJsonBody(req);
 
