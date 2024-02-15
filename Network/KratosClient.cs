@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using System.Linq;
 using Sentry;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace NitoriNetwork.Common
 {
@@ -40,14 +41,19 @@ namespace NitoriNetwork.Common
         }
         #region Structs
         #region Common
-        struct FlowResponse
+        [Serializable]
+        [BsonIgnoreExtraElements]
+        class FlowResponse
         {
+            [BsonElement("id")]
             public string flow { get; set; }
         }
 
         /// <summary>
         /// 用户信息
         /// </summary>
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class UserTraits
         {
             /// <summary>
@@ -66,34 +72,44 @@ namespace NitoriNetwork.Common
                 this.nickname = nickname;
             }
         }
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class Message
         {
             public Int64 id { get; set; }
             /// <summary>
             /// The message text. Written in american english.
             /// </summary>
-            public string message { get; set; }
+            public string text { get; set; }
             /// <summary>
             /// The message type. info, error or success
             /// </summary>
             public string type { get; set; }
         }
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class APIError
         {
             public Int64 code { get; set; }
 
             public string message { get; set; }
         }
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class UIContainer
         {
             public Message[] messages { get; set; }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class UserMetadata
         {
             public string steamid { get; set; }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class Identity
         {
             /// <summary>
@@ -115,6 +131,8 @@ namespace NitoriNetwork.Common
             public UserMetadata metadata_public { get; set; }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class Session
         {
             /// <summary>
@@ -148,6 +166,8 @@ namespace NitoriNetwork.Common
             }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class CommonResponse
         {
             public UIContainer ui { get; set; }
@@ -187,6 +207,8 @@ namespace NitoriNetwork.Common
             }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class LoginResponse : CommonResponse
         {
         }
@@ -238,6 +260,8 @@ namespace NitoriNetwork.Common
                 this.ticket = ticket;
             }
         }
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class RegistrationResponse : CommonResponse
         {
             public Session session { get; set; }
@@ -307,7 +331,9 @@ namespace NitoriNetwork.Common
                 return new SteamSettingRequest("", "unlink", "");
             }
         }
-        
+
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class SettingResponse : CommonResponse
         {
             public Identity identity { get; set; }
@@ -327,6 +353,8 @@ namespace NitoriNetwork.Common
             }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class RecoveryResponse : CommonResponse
         {
             public string state { get; set; }
@@ -428,7 +456,7 @@ namespace NitoriNetwork.Common
 
             // 参数错误
             if (resp.StatusCode == HttpStatusCode.BadRequest)
-                throw new NetClientException(String.Join(';', data.ui.messages.Select(x => x.message)));
+                throw new NetClientException(String.Join(';', data.ui.messages.Select(x => x.text)));
 
             if (data.error != null)
                 throw new NetClientException(data.error.message);

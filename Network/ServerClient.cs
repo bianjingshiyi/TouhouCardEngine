@@ -13,6 +13,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using TouhouCardEngine;
 using TouhouCardEngine.Shared;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace NitoriNetwork.Common
 {
@@ -36,7 +37,7 @@ namespace NitoriNetwork.Common
 
         ILogger logger { get; }
 
-        #region Basic_Behavior
+        #region 基础行为
         RestClient client { get; }
 
         string cookieFilePath { get; }
@@ -87,6 +88,24 @@ namespace NitoriNetwork.Common
             UserSession = "";
         }
 
+        /// <summary>
+        /// 附加的UserAgent，用于统计
+        /// </summary>
+        /// <returns></returns>
+        string additionalUserAgent()
+        {
+            StringBuilder sb = new StringBuilder();
+            var os = Environment.OSVersion;
+            sb.Append("OS/");
+            sb.Append(os.VersionString.Replace(" ", "_"));
+            sb.Append(" Lang/");
+            var culture = CultureInfo.CurrentCulture;
+            sb.Append(culture.Name);
+            return sb.ToString();
+        }
+        #endregion
+
+        #region Cookie
         /// <summary>
         /// 保存小饼干（？）
         /// </summary>
@@ -141,23 +160,9 @@ namespace NitoriNetwork.Common
                     cookie.Expired = true;
             }
         }
+        #endregion
 
-        /// <summary>
-        /// 附加的UserAgent，用于统计
-        /// </summary>
-        /// <returns></returns>
-        string additionalUserAgent()
-        {
-            StringBuilder sb = new StringBuilder();
-            var os = Environment.OSVersion;
-            sb.Append("OS/");
-            sb.Append(os.VersionString.Replace(" ", "_"));
-            sb.Append(" Lang/");
-            var culture = CultureInfo.CurrentCulture;
-            sb.Append(culture.Name);
-            return sb.ToString();
-        }
-
+        #region 错误处理
         /// <summary>
         /// 资源错误处理
         /// </summary>
@@ -203,8 +208,46 @@ namespace NitoriNetwork.Common
                 }
             }
         }
+        /// <summary>
+        /// 登录错误处理。
+        /// </summary>
+        /// <remarks>
+        /// 当网络异常时，报对应异常错误；
+        /// 当HTTP代码不为200时，如果是 400 Bad Request，并且登录结果是Fail，返回false，否则抛出异常。
+        /// 如果不是400就抛出状态描述异常。
+        /// 最后如果登录没成功，就返回false。
+        /// </remarks>
+        /// <param name="response"></param>
+        /// <param name="data"></param>
+        bool errorHandlerLogin(IRestResponse response, IExecuteResult data, IRestRequest request)
+        {
+            if (response.ErrorException != null)
+            {
+                throw new NetClientException(response.ErrorException, request.Resource);
+            }
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    // 登录失败
+                    if (data.code == ResultCode.Fail)
+                        return false;
 
+                    throw new NetClientException(data.message);
+                }
+                else
+                {
+                    throw new NetClientException(response.StatusDescription);
+                }
+            }
+            if (data.code != ResultCode.Success)
+            {
+                return false;
+            }
+            return true;
+        }
         #endregion
+
         #region Kratos
         /// <summary>
         /// Kratos 认证客户端
@@ -214,7 +257,8 @@ namespace NitoriNetwork.Common
         /// <summary>
         /// 云下发的服务器配置
         /// </summary>
-        struct KratosServerConfig
+        [Serializable]
+        class KratosServerConfig
         {
             public string url { get; set; }
         }
@@ -305,26 +349,7 @@ namespace NitoriNetwork.Common
             request.AddParameter("type", "kratos");
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.ErrorException != null)
-            {
-                throw new NetClientException(response.ErrorException, request.Resource);
-            }
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    // 登录失败
-                    if (response.Data.code == ResultCode.Fail) return false;
-
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
-
-            if (response.Data.code != ResultCode.Success)
+            if (!errorHandlerLogin(response, response.Data, request))
             {
                 return false;
             }
@@ -335,6 +360,29 @@ namespace NitoriNetwork.Common
 
             return true;
         }
+        /// <summary>
+        /// 登出
+        /// </summary>
+        /// <param name="mail"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public async Task<bool> LogoutKratos()
+        {
+            if (await Kratos.Logout())
+            {
+                RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
+
+                var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
+                errorHandler(response, response.Data, request);
+
+                UID = 0;
+                UserSession = "";
+                saveCookie();
+                return true;
+            }
+            return false;
+        }
+
 
         /// <summary>
         /// 当前登录信息绑定Steam账户
@@ -381,110 +429,8 @@ namespace NitoriNetwork.Common
         }
 
         #endregion
-        #region Login
-        /// <summary>
-        /// 用户登录
-        /// 需要先获取验证码图像
-        /// </summary>
-        /// <param name="user">用户名</param>
-        /// <param name="pass">密码</param>
-        /// <param name="captcha">验证码</param>
-        /// <exception cref="NetClientException"></exception>
-        /// <returns></returns>
-        [Obsolete]
-        public bool Login(string user, string pass, string captcha)
-        {
-            // 防止重复登录
-            if (UID != 0)
-                clearUserCookie();
 
-            RestRequest request = new RestRequest("/api/User/session", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("username", user);
-            request.AddParameter("password", pass);
-
-            var response = client.Execute<ExecuteResult<string>>(request);
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    // 用户名/密码不正确
-                    if (response.Data.code == ResultCode.Fail) return false;
-
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
-
-            if (response.Data.code != ResultCode.Success)
-            {
-                return false;
-            }
-
-            saveCookie();
-            // 登录换取的是Token，我们需要Session
-            GetSession();
-            return true;
-        }
-
-        /// <summary>
-        /// 用户登录
-        /// 需要先获取验证码图像
-        /// </summary>
-        /// <param name="user">用户名</param>
-        /// <param name="pass">密码</param>
-        /// <param name="captcha">验证码</param>
-        /// <exception cref="NetClientException"></exception>
-        /// <returns></returns>
-        [Obsolete]
-        public async Task<bool> LoginAsync(string user, string pass, string captcha)
-        {
-            // 防止重复登录
-            if (UID != 0)
-                clearUserCookie();
-
-            RestRequest request = new RestRequest("/api/User/session", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("username", user);
-            request.AddParameter("password", pass);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            if (response.ErrorException != null)
-            {
-                throw new NetClientException(response.ErrorException, request.Resource);
-            }
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    // 登录失败
-                    if (response.Data.code == ResultCode.Fail) return false;
-
-                    throw new NetClientException(response.Data.message);
-                }
-                else
-                {
-                    throw new NetClientException(response.StatusDescription);
-                }
-            }
-
-            if (response.Data.code != ResultCode.Success)
-            {
-                return false;
-            }
-
-            saveCookie();
-            // 登录换取的是Token，我们需要Session
-            await GetSessionAsync();
-
-            return true;
-        }
-
+        #region 登录
         /// <summary>
         /// 获取Session
         /// </summary>
@@ -580,66 +526,8 @@ namespace NitoriNetwork.Common
             return true;
         }
         #endregion
-        #region Register
-        /// <summary>
-        /// 注册用户
-        /// 需要先获取验证码图像
-        /// </summary>
-        /// <param name="username"></param>
-        /// <param name="mail"></param>
-        /// <param name="password"></param>
-        /// <param name="captcha"></param>
-        /// <param name="nickname"></param>
-        /// <returns></returns>
-        /// <exception cref="NetClientException"></exception>
-        [Obsolete("Use kratos")]
-        public void Register(string username, string mail, string password, string nickname, string invite, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User", Method.POST);
 
-            request.AddHeader("x-captcha", captcha);
-
-            request.AddParameter("username", username);
-            request.AddParameter("mail", mail);
-            request.AddParameter("password", password);
-            request.AddParameter("nickname", nickname);
-            request.AddParameter("invite", invite);
-
-            var response = client.Execute<ExecuteResult<string>>(request);
-
-            errorHandler(response, response.Data, request);
-        }
-
-        /// <summary>
-        /// 注册用户
-        /// 需要先获取验证码图像
-        /// </summary>
-        /// <param name="username"></param>
-        /// <param name="mail"></param>
-        /// <param name="password"></param>
-        /// <param name="captcha"></param>
-        /// <param name="nickname"></param>
-        /// <returns></returns>
-        /// <exception cref="NetClientException"></exception>
-        [Obsolete("Use kratos")]
-        public async Task RegisterAsync(string username, string mail, string password, string nickname, string invite, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-
-            request.AddParameter("username", username);
-            request.AddParameter("mail", mail);
-            request.AddParameter("password", password);
-            request.AddParameter("nickname", nickname);
-            request.AddParameter("invite", invite);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-
-            errorHandler(response, response.Data, request);
-        }
-        #endregion
-        #region Captcha
+        #region 验证码
         /// <summary>
         /// 获取验证码图像
         /// </summary>
@@ -668,7 +556,8 @@ namespace NitoriNetwork.Common
             return response.RawBytes;
         }
         #endregion
-        #region Room
+
+        #region 房间
         /// <summary>
         /// 创建一个房间
         /// </summary>
@@ -725,7 +614,8 @@ namespace NitoriNetwork.Common
             return response.Data.result;
         }
         #endregion
-        #region User
+
+        #region 用户信息
         /// <summary>
         /// 获取当前登录用户的信息
         /// </summary>
@@ -811,26 +701,6 @@ namespace NitoriNetwork.Common
         /// <summary>
         /// 更新用户信息
         /// </summary>
-        /// <param name="nickname">要更新的昵称，不更新保持空</param>
-        /// <param name="oldPass">旧密码，不更新保持空</param>
-        /// <param name="newPass">新密码，不更新保持空</param>
-        /// <returns></returns>
-        [Obsolete("Use kratos, or ChangeUserInfoAsync")]
-        public async Task PatchUserInfoAsync(string nickname = "", string oldPass = "", string newPass = "")
-        {
-            RestRequest request = new RestRequest("/api/User", Method.PATCH);
-            request.AddParameter("nickname", nickname);
-            request.AddParameter("oldPassword", oldPass);
-            request.AddParameter("newPassword", newPass);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-
-            errorHandler(response, response.Data, request);
-        }
-
-        /// <summary>
-        /// 更新用户信息
-        /// </summary>
         /// <param name="nickname">要更新的昵称</param>
         public async Task ChangeUserInfoAsync(string nickname = "")
         {
@@ -841,41 +711,9 @@ namespace NitoriNetwork.Common
 
             errorHandler(response, response.Data, request);
         }
-
-        /// <summary>
-        /// 注销
-        /// </summary>
-        [Obsolete("Use kratos")]
-        public void Logout()
-        {
-            RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
-
-            var response = client.Execute<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-
-            UID = 0;
-            UserSession = "";
-            saveCookie();
-        }
-
-        /// <summary>
-        /// 注销
-        /// </summary>
-        /// <returns></returns>
-        [Obsolete("Use kratos")]
-        public async Task LogoutAsync()
-        {
-            RestRequest request = new RestRequest("/api/User/session", Method.DELETE);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-
-            UID = 0;
-            UserSession = "";
-            saveCookie();
-        }
         #endregion
-        #region Update
+
+        #region 版本更新
         /// <summary>
         /// 获取最新的版本更新信息
         /// </summary>
@@ -963,82 +801,7 @@ namespace NitoriNetwork.Common
         }
 
         #endregion
-        #region RecoverPassword
-        /// <summary>
-        /// 请求找回密码
-        /// </summary>
-        /// <param name="mail"></param>
-        /// <param name="captcha"></param>
-        [Obsolete("Use kratos")]
-        public void RecoverRequest(string mail, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
 
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("mail", mail);
-
-            var response = client.Execute<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-        }
-        /// <summary>
-        /// 请求找回密码
-        /// </summary>
-        /// <param name="mail"></param>
-        /// <param name="captcha"></param>
-        /// <returns></returns>
-        [Obsolete("Use kratos")]
-        public async Task RecoverRequestAsync(string mail, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User/recover/request", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("mail", mail);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-        }
-        /// <summary>
-        /// 请求找回密码
-        /// </summary>
-        /// <param name="mail"></param>
-        /// <param name="captcha"></param>
-        /// <param name="code"></param>
-        /// <param name="password"></param>
-        [Obsolete("Use kratos")]
-        public void RecoverPassword(string mail, string code, string password, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User/recover", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("mail", mail);
-            request.AddParameter("code", code);
-            request.AddParameter("password", password);
-
-            var response = client.Execute<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-        }
-
-        /// <summary>
-        /// 请求找回密码
-        /// </summary>
-        /// <param name="mail"></param>
-        /// <param name="captcha"></param>
-        /// <param name="code"></param>
-        /// <param name="password"></param>
-        [Obsolete("Use kratos")]
-        public async Task RecoverPasswordAsync(string mail, string code, string password, string captcha)
-        {
-            RestRequest request = new RestRequest("/api/User/recover", Method.POST);
-
-            request.AddHeader("x-captcha", captcha);
-            request.AddParameter("mail", mail);
-            request.AddParameter("code", code);
-            request.AddParameter("password", password);
-
-            var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
-            errorHandler(response, response.Data, request);
-        }
-        #endregion
         #region EULA
         /// <summary>
         /// 获取用户许可协议的HTML
@@ -1090,7 +853,8 @@ namespace NitoriNetwork.Common
             return response.Content;
         }
         #endregion
-        #region UserDeck
+
+        #region 玩家卡组
         /// <summary>
         /// 设置用户卡组
         /// </summary>

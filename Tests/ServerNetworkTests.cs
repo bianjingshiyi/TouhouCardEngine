@@ -12,52 +12,58 @@ namespace Tests
 {
     public class ServerNetworkTests
     {
-        ServerClient serverClient = new ServerClient("http://localhost:50112");
         /// <summary>
         /// 用户登录测试
         /// </summary>
         [Test]
-        public void UserLogin()
+        public async void UserLogin()
         {
+            var serverClient = await getServetClient();
             var captcha = serverClient.GetCaptchaImage();
             // 你应该在这里转换为图像，然后输入正确的验证码
             // 测试服务器不会验证验证码是否正确
             try
             {
-                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
             }
-            catch (Exception e) { }
+            catch (Exception) { }
 
-            Assert.False(serverClient.Login("testuser1", "654321", "xxxx"));
-            var success = serverClient.Login("testuser1", "123456", "xxxx");
+            Assert.False(await serverClient.LoginViaPassword("test1@igsk.fun", "654321"));
+            var success = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
             Assert.True(success);
             Assert.False(string.IsNullOrEmpty(serverClient.UserSession));
             Assert.NotZero(serverClient.UID);
         }
-
-        void tryLogin()
+        async Task<ServerClient> getServetClient()
+        {
+            ServerClient serverClient = new ServerClient("http://localhost:50112");
+            await serverClient.NewKratosClient();
+            return serverClient;
+        }
+        async Task tryLogin(ServerClient serverClient)
         {
             try
             {
-                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
             }
             catch { }
-            bool success = serverClient.Login("testuser1", "123456", "xxxx");
+            bool success = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
             if (!success)
             {
                 throw new Exception("测试用账户无法登录，请确保测试用服务器数据库干净");
             }
-            serverClient.GetSession();
+            await serverClient.LoginByKratosAsync();
         }
 
         /// <summary>
         /// 创建房间测试
         /// </summary>
         [Test]
-        public void RoomCreate()
+        public async void RoomCreate()
         {
+            var serverClient = await getServetClient();
             // 先登录
-            tryLogin();
+            await tryLogin(serverClient);
 
             var room = serverClient.CreateRoom();
             var rooms = serverClient.GetRoomInfos();
@@ -66,35 +72,11 @@ namespace Tests
             Assert.NotNull(rooms);
             Assert.AreEqual(1, rooms.Where(x => x.RoomID == room.RoomID).Count());
         }
-        public event System.Action action;
-        //[UnityTest]
-        //public IEnumerator ConnectServerTest()
-        //{
-        //    UnityLogger logger = new UnityLogger();
-        //    ClientManager client = new GameObject(nameof(ClientManager)).AddComponent<ClientManager>();
-        //    client.logger = logger;
-        //    bool isConnected = false;
-        //    client.onConnected += () =>
-        //    {
-        //        isConnected = true;
-        //        Debug.Log("测试连接成功");
-        //        return Task.CompletedTask;
-        //    };
-        //    client.start();
-        //    action = null;
-        //    tryLogin();
-        //    var room = serverClient.CreateRoom();
-
-        //    Task task = client.JoinServer(room.IP, room.Port, serverClient.UserSession, room.RoomID);
-        //    yield return new WaitUntil(() => task.IsCompleted);
-
-        //    Assert.AreEqual(0, client.id);
-        //    Assert.True(isConnected);
-        //}
 
         [Test]
-        public void VersionInfoTest()
+        public async void VersionInfoTest()
         {
+            var serverClient = await getServetClient();
             // 最新版本
             var latest = serverClient.GetLatestUpdate();
             Assert.NotNull(latest);
@@ -114,9 +96,11 @@ namespace Tests
         }
 
         [Test]
-        public void DeckTests()
+        public async void DeckTests()
         {
-            tryLogin();
+            var serverClient = await getServetClient();
+
+            await tryLogin(serverClient);
 
             var decks = new DeckDataItem[] {
                 new DeckDataItem()
@@ -163,26 +147,28 @@ namespace Tests
 
     public class ResourceClientTests
     {
-        ServerClient serverClient = new ServerClient("http://localhost:50112");
 
-        string PrepareSession()
+        async Task<string> PrepareSession()
         {
+            ServerClient serverClient = new ServerClient("http://localhost:50112");
+            await serverClient.NewKratosClient();
             try
             {
-                serverClient.Register("testuser1", "test1@igsk.fun", "123456", "TestUser1", null, "xxxx");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
             }
             catch { }
-            serverClient.Login("testuser1", "123456", "xxxx");
-            return serverClient.GetSession();
+            await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
+            await serverClient.LoginByKratosAsync();
+            return await serverClient.GetSessionAsync();
         }
 
         /// <summary>
         /// 资源上传测试
         /// </summary>
         [Test]
-        public void TestResourceUpload()
+        public async void TestResourceUpload()
         {
-            string session = PrepareSession();
+            string session = await PrepareSession();
             var client = new ResourceClient("http://localhost:50112/api/UserRes", session);
 
             client.UploadResource(ResourceType.CardDefine, "test_card", Encoding.UTF8.GetBytes("test_card"));
@@ -192,9 +178,9 @@ namespace Tests
         /// 资源存在性测试
         /// </summary>
         [Test]
-        public void TestResourceExists()
+        public async void TestResourceExists()
         {
-            string session = PrepareSession();
+            string session = await PrepareSession();
             var client = new ResourceClient("http://localhost:50112/api/UserRes", session);
 
             var exists = client.ResourceExists(ResourceType.CardDefine, "test_fake_card");
@@ -205,9 +191,9 @@ namespace Tests
         /// 资源批量存在性测试
         /// </summary>
         [Test]
-        public void TestResourceExistsBatch()
+        public async void TestResourceExistsBatch()
         {
-            string session = PrepareSession();
+            string session = await PrepareSession();
             var client = new ResourceClient("http://localhost:50112/api/UserRes", session);
 
             var exists = client.ResourceExistsBatch(new Tuple<ResourceType, string>[] {
@@ -223,9 +209,9 @@ namespace Tests
         /// 资源下载测试
         /// </summary>
         [Test]
-        public void TestResourceDownload()
+        public async void TestResourceDownload()
         {
-            string session = PrepareSession();
+            string session = await PrepareSession();
             var client = new ResourceClient("http://localhost:50112/api/UserRes", session);
 
             var bytes = Encoding.UTF8.GetBytes("test_card");
