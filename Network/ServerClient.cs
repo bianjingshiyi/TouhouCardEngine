@@ -278,7 +278,7 @@ namespace NitoriNetwork.Common
                 throw new NetClientException(response.StatusDescription);
             }
 
-            Kratos = new KratosClient(response.Data.url, client.CookieContainer, client.UserAgent, logger);
+            Kratos = new KratosClient(response.Data.url, client.UserAgent, logger);
             return true;
         }
 
@@ -289,7 +289,7 @@ namespace NitoriNetwork.Common
         /// <param name="password"></param>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public async Task<bool> RegisterViaPassword(string mail, string password, string nickname)
+        public async Task<string> RegisterViaPassword(string mail, string password, string nickname)
         {
             string flow = await Kratos.CreateRegistrationFlow();
             return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.PasswordRegistrationRequest(mail, password, nickname));
@@ -302,7 +302,7 @@ namespace NitoriNetwork.Common
         /// <param name="ticket"></param>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public async Task<bool> RegisterViaSteam(string client, string ticket, string nickname)
+        public async Task<string> RegisterViaSteam(string client, string ticket, string nickname)
         {
             string flow = await Kratos.CreateRegistrationFlow();
             return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, nickname));

@@ -5,7 +5,6 @@ using TouhouCardEngine.Shared;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
-using Sentry;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace NitoriNetwork.Common
@@ -20,11 +19,13 @@ namespace NitoriNetwork.Common
 
         public string baseUri { get; private set; }
 
+        public string SessionToken { get; private set; }
+
         /// <summary>
         /// 认证服务器
         /// </summary>
         /// <param name="baseUri"></param>
-        public KratosClient(string baseUri, CookieContainer cookie, string userAgent, ILogger logger = null)
+        public KratosClient(string baseUri, string userAgent, ILogger logger = null)
         {
             this.baseUri = baseUri;
             this.logger = logger;
@@ -32,7 +33,6 @@ namespace NitoriNetwork.Common
             client = new RestClient(baseUri);
             client.UserAgent = userAgent;
             client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
-            client.CookieContainer = cookie;
 
             client.ThrowOnDeserializationError = true;
             client.UseSerializer(
@@ -371,6 +371,12 @@ namespace NitoriNetwork.Common
 
         #endregion
 
+        void addHeader(RestRequest request)
+        {
+            if (!string.IsNullOrEmpty(SessionToken))
+                request.AddHeader("X-Session-Token", SessionToken);
+        }
+
         /// <summary>
         /// 创建登录Flow
         /// </summary>
@@ -395,6 +401,7 @@ namespace NitoriNetwork.Common
         public async Task<string> CreateSettingFlow()
         {
             RestRequest request = new RestRequest("/self-service/settings/api", Method.GET);
+            addHeader(request);
             var response = await client.ExecuteAsync<FlowResponse>(request);
             if (response.ErrorException != null)
             {
@@ -452,7 +459,10 @@ namespace NitoriNetwork.Common
             handleError(response, response.Data, request.Resource);
 
             if (response.StatusCode == HttpStatusCode.OK)
-                return response.Data.session_token;
+            {
+                SessionToken = response.Data.session_token;
+                return SessionToken;
+            }
 
             logger.log(response.Data.ToString());
             throw new NetClientException("internal error");
@@ -478,7 +488,7 @@ namespace NitoriNetwork.Common
         /// <param name="req"></param>
         /// <returns></returns>
         /// <exception cref="NetClientException"></exception>
-        public async Task<bool> UpdateRegistrationFlow(string registrationFlow, RegistrationRequest req)
+        public async Task<string> UpdateRegistrationFlow(string registrationFlow, RegistrationRequest req)
         {
             RestRequest request = new RestRequest("/self-service/registration", Method.POST);
             request.AddQueryParameter("flow", registrationFlow);
@@ -488,7 +498,10 @@ namespace NitoriNetwork.Common
             handleError(response, response.Data, request.Resource);
 
             if (response.StatusCode == HttpStatusCode.OK)
-                return true;
+            {
+                SessionToken = response.Data.session_token;
+                return SessionToken;
+            }
 
             logger.log(response.Data.ToString());
             throw new NetClientException("internal error");
@@ -515,7 +528,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync(request);
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
-                // todo: 移除Cookie
+                SessionToken = "";
                 return true;
             }
 
@@ -533,6 +546,7 @@ namespace NitoriNetwork.Common
         public async Task<bool> UpdateSettingFlow(string settingFlow, SettingRequest req)
         {
             RestRequest request = new RestRequest("/self-service/settings", Method.POST);
+            addHeader(request);
             request.AddQueryParameter("flow", settingFlow);
             request.AddJsonBody(req);
 
