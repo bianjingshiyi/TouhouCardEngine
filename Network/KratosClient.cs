@@ -19,7 +19,7 @@ namespace NitoriNetwork.Common
 
         public string baseUri { get; private set; }
 
-        public string SessionToken { get; private set; }
+        public string SessionToken { get; set; }
 
         /// <summary>
         /// 认证服务器

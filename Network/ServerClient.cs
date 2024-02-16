@@ -279,7 +279,51 @@ namespace NitoriNetwork.Common
             }
 
             Kratos = new KratosClient(response.Data.url, client.UserAgent, logger);
+            loadKratosToken();
             return true;
+        }
+
+        /// <summary>
+        /// 保存Kratos的Token
+        /// </summary>
+        void saveKratosToken()
+        {
+            var uri = new Uri(Kratos.baseUri);
+            var cookies = client.CookieContainer.GetCookies(uri);
+
+            bool updated = false;
+            foreach (Cookie item in cookies)
+            {
+                if (item.Name == "Token")
+                {
+                    item.Value = Kratos.SessionToken;
+                    item.Expires = DateTime.Now.AddMonths(1);
+                    updated = true;
+                    break;
+                }
+            }
+
+            if (!updated)
+            {
+                cookies.Add(new Cookie("Token", Kratos.SessionToken, uri.LocalPath, uri.Host));
+            }
+        }
+
+        /// <summary>
+        /// 从Cookie中加载Kratos的Token
+        /// </summary>
+        void loadKratosToken()
+        {
+            var uri = new Uri(Kratos.baseUri);
+            var cookies = client.CookieContainer.GetCookies(uri);
+            foreach (Cookie item in cookies)
+            {
+                if (item.Name == "Token" && !item.Expired)
+                {
+                    Kratos.SessionToken = item.Value;
+                    break;
+                }
+            }
         }
 
         /// <summary>
@@ -332,15 +376,20 @@ namespace NitoriNetwork.Common
             return await Kratos.UpdateLoginFlow(flow, new KratosClient.SteamLoginRequest(client, ticket));
         }
 
+        [Obsolete("使用不传递参数的版本")]
+        public Task<bool> LoginByKratosAsync(string sessionToken)
+        {
+            return LoginByKratosAsync();
+        }
+
         /// <summary>
         /// 登录
         /// </summary>
         /// <remarks>
         /// 在登录前必须调用LoginViaXXX获取Kratos的登录凭证。可以通过Kratos.WhoAmI方法验证是否已经有对应登录凭证
         /// </remarks>
-        /// <param name="sessionToken">LoginViaXXX得到的登录凭证</param>
         /// <returns></returns>
-        public async Task<bool> LoginByKratosAsync(string sessionToken)
+        public async Task<bool> LoginByKratosAsync()
         {
             // 防止重复登录
             if (UID != 0)
@@ -348,7 +397,7 @@ namespace NitoriNetwork.Common
 
             RestRequest request = new RestRequest("/api/User/session", Method.POST);
             request.AddParameter("type", "kratos");
-            request.AddParameter("session", sessionToken);
+            request.AddParameter("session", Kratos.SessionToken);
 
             var response = await client.ExecuteAsync<ExecuteResult<string>>(request);
             if (!errorHandlerLogin(response, response.Data, request))
@@ -356,6 +405,7 @@ namespace NitoriNetwork.Common
                 return false;
             }
 
+            saveKratosToken();
             saveCookie();
             // 登录换取的是Token，我们需要Session
             await GetSessionAsync();
@@ -385,6 +435,7 @@ namespace NitoriNetwork.Common
 
             UID = 0;
             UserSession = "";
+            saveKratosToken();
             saveCookie();
         }
 
