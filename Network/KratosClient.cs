@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Collections.Generic;
 
 namespace NitoriNetwork.Common
 {
@@ -97,6 +98,15 @@ namespace NitoriNetwork.Common
         [Serializable]
         [BsonIgnoreExtraElements]
         public class UIContainer
+        {
+            public Message[] messages { get; set; }
+
+            public UINode[] nodes { get; set; }
+        }
+
+        [Serializable]
+        [BsonIgnoreExtraElements]
+        public class UINode
         {
             public Message[] messages { get; set; }
         }
@@ -475,7 +485,12 @@ namespace NitoriNetwork.Common
 
             // 参数错误
             if (resp.StatusCode == HttpStatusCode.BadRequest)
-                throw new NetClientException(String.Join(';', data.ui.messages.Select(x => x.text)));
+            {
+                if (data?.ui?.messages?.Length > 0)
+                    throw KratosNetworkException.FromRawMessages(data.ui.messages);
+
+                throw KratosNetworkException.FromRawMessages(data?.ui?.nodes?.SelectMany(x => x.messages).ToArray());
+            }
 
             if (data.error != null)
                 throw new NetClientException(data.error.message);
@@ -536,7 +551,7 @@ namespace NitoriNetwork.Common
             }
             return false;
         }
-    
+
         /// <summary>
         /// 更新用户信息
         /// </summary>
@@ -560,7 +575,7 @@ namespace NitoriNetwork.Common
             logger.log(response.Data.state);
             throw new NetClientException("internal error");
         }
-    
+
         /// <summary>
         /// 发送找回密码邮件
         /// </summary>
@@ -605,6 +620,21 @@ namespace NitoriNetwork.Common
 
             logger.log(response.Data.ToString());
             throw new NetClientException("internal error");
+        }
+    }
+
+    public class KratosNetworkException : NetClientException
+    {
+        public KratosClient.Message[] Messages { get; protected set; }
+
+        public KratosNetworkException(KratosClient.Message[] msgs) : base(String.Join(';', msgs.Select(x => x.text)))
+        {
+            Messages = msgs;
+        }
+
+        public static KratosNetworkException FromRawMessages(KratosClient.Message[] msgs)
+        {
+            return new KratosNetworkException(msgs.Where(x => x.type == "error").ToArray());
         }
     }
 }
