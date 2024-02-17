@@ -275,7 +275,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<KratosServerConfig>(request);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new NetClientException(response.StatusDescription);
+                throw new NetClientException(response.ErrorException);
             }
 
             Kratos = new KratosClient(response.Data.url, client.UserAgent, logger);
@@ -346,10 +346,10 @@ namespace NitoriNetwork.Common
         /// <param name="ticket"></param>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public async Task<string> RegisterViaSteam(string client, string ticket, string nickname)
+        public async Task<string> RegisterViaSteam(string client, string ticket, string email, string nickname)
         {
             string flow = await Kratos.CreateRegistrationFlow();
-            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, nickname));
+            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, email, nickname));
         }
 
         /// <summary>

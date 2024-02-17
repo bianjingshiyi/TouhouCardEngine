@@ -153,6 +153,7 @@ namespace NitoriNetwork.Common
             /// <summary>
             /// Session ID. (uuid)
             /// </summary>
+            [BsonElement("id")]
             public string id { get; set; }
 
             /// <summary>
@@ -161,6 +162,8 @@ namespace NitoriNetwork.Common
             public Identity identity { get; set; }
         }
 
+        [Serializable]
+        [BsonIgnoreExtraElements]
         public class SessionResponse : Session
         {
             public APIError error { get; set; }
@@ -273,7 +276,7 @@ namespace NitoriNetwork.Common
             /// <param name="provider">Steam APP 提供者</param>
             /// <param name="ticket">Steam 认证 Ticket </param>
             /// <param name="nickname">昵称</param>
-            public SteamRegistrationRequest(string provider, string ticket, string nickname = "") : base("steam", new UserTraits("", nickname))
+            public SteamRegistrationRequest(string provider, string ticket, string email, string nickname = "") : base("steam", new UserTraits(email, nickname))
             {
                 this.provider = provider;
                 this.ticket = ticket;
