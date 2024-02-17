@@ -607,6 +607,7 @@ namespace NitoriNetwork.Common
         public async Task<Session> WhoAmI()
         {
             RestRequest request = new RestRequest("/sessions/whoami", Method.GET);
+            addHeader(request);
             var response = await client.ExecuteAsync<SessionResponse>(request);
 
             if (response.ErrorException != null)
