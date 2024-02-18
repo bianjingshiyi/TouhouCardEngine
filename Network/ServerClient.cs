@@ -70,6 +70,8 @@ namespace NitoriNetwork.Common
                 loadCookie();
             }
 
+            if (!BsonClassMap.IsClassMapRegistered(typeof(KratosServerConfig)))
+                BsonClassMap.RegisterClassMap<KratosServerConfig>();
             client.ThrowOnDeserializationError = true;
             client.UseSerializer(
                 () => new MongoDBJsonSerializer()
@@ -305,7 +307,7 @@ namespace NitoriNetwork.Common
 
             if (!updated)
             {
-                cookies.Add(new Cookie("Token", Kratos.SessionToken, uri.LocalPath, uri.Host));
+                client.CookieContainer.Add(new Cookie("Token", Kratos.SessionToken ?? string.Empty, uri.LocalPath, uri.Host));
             }
         }
 
