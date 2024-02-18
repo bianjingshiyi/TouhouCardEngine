@@ -42,6 +42,8 @@ namespace NitoriNetwork.Common
 
         string cookieFilePath { get; }
 
+        CookieContainer cookie { get; }
+
         public string baseUri { get; private set; }
 
         Dictionary<int, PublicBasicUserInfo> userInfoCache = new Dictionary<int, PublicBasicUserInfo>();
@@ -56,19 +58,12 @@ namespace NitoriNetwork.Common
             this.logger = logger;
 
             client = new RestClient(baseUri);
+            client.CookieContainer = new CookieContainer();
             client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
-            cookieFilePath = cookieFile;
             client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
 
-            if (string.IsNullOrEmpty(cookieFile))
-            {
-                client.CookieContainer = new CookieContainer();
-            }
-            else
-            {
-                client.CookieContainer = CookieContainerExtension.ReadFrom(cookieFile);
-                loadCookie();
-            }
+            cookieFilePath = cookieFile;
+            cookie = string.IsNullOrEmpty(cookieFilePath) ? new CookieContainer() : CookieContainerExtension.ReadFrom(cookieFile);
 
             if (!BsonClassMap.IsClassMapRegistered(typeof(KratosServerConfig)))
                 BsonClassMap.RegisterClassMap<KratosServerConfig>();
@@ -85,7 +80,6 @@ namespace NitoriNetwork.Common
             client.BaseUrl = uri;
 
             // 重设信息
-            loadCookie();
             UID = 0;
             UserSession = "";
         }
@@ -109,12 +103,12 @@ namespace NitoriNetwork.Common
 
         #region Cookie
         /// <summary>
-        /// 保存小饼干（？）
+        /// 保存认证信息
         /// </summary>
-        void saveCookie()
+        void saveCredential()
         {
 #if UNITY_EDITOR
-            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
+            var cookies = cookie.GetCookies(new Uri(baseUri));
             string cookieStr = "";
             foreach (Cookie item in cookies)
             {
@@ -126,7 +120,7 @@ namespace NitoriNetwork.Common
             {
                 try
                 {
-                    client.CookieContainer.WriteTo(cookieFilePath);
+                    cookie.WriteTo(cookieFilePath);
                 }
                 catch (Exception e)
                 {
@@ -293,22 +287,13 @@ namespace NitoriNetwork.Common
             var uri = new Uri(Kratos.baseUri);
             var cookies = client.CookieContainer.GetCookies(uri);
 
-            bool updated = false;
             foreach (Cookie item in cookies)
             {
                 if (item.Name == "Token")
-                {
-                    item.Value = Kratos.SessionToken;
-                    item.Expires = DateTime.Now.AddMonths(1);
-                    updated = true;
-                    break;
-                }
+                    item.Expired = true;
             }
 
-            if (!updated)
-            {
-                client.CookieContainer.Add(new Cookie("Token", Kratos.SessionToken ?? string.Empty, uri.LocalPath, uri.Host));
-            }
+            client.CookieContainer.Add(new Cookie("Token", Kratos.SessionToken ?? string.Empty, uri.LocalPath, uri.Host));
         }
 
         /// <summary>
@@ -408,7 +393,7 @@ namespace NitoriNetwork.Common
             }
 
             saveKratosToken();
-            saveCookie();
+            saveCredential();
             // 登录换取的是Token，我们需要Session
             await GetSessionAsync();
 
@@ -438,7 +423,7 @@ namespace NitoriNetwork.Common
             UID = 0;
             UserSession = "";
             saveKratosToken();
-            saveCookie();
+            saveCredential();
         }
 
 
@@ -503,7 +488,6 @@ namespace NitoriNetwork.Common
             // 更新暂存的Session
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
-            saveCookie();
 
             logger?.logTrace($"注册用户登录. Session: {UserSession}");
 
@@ -527,7 +511,6 @@ namespace NitoriNetwork.Common
             // 更新暂存的Session
             // 虽然Cookie里面也能获取到，但是获取比较麻烦
             UserSession = response.Data.result;
-            saveCookie();
 
             logger?.logTrace($"注册用户登录. Session: {UserSession}");
 
@@ -552,7 +535,6 @@ namespace NitoriNetwork.Common
             errorHandler(response, response.Data, request);
 
             UserSession = response.Data.result;
-            saveCookie();
 
             logger?.logTrace($"游客登录. Session: {UserSession}");
 
@@ -575,7 +557,6 @@ namespace NitoriNetwork.Common
             errorHandler(response, response.Data, request);
 
             UserSession = response.Data.result;
-            saveCookie();
 
             logger?.logTrace($"游客登录. Session: {UserSession}");
 
