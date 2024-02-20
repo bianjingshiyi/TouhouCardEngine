@@ -128,28 +128,12 @@ namespace NitoriNetwork.Common
                 }
             }
         }
-
-        /// <summary>
-        /// 从Cookie里面加载部分需要的数据
-        /// </summary>
-        void loadCookie()
-        {
-            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
-            foreach (Cookie cookie in cookies)
-            {
-                if (cookie.Name == "Session")
-                {
-                    UserSession = cookie.Value;
-                }
-            }
-        }
-
         /// <summary>
         /// 清空已有的用户鉴权用Cookie
         /// </summary>
         void clearUserCookie()
         {
-            var cookies = client.CookieContainer.GetCookies(new Uri(baseUri));
+            var cookies = cookie.GetCookies(new Uri(baseUri));
             foreach (Cookie cookie in cookies)
             {
                 if (cookie.Name == "Session" || cookie.Name == "Token")
@@ -233,7 +217,7 @@ namespace NitoriNetwork.Common
                 }
                 else
                 {
-                    throw new NetClientException(response.StatusDescription);
+                    throw new NetClientException(data?.message ?? response.StatusDescription);
                 }
             }
             if (data.code != ResultCode.Success)
@@ -285,7 +269,7 @@ namespace NitoriNetwork.Common
         void saveKratosToken()
         {
             var uri = new Uri(Kratos.baseUri);
-            var cookies = client.CookieContainer.GetCookies(uri);
+            var cookies = cookie.GetCookies(uri);
 
             foreach (Cookie item in cookies)
             {
@@ -293,7 +277,7 @@ namespace NitoriNetwork.Common
                     item.Expired = true;
             }
 
-            client.CookieContainer.Add(new Cookie("Token", Kratos.SessionToken ?? string.Empty, uri.LocalPath, uri.Host));
+            cookie.Add(new Cookie("Token", Kratos.SessionToken ?? string.Empty, uri.LocalPath, uri.Host));
         }
 
         /// <summary>
@@ -302,7 +286,7 @@ namespace NitoriNetwork.Common
         void loadKratosToken()
         {
             var uri = new Uri(Kratos.baseUri);
-            var cookies = client.CookieContainer.GetCookies(uri);
+            var cookies = cookie.GetCookies(uri);
             foreach (Cookie item in cookies)
             {
                 if (item.Name == "Token" && !item.Expired)
