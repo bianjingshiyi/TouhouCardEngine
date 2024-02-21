@@ -67,10 +67,16 @@ namespace NitoriNetwork.Common
             /// </summary>
             public string nickname { get; set; }
 
-            public UserTraits(string email = "", string nickname = "")
+            /// <summary>
+            /// 用户语言
+            /// </summary>
+            public string lang { get; set; }
+
+            public UserTraits(string email = "", string nickname = "", string lang = "")
             {
                 this.email = email;
                 this.nickname = nickname;
+                this.lang = lang;
             }
         }
         [Serializable]
