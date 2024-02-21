@@ -263,7 +263,7 @@ namespace NitoriNetwork.Common
             /// <param name="email">登录邮箱</param>
             /// <param name="password">登录密码</param>
             /// <param name="nickname">昵称</param>
-            public PasswordRegistrationRequest(string email, string password, string nickname = "") : base("password", new UserTraits(email, nickname))
+            public PasswordRegistrationRequest(string email, string password, string nickname = "", string lang = "") : base("password", new UserTraits(email, nickname, lang))
             {
                 this.password = password;
             }
@@ -282,7 +282,7 @@ namespace NitoriNetwork.Common
             /// <param name="provider">Steam APP 提供者</param>
             /// <param name="ticket">Steam 认证 Ticket </param>
             /// <param name="nickname">昵称</param>
-            public SteamRegistrationRequest(string provider, string ticket, string email, string nickname = "") : base("steam", new UserTraits(email, nickname))
+            public SteamRegistrationRequest(string provider, string ticket, string email, string nickname = "", string lang = "") : base("steam", new UserTraits(email, nickname, lang))
             {
                 this.provider = provider;
                 this.ticket = ticket;

@@ -304,10 +304,10 @@ namespace NitoriNetwork.Common
         /// <param name="password"></param>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public async Task<string> RegisterViaPassword(string mail, string password, string nickname)
+        public async Task<string> RegisterViaPassword(string mail, string password, string nickname, string lang)
         {
             string flow = await Kratos.CreateRegistrationFlow();
-            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.PasswordRegistrationRequest(mail, password, nickname));
+            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.PasswordRegistrationRequest(mail, password, nickname, lang));
         }
 
         /// <summary>
@@ -317,10 +317,10 @@ namespace NitoriNetwork.Common
         /// <param name="ticket"></param>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public async Task<string> RegisterViaSteam(string client, string ticket, string email, string nickname)
+        public async Task<string> RegisterViaSteam(string client, string ticket, string email, string nickname, string lang)
         {
             string flow = await Kratos.CreateRegistrationFlow();
-            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, email, nickname));
+            return await Kratos.UpdateRegistrationFlow(flow, new KratosClient.SteamRegistrationRequest(client, ticket, email, nickname, lang));
         }
 
         /// <summary>

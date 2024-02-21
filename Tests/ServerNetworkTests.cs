@@ -24,7 +24,7 @@ namespace Tests
             // 测试服务器不会验证验证码是否正确
             try
             {
-                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1", "zh-Hans");
             }
             catch (Exception) { }
 
@@ -44,7 +44,7 @@ namespace Tests
         {
             try
             {
-                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1", "zh-Hans");
             }
             catch { }
             var session = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
@@ -150,7 +150,7 @@ namespace Tests
             await serverClient.NewKratosClient();
             try
             {
-                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1");
+                await serverClient.RegisterViaPassword("test1@igsk.fun", "123456", "TestUser1", "zh-Hans");
             }
             catch { }
             var session = await serverClient.LoginViaPassword("test1@igsk.fun", "123456");
