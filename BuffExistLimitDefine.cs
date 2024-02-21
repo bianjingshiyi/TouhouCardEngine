@@ -12,12 +12,12 @@ namespace TouhouCardEngine
     {
         public SerializableBuffExistLimitDefine(BuffExistLimitDefine define)
         {
-            triggerTime = new SerializableEventTriggerTime(define.triggerTime);
+            triggerTime = define.triggerTime;
             count = define.count;
         }
         public BuffExistLimitDefine toDefine()
         {
-            var triggerTime = this.triggerTime == null ? EventTriggerTime.fromName(0, eventName) : this.triggerTime.toTriggerTime();
+            var triggerTime = this.triggerTime == null ? EventTriggerTime.fromName(0, eventName) : this.triggerTime;
             return new BuffExistLimitDefine()
             {
                 triggerTime = triggerTime,
@@ -26,7 +26,7 @@ namespace TouhouCardEngine
         }
         [Obsolete]
         public string eventName;
-        public SerializableEventTriggerTime triggerTime;
+        public EventTriggerTime triggerTime;
         public int count;
     }
 }
