@@ -33,12 +33,16 @@ namespace NitoriNetwork.Common
 
             client = new RestClient(baseUri);
             client.UserAgent = userAgent;
-            client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
 
             client.ThrowOnDeserializationError = true;
             client.UseSerializer(
                 () => new MongoDBJsonSerializer()
             );
+        }
+        public void SetLanguage(string language)
+        {
+            client.RemoveDefaultParameter("Accept-Language");
+            client.AddDefaultHeader("Accept-Language", language);
         }
         #region Structs
         #region Common

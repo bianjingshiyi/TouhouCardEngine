@@ -60,7 +60,6 @@ namespace NitoriNetwork.Common
             client = new RestClient(baseUri);
             client.CookieContainer = new CookieContainer();
             client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
-            client.AddDefaultHeader("Accept-Language", CultureInfo.CurrentCulture.Name);
 
             cookieFilePath = cookieFile;
             cookie = string.IsNullOrEmpty(cookieFilePath) ? new CookieContainer() : CookieContainerExtension.ReadFrom(cookieFile);
@@ -84,6 +83,12 @@ namespace NitoriNetwork.Common
             UserSession = "";
         }
 
+        public void SetLanguage(string language)
+        {
+            client.RemoveDefaultParameter("Accept-Language");
+            client.AddDefaultHeader("Accept-Language", language);
+            Kratos.SetLanguage(language);
+        }
         /// <summary>
         /// 附加的UserAgent，用于统计
         /// </summary>
