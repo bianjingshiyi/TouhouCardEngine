@@ -11,12 +11,12 @@ namespace TouhouCardEngine
         {
             actionReference = actionRef;
         }
-        public override Task execute(IEventArg arg)
+        public override async Task execute(IEventArg arg)
         {
             var game = arg.game;
             var define = game.getActionDefine(actionReference);
             if (define is not GeneratedActionDefine actionDef)
-                return Task.CompletedTask;
+                return;
 
             var card = arg.getVar<Card>(VAR_CARD);
             var buff = arg.getVar<Buff>(VAR_BUFF);
@@ -25,10 +25,9 @@ namespace TouhouCardEngine
             Flow flow = new Flow(flowEnv);
             // 为事件设置输入变量。
             setEntryNodeOutputValuesByEventArg(actionDef, flow, arg);
-            actionDef.executeGraph(flow);
+            await actionDef.executeGraph(flow);
             // 为事件设置输出变量。
-            setEventVariablesByOutputValues(actionDef, flow, arg);
-            return Task.CompletedTask;
+            await setEventVariablesByOutputValues(actionDef, flow, arg);
         }
         /// <summary>
         /// 传递变量值：事件-->入口节点的输出值
@@ -43,14 +42,14 @@ namespace TouhouCardEngine
                 flow.setValue(input, arg.getVar(input.name));
             }
         }
-        private void setEventVariablesByOutputValues(GeneratedActionDefine actionDef, Flow flow, IEventArg arg)
+        private async Task setEventVariablesByOutputValues(GeneratedActionDefine actionDef, Flow flow, IEventArg arg)
         {
             var exitNode = actionDef.getReturnNode();
             foreach (var portDefine in actionDef.getValueOutputs())
             {
                 var varName = portDefine.name;
                 var inputPort = exitNode.getInputPort<ValueInput>(varName);
-                var value = flow.getValue(inputPort);
+                var value = await flow.getValue(inputPort);
                 arg.setVar(varName, value);
             }
         }
