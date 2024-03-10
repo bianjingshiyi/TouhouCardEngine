@@ -67,7 +67,6 @@ namespace TouhouCardEngine
             if (!_nodes.Contains(node))
             {
                 _nodes.Add(node);
-                updateSize();
             }
         }
         public bool removeNode(Node node)
@@ -75,7 +74,6 @@ namespace TouhouCardEngine
             if (_nodes.Remove(node))
             {
                 disconnectAll(node);
-                updateSize();
                 return true;
             }
             return false;
@@ -208,25 +206,6 @@ namespace TouhouCardEngine
         }
         #endregion
 
-        public void updateSize()
-        {
-            //计算输入的宽度
-            float maxX = 0;
-            float minX = 0;
-            float maxY = 0;
-            float minY = 0;
-            foreach (var node in nodes)
-            {
-                maxX = Math.Max(node.posX, maxX);
-                minX = Math.Min(node.posX, minX);
-                maxY = Math.Max(node.posY, maxY);
-                minY = Math.Min(node.posY, minY);
-            }
-            width = maxX - minX;
-            height = maxY - minY;
-            centerX = minX + width * 0.5f;
-            centerY = minY + height * 0.5f;
-        }
         public int getUniqueNodeId()
         {
             int id = 1;
@@ -267,10 +246,6 @@ namespace TouhouCardEngine
             node.Define();
         }
         #endregion 私有方法
-        public float width { get; private set; }
-        public float height { get; private set; }
-        public float centerX { get; private set; }
-        public float centerY { get; private set; }
         private List<Node> _nodes;
         private List<NodeConnection> _connections;
         public IEnumerable<Node> nodes => _nodes;
