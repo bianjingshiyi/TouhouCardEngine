@@ -9,7 +9,8 @@ namespace TouhouCardEngine.Interfaces
         void register(EventTriggerTime triggerTime, ITrigger trigger);
         void registerDelayed(EventTriggerTime triggerTime, ITrigger trigger);
         bool remove(EventTriggerTime triggerTime, ITrigger trigger);
-        ITrigger[] getTriggers(EventTriggerTime triggerTime);
+        bool removeAll(EventTriggerTime triggerTime, Predicate<ITrigger> trigger);
+        ITrigger[] getTriggers(EventTriggerTime triggerTime, bool includeDelayed = true);
         Task<EventArg> doEvent(EventArg eventArg);
         event Action<IEventArg> onEventBefore;
         event Action<IEventArg> onEventAfter;

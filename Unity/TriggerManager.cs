@@ -64,18 +64,22 @@ namespace TouhouCardEngine
         #region 移除触发器
         public bool remove(EventTriggerTime triggerTime, ITrigger trigger)
         {
+            return removeAll(triggerTime, ti => ti == trigger);
+        }
+        public bool removeAll(EventTriggerTime triggerTime, Predicate<ITrigger> predicate)
+        {
             EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.triggerTime == triggerTime);
-            if (eventItem != null && eventItem.triggerList.RemoveAll(ti => ti == trigger) > 0)
+            if (eventItem != null && eventItem.triggerList.RemoveAll(predicate) > 0)
             {
-                logger?.logTrace("Trigger", $"注销触发器{trigger}");
+                logger?.logTrace("Trigger", $"为触发时点{triggerTime}注销触发器");
                 return true;
             }
             else
             {
-                var argItem = _executingEvents.FirstOrDefault(e => triggerTime.type == EventTriggerTimeType.After &&  e.eventArg.define.isReference(triggerTime.defineRef));
-                if (argItem != null && argItem.triggerList.RemoveAll(ti => ti == trigger) > 0)
+                var argItem = _executingEvents.FirstOrDefault(e => triggerTime.type == EventTriggerTimeType.After && e.eventArg.define.isReference(triggerTime.defineRef));
+                if (argItem != null && argItem.triggerList.RemoveAll(predicate) > 0)
                 {
-                    logger?.logTrace("Trigger", $"注销延迟队列中的触发器{trigger}");
+                    logger?.logTrace("Trigger", $"为触发时点{triggerTime}注销延迟队列中的触发器");
                     return true;
                 }
             }
@@ -84,12 +88,23 @@ namespace TouhouCardEngine
         #endregion 移除
 
         #region 获取触发器
-        public ITrigger[] getTriggers(EventTriggerTime triggerTime)
+        public ITrigger[] getTriggers(EventTriggerTime triggerTime, bool includeDelayed = true)
         {
-            EventListItem eventItem = _triggerList.FirstOrDefault(ei => ei.triggerTime == triggerTime);
-            if (eventItem == null)
-                return new ITrigger[0];
-            return eventItem.triggerList.ToArray();
+            List<ITrigger> triggers = new List<ITrigger>();
+            var eventItem = _triggerList.FirstOrDefault(ei => ei.triggerTime == triggerTime);
+            if (eventItem != null)
+            {
+                triggers.AddRange(eventItem.triggerList);
+            }
+            if (includeDelayed)
+            {
+                var argItem = _executingEvents.FirstOrDefault(e => triggerTime.type == EventTriggerTimeType.After && e.eventArg.define.isReference(triggerTime.defineRef));
+                if (argItem != null)
+                {
+                    triggers.AddRange(argItem.triggerList);
+                }
+            }
+            return triggers.ToArray();
         }
         #endregion
 
