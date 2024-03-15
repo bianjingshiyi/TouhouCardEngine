@@ -70,13 +70,41 @@ namespace TouhouCardEngine
                 cardList[index] = card;
             }
         }
+        public static bool isMoveSourceValid(Card card, Pile from)
+        {
+            if (card == null)
+                return false;
+            // 源牌堆
+            if (from == null)
+            {
+                // 源牌堆为空，要求卡牌的位置也是空。
+                if (card.pile != null)
+                    return false;
+            }
+            else
+            {
+                // 源牌堆不为空，要求卡牌就在这个牌堆内。
+                if (!from.Contains(card))
+                    return false;
+            }
+            return true;
+        }
+        public static bool isMoveDestinationValid(Card card, Pile from, Pile to)
+        {
+            if (card == null)
+                return false;
+            // 目标牌堆
+            if (to != null)
+            {
+                // 目标牌堆满了，并且不是在同一个牌堆内移动
+                if (to.isFull && from != to)
+                    return false;
+            }
+            return true;
+        }
         public static bool canMove(Card card, Pile from, Pile to)
         {
-            if (from != null && !from.Contains(card))
-                return false;
-            if (to != null && to.isFull && from != to)
-                return false;
-            return true;
+            return isMoveSourceValid(card, from) && isMoveDestinationValid(card, from, to);
         }
         public static async Task updateCardEnableStates(CardEngine game, Card card, Pile from, Pile to)
         {
