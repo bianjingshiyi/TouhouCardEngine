@@ -21,7 +21,11 @@ namespace TouhouCardEngine
         /// <summary>
         /// 图像资源
         /// </summary>
-        Picture
+        Picture,
+        /// <summary>
+        /// 音频资源
+        /// </summary>
+        Sound,
     }
 
     public static class ResourceTypeHelper
@@ -39,6 +43,8 @@ namespace TouhouCardEngine
                     return "card";
                 case ResourceType.Picture:
                     return "pic";
+                case ResourceType.Sound:
+                    return "sound";
                 default:
                     return "unknown";
             }
@@ -266,7 +272,8 @@ namespace TouhouCardEngine
             var obj = new object[res.Length];
             for (int i = 0; i < res.Length; i++)
             {
-                obj[i] = new {
+                obj[i] = new
+                {
                     Type = res[i].Item1.GetString(),
                     ID = res[i].Item2
                 };
