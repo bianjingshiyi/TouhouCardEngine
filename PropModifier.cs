@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using MessagePack;
 using MongoDB.Bson.Serialization.Attributes;
 using TouhouCardEngine.Interfaces;
 
@@ -36,7 +37,6 @@ namespace TouhouCardEngine
                 return Task.FromResult<EventArg>(null);
             return CardPropChangeEventDefine.doEvent(game, card, propName, beforeCardProp, afterCardProp);
         }
-        public abstract SerializablePropModifier serialize();
 
         #region 添加/移除回调
         public virtual Task beforeAdd(IGame game, Card card, Buff buff)
@@ -138,39 +138,6 @@ namespace TouhouCardEngine
         #region 属性字段
         public T defaultValue;
         #endregion
-    }
-    [Serializable]
-    public abstract class SerializablePropModifier
-    {
-        public SerializablePropModifier(PropModifier modifier)
-        {
-            relatedPropName = modifier.relatedPropName;
-            propertyName = modifier.propertyName;
-        }
-        public abstract PropModifier deserialize();
-        public string relatedPropName;
-        public string propertyName;
-    }
-    [Serializable]
-    public abstract class SerializablePropModifier<T> : SerializablePropModifier
-    {
-        public SerializablePropModifier(PropModifier<T> modifier) : base(modifier)
-        {
-            defaultValue = modifier.defaultValue;
-        }
-        protected T getDefaultValue()
-        {
-            var defValue = default(T);
-            if (Equals(defaultValue, defValue) && !Equals(value, defValue))
-            {
-                return value;
-            }
-            return defaultValue;
-        }
-        public T defaultValue;
-        [Obsolete]
-        [BsonIgnoreIfDefault]
-        public T value;
     }
     public struct CardModifierState
     {

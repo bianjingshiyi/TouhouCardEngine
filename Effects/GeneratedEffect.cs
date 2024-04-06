@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MessagePack;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -81,7 +82,6 @@ namespace TouhouCardEngine
         public abstract void setTags(params string[] tags);
         public abstract string[] getTags();
         public abstract bool hasTag(string tag);
-        public abstract SerializableEffect Serialize();
         #endregion
 
         #region 私有方法
@@ -123,43 +123,5 @@ namespace TouhouCardEngine
         public abstract ControlOutput executePort { get; }
         public abstract ValueInput priorityPort { get; }
         #endregion
-    }
-
-    [Serializable]
-    public abstract class SerializableEffect
-    {
-        public SerializableEffect(GeneratedEffect effect)
-        {
-            name = effect.name;
-            propDict = effect.propDict;
-            graph = new SerializableActionNodeGraph(effect.graph);
-        }
-        public abstract GeneratedEffect Deserialize(INodeDefiner definer);
-        protected void apply(GeneratedEffect effect)
-        {
-            effect.name = name;
-            effect.propDict = propDict;
-        }
-
-        public string name;
-        public Dictionary<string, object> propDict;
-        public SerializableActionNodeGraph graph;
-    }
-    /// <summary>
-    /// 用于兼容老卡池的数据类。
-    /// </summary>
-    [Obsolete]
-    public class SerializableGeneratedEffect
-    {
-        public string name;
-        public string typeName;
-        public Dictionary<string, object> propDict;
-        public PileNameCollection pileList;
-        public int onEnableRootActionNodeId;
-        public int onDisableRootActionNodeId;
-        public List<SerializableActionNode> onEnableActionList = new List<SerializableActionNode>();
-        public List<SerializableActionNode> onDisalbeActionList = new List<SerializableActionNode>();
-        public List<SerializableTrigger> triggerList;
-        public EffectTagCollection tagList;
     }
 }

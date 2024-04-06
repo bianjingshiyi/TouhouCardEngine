@@ -96,15 +96,4 @@ namespace TouhouCardEngine
         /// </summary>
         public int argIndex;
     }
-    [Obsolete]
-    public class SerializableActionValueRef
-    {
-        #region 属性字段
-        public int actionNodeId;
-        public int index;
-        public string eventVarName;
-        public int argIndex;
-        public List<SerializableActionNode> actionNodeList;
-        #endregion
-    }
 }

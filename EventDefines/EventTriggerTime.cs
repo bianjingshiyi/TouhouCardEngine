@@ -1,12 +1,20 @@
 ﻿using System;
+using MessagePack;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace TouhouCardEngine
 {
+    [MessagePackObject]
     [Serializable]
     [BsonDiscriminator("SerializableEventTriggerTime")]
     public class EventTriggerTime
     {
+        /// <summary>
+        /// 给序列化用的默认构造器
+        /// </summary>
+        public EventTriggerTime()
+        {
+        }
         public EventTriggerTime(EventReference defineRef, EventTriggerTimeType type)
         {
             this.defineRef = defineRef;
@@ -61,11 +69,13 @@ namespace TouhouCardEngine
         {
             return !(lhs == rhs);
         }
+        [Key(0)]
         public EventReference defineRef;
+        [Key(1)]
         [BsonIgnore]
         public EventTriggerTimeType type;
         [BsonElement("type")]
-        private int _type 
+        private int _type
         {
             get => (int)type;
             set => type = (EventTriggerTimeType)value;

@@ -47,10 +47,6 @@ namespace TouhouCardEngine
         {
             return getOutputPort<ControlOutput>(exitControlName);
         }
-        public override SerializableNode ToSerializableNode()
-        {
-            return new SerializableActionNode(this);
-        }
         #endregion
         protected override void updateInputDefaultValue(string name, int paramIndex, object value)
         {
@@ -150,50 +146,5 @@ namespace TouhouCardEngine
 
         public const string enterControlName = "enter";
         public const string exitControlName = "exit";
-    }
-
-    [Serializable]
-    public sealed class SerializableActionNode : SerializableNode
-    {
-        #region 公有方法
-        #region 构造函数
-        public SerializableActionNode(ActionNode actionNode) : base(actionNode)
-        {
-            defineRef = actionNode.defineRef;
-        }
-        #endregion
-
-        public ActionNode ToActionNode(ActionGraph graph)
-        {
-            var node = new ActionNode(id, defineRef)
-            {
-                posX = posX,
-                posY = posY,
-            };
-            node.defineName = defineName;
-            IEnumerable<InputDefaultValue> defaultValues = 
-                inputDefaultValues?.Select(dv => dv.deserialize()) 
-                ?? constDict?.Select(c => new InputDefaultValue(c.Key, -1, c.Value));
-            InitNode(node, graph, defaultValues);
-            return node;
-        }
-        public override Node ToNode(ActionGraph graph) => ToActionNode(graph);
-        #endregion
-        #region 属性字段
-        public ActionReference defineRef;
-        [Obsolete]
-        public Dictionary<string, object> constDict;
-
-        [Obsolete]
-        public string defineName;
-        [Obsolete]
-        public int[] branches;
-        [Obsolete]
-        public SerializableActionValueRef[] inputs;
-        [Obsolete]
-        public bool[] regVar;
-        [Obsolete]
-        public object[] consts;
-        #endregion
     }
 }

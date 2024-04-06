@@ -1,7 +1,9 @@
-﻿using System;
+﻿using MessagePack;
+using System;
 
 namespace TouhouCardEngine
 {
+    [MessagePackObject]
     [Serializable]
     public class EventReference
     {
@@ -46,8 +48,9 @@ namespace TouhouCardEngine
             }
             return !r1.Equals(r2);
         }
-
+        [Key(0)]
         public long cardPoolId;
+        [Key(1)]
         public string eventName;
     }
 }

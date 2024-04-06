@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MessagePack;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -120,25 +121,5 @@ namespace TouhouCardEngine
         public bool isConst { get; set; }
         public IPortMeta[] metas { get; }
         #endregion
-    }
-    [Serializable]
-    public class SerializablePortDefine
-    {
-        public SerializablePortDefine(PortDefine portDefine)
-        {
-            typeName = portDefine.type.Name;
-            name = portDefine.name;
-            displayName = portDefine.displayName;
-            isParams = portDefine.isParams;
-        }
-        public PortDefine ToPortDefine(TypeFinder typeFinder = null)
-        {
-            var type = !string.IsNullOrEmpty(typeName) && typeFinder != null ? typeFinder(typeName) : null;
-            return new PortDefine(type, name, displayName, isParams);
-        }
-        public string typeName;
-        public string name;
-        public string displayName;
-        public bool isParams;
     }
 }

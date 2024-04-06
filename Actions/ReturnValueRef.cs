@@ -24,11 +24,4 @@ namespace TouhouCardEngine
         public ActionValueRef valueRef;
         public int returnIndex;
     }
-    [Obsolete]
-    [Serializable]
-    public class SerializableReturnValueRef
-    {
-        public SerializableActionValueRef valueRef;
-        public int returnIndex;
-    }
 }

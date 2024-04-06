@@ -60,17 +60,4 @@ namespace TouhouCardEngine
         public int maxValue = int.MaxValue;
         #endregion
     }
-    [Serializable]
-    public abstract class SerializableIntPropModifier : SerializablePropModifier<int>
-    {
-        public SerializableIntPropModifier(IntPropModifier modifier) : base(modifier)
-        {
-            isSet = modifier.isSet;
-        }
-        public bool isSet;
-        [Obsolete]
-        public int minValue;
-        [Obsolete]
-        public int maxValue;
-    }
 }

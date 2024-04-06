@@ -47,16 +47,4 @@ namespace TouhouCardEngine
         public List<TargetChecker> targetCheckerList = new List<TargetChecker>();
         public ActionNode action;
     }
-    [Obsolete]
-    [Serializable]
-    public class SerializableTrigger
-    {
-        #region 属性字段
-        public string eventName;
-        public SerializableActionValueRef condition;
-        public List<SerializableTargetChecker> targetCheckerList = new List<SerializableTargetChecker>();
-        public int actionId;
-        public List<SerializableActionNode> actionList = new List<SerializableActionNode>();
-        #endregion
-    }
 }

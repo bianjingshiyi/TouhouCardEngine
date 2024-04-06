@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MessagePack;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -151,52 +152,6 @@ namespace TouhouCardEngine
         List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
         [NonSerialized]
         Effect[] _runtimeEffects = new Effect[0];
-        #endregion
-    }
-    [Serializable]
-    public class SerializableCardDefine
-    {
-        #region 公有方法
-        #region 构造方法
-        public SerializableCardDefine(CardDefine cardDefine)
-        {
-            id = cardDefine.id;
-            type = cardDefine.type;
-            foreach (string propName in cardDefine.getPropNames())
-            {
-                propDict.Add(propName, cardDefine.getProp<object>(propName));
-            }
-            effects.AddRange(Array.ConvertAll(cardDefine.getGeneratedEffects(), e => e?.Serialize()));
-        }
-        #endregion
-        public CardDefine toCardDefine(INodeDefiner definer)
-        {
-            CardDefine cardDefine = new CardDefine(id, type, propDict);
-            GeneratedEffect[] effectsList = new GeneratedEffect[effects.Count];
-            for (int i = 0; i < effects.Count; i++)
-            {
-                if (effects[i] == null)
-                    continue;
-                try
-                {
-                    effectsList[i] = effects[i].Deserialize(definer);
-                }
-                catch (Exception e)
-                {
-                    throw new FormatException($"反序列化卡牌定义{id}的效果{i}失败", e);
-                }
-            }
-            cardDefine.setEffects(effectsList);
-            return cardDefine;
-        }
-        #endregion
-        #region 属性字段
-        public int id;
-        public string type;
-        public Dictionary<string, object> propDict = new Dictionary<string, object>();
-        public List<SerializableEffect> effects = new List<SerializableEffect>();
-        [Obsolete]
-        public List<SerializableGeneratedEffect> effectList = new List<SerializableGeneratedEffect>();
         #endregion
     }
     /// <summary>

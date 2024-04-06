@@ -30,11 +30,6 @@ namespace TouhouCardEngine
         {
             return getOutputPort<ControlOutput>(ActionNode.enterControlName);
         }
-        public override SerializableNode ToSerializableNode()
-        {
-            return new SerializableGeneratedEntryNode(this);
-        }
-
         #endregion
 
         private void DefinitionOutputs(GeneratedActionDefine actionDefine)
@@ -65,26 +60,5 @@ namespace TouhouCardEngine
         }
 
         public GeneratedActionDefine define { get; set; }
-    }
-    [Serializable]
-    public class SerializableGeneratedEntryNode : SerializableNode
-    {
-        public SerializableGeneratedEntryNode(GeneratedActionEntryNode node) : base(node)
-        {
-        }
-
-        public GeneratedActionEntryNode ToGeneratedEntryNode(ActionGraph graph)
-        {
-            var node = new GeneratedActionEntryNode()
-            {
-                id = id,
-                posX = posX,
-                posY = posY
-            };
-            InitNode(node, graph);
-            return node;
-        }
-        public override Node ToNode(ActionGraph graph) => ToGeneratedEntryNode(graph);
-
     }
 }

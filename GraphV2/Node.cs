@@ -9,7 +9,6 @@ namespace TouhouCardEngine
     public abstract class Node : ITraversable
     {
         public abstract Task<ControlOutput> run(Flow flow);
-        public abstract SerializableNode ToSerializableNode();
         public virtual void traverse(Action<Node> action, HashSet<Node> traversedNodes = null)
         {
             if (action == null)
@@ -323,45 +322,6 @@ namespace TouhouCardEngine
         public float posX { get; set; }
         public float posY { get; set; }
         public ActionGraph graph { get; set; }
-        internal Dictionary<string, object> propDict = new Dictionary<string, object>();
+        public Dictionary<string, object> propDict = new Dictionary<string, object>();
     }
-    public abstract class SerializableNode
-    {
-        public SerializableNode(Node node)
-        {
-            if (node == null)
-                throw new ArgumentNullException(nameof(node));
-            id = node.id;
-            posX = node.posX;
-            posY = node.posY;
-            inputDefaultValues = node.inputDefaultValues != null ? node.inputDefaultValues.Select(v => new SerializableInputDefaultValue(v)).ToList() : null;
-            propDict = node.propDict != null ? new Dictionary<string, object>(node.propDict) : null;
-        }
-        public abstract Node ToNode(ActionGraph graph);
-        protected void InitNode(Node node, ActionGraph graph, IEnumerable<InputDefaultValue> defaultValues = null)
-        {
-            node.graph = graph;
-            if (propDict != null)
-            {
-                foreach (var pair in propDict)
-                {
-                    node.setProp(pair.Key, pair.Value);
-                }
-            }
-            defaultValues = defaultValues ?? inputDefaultValues?.ConvertAll(s => s.deserialize());
-            if (defaultValues != null)
-            {
-                foreach (var defaultValue in defaultValues)
-                {
-                    node.setInputDefaultValue(defaultValue.name, defaultValue.paramIndex, defaultValue.value);
-                }
-            }
-        }
-        public int id;
-        public float posX;
-        public float posY;
-        public List<SerializableInputDefaultValue> inputDefaultValues;
-        public Dictionary<string, object> propDict;
-    }
-
 }

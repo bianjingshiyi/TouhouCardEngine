@@ -67,30 +67,4 @@ namespace TouhouCardEngine
         int getTargetCheckerIndex(TargetChecker checker);
         ValueInput getTargetConditionPort(int index);
     }
-    [Serializable]
-    [BsonIgnoreExtraElements]
-    public class SerializableTargetChecker
-    {
-        #region 公有方法
-        #region 构造方法
-        public SerializableTargetChecker(TargetChecker targetChecker)
-        {
-            if (targetChecker == null)
-                throw new ArgumentNullException(nameof(targetChecker));
-            targetType = targetChecker.targetType;
-            errorTip = targetChecker.errorTip;
-        }
-        #endregion
-        public TargetChecker toTargetChecker()
-        {
-            return new TargetChecker(targetType, errorTip);
-        }
-        #endregion
-        #region 属性字段
-        public string targetType;
-        [Obsolete]
-        public SerializableActionValueRef condition;
-        public string errorTip;
-        #endregion
-    }
 }
