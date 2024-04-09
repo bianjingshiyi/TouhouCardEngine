@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using MongoDB.Bson.Serialization.Attributes;
-using TouhouCardEngine.Interfaces;
 namespace TouhouCardEngine
 {
     public class TargetChecker

@@ -1,7 +1,4 @@
-﻿using MessagePack;
-using System;
-
-namespace TouhouCardEngine
+﻿namespace TouhouCardEngine
 {
     public class BuffExistLimitDefine
     {

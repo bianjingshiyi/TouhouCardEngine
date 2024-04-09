@@ -1,6 +1,5 @@
 ﻿using System;
 using MessagePack;
-using TouhouCardEngine.Shared;
 
 namespace TouhouCardEngine
 {
