@@ -87,7 +87,7 @@ namespace NitoriNetwork.Common
         {
             client.RemoveDefaultParameter("Accept-Language");
             client.AddDefaultHeader("Accept-Language", language);
-            Kratos.SetLanguage(language);
+            Kratos?.SetLanguage(language);
         }
         /// <summary>
         /// 附加的UserAgent，用于统计
@@ -273,6 +273,8 @@ namespace NitoriNetwork.Common
         /// </summary>
         void saveKratosToken()
         {
+            if (Kratos == null)
+                return;
             var uri = new Uri(Kratos.baseUri);
             var cookies = cookie.GetCookies(uri);
 
@@ -290,6 +292,8 @@ namespace NitoriNetwork.Common
         /// </summary>
         void loadKratosToken()
         {
+            if (Kratos == null)
+                return;
             var uri = new Uri(Kratos.baseUri);
             var cookies = cookie.GetCookies(uri);
             foreach (Cookie item in cookies)
@@ -398,7 +402,8 @@ namespace NitoriNetwork.Common
         {
             try
             {
-                await Kratos.Logout();
+                if (Kratos != null)
+                    await Kratos.Logout();
             }
             catch (Exception e)
             {
