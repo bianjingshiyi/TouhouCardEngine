@@ -40,6 +40,7 @@ namespace TouhouCardEngine
     {
         const string RES_DEFINE = "card";
         const string RES_PICTURE = "pic";
+        const string RES_SOUND = "sound";
 
         /// <summary>
         /// 文件存储位置
@@ -108,6 +109,7 @@ namespace TouhouCardEngine
             {
                 case RES_DEFINE:
                 case RES_PICTURE:
+                case RES_SOUND:
                     return true;
                 default:
                     return false;
