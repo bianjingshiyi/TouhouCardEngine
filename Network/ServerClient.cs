@@ -948,6 +948,75 @@ namespace NitoriNetwork.Common
         }
 
         #endregion
+
+        #region 创意工坊
+
+        /// <summary>
+        /// 向创意工坊上传一个卡组
+        /// </summary>
+        /// <param name="desc">卡池描述</param>
+        /// <param name="data">卡池定义（ddcp）数据。请在调用前使用gzip压缩</param>
+        /// <returns>待上传的资源ID</returns>
+        public async Task<string[]> WorkshopUploadAsync(string desc, byte[] data)
+        {
+            RestRequest request = new RestRequest("/api/Workshop", Method.POST);
+            request.AddFileBytes("file", data, "cardpool.ddcp", "application/octet-stream");
+            request.AddParameter("desc", desc, ParameterType.RequestBody);
+
+            var response = await client.ExecuteAsync<ExecuteResult<string[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+
+        /// <summary>
+        /// 向创意工坊上传一个资源
+        /// </summary>
+        /// <param name="type">资源类型</param>
+        /// <param name="id">资源ID</param>
+        /// <param name="data">文件内容</param>
+        /// <returns></returns>
+        public async Task WorkshopUploadResourceAsync(string type, string id, byte[] data)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/res/{type}/{id}", Method.POST);
+            request.AddFileBytes("file", data, type, "application/octet-stream");
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+            errorHandler(response, response.Data, request);
+        }
+
+        /// <summary>
+        /// 从创意工坊获取指定资源
+        /// </summary>
+        /// <param name="type">资源类型</param>
+        /// <param name="id">资源ID</param>
+        /// <returns></returns>
+        public async Task<byte[]> WorkshopGetResourceAsync(string type, string id)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/res/{type}/{id}", Method.GET);
+            var response = await client.ExecuteAsync(request);
+            errorHandler(response, request);
+
+            return response.RawBytes;
+        }
+
+        /// <summary>
+        /// 获取创意工坊指定卡组的信息
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public async Task<WorkshopCardPoolInfo> WorkshopGetCardPool(string id, int version)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/{id}/{version}", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+
+        #endregion
     }
 
     [System.Serializable]
@@ -1020,5 +1089,57 @@ namespace NitoriNetwork.Common
                 return new CookieContainer();
             }
         }
+    }
+
+    [Serializable]
+    public class WorkshopCardPoolInfo
+    {
+        public long ID;
+        public uint Version;
+        public WorkshopCardPoolState State;
+        public string Name;
+        public uint Author;
+        public uint CardCount;
+        public string ContentID;
+        public string CoverImage;
+        public uint CreatedAt;
+        public WorkshopCardPoolDependecy[] Dependencies;
+        public string[] Resources;
+        public string[] PendingResources;
+    }
+
+    [Serializable]
+    public class WorkshopCardPoolDependecy
+    {
+        public uint id;
+        public int version;
+    }
+
+    public enum WorkshopCardPoolState
+    {
+        /// <summary>
+        /// 等待上传资源
+        /// </summary>
+        Pending = -1,
+        /// <summary>
+        /// 已删除
+        /// </summary>
+        Deleted = -2,
+        /// <summary>
+        /// 等待审核
+        /// </summary>
+        Reviewing = -3,
+        /// <summary>
+        /// 审核不通过
+        /// </summary>
+        NoPass = -4,
+        /// <summary>
+        /// 审核通过
+        /// </summary>
+        Pass = 0,
+        /// <summary>
+        /// 非最新版本
+        /// </summary>
+        OldVer = 1
     }
 }
