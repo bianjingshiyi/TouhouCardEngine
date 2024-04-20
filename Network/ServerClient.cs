@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using RestSharp;
 using RestSharp.Serialization;
-
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using System.Threading.Tasks;
@@ -951,6 +950,7 @@ namespace NitoriNetwork.Common
 
         #region 创意工坊
 
+        #region 卡池文件和资源
         /// <summary>
         /// 向创意工坊上传一个卡组
         /// </summary>
@@ -986,21 +986,6 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
-        /// 从创意工坊获取指定资源
-        /// </summary>
-        /// <param name="type">资源类型</param>
-        /// <param name="id">资源ID</param>
-        /// <returns></returns>
-        public async Task<byte[]> WorkshopGetResourceAsync(string type, string id)
-        {
-            RestRequest request = new RestRequest($"/api/Workshop/res/{type}/{id}", Method.GET);
-            var response = await client.ExecuteAsync(request);
-            errorHandler(response, request);
-
-            return response.RawBytes;
-        }
-
-        /// <summary>
         /// 获取创意工坊指定卡组的信息
         /// </summary>
         /// <param name="id"></param>
@@ -1015,6 +1000,59 @@ namespace NitoriNetwork.Common
 
             return response.Data.result;
         }
+        /// <summary>
+        /// 从创意工坊获取指定资源
+        /// </summary>
+        /// <param name="type">资源类型</param>
+        /// <param name="id">资源ID</param>
+        /// <returns></returns>
+        public async Task<byte[]> WorkshopGetResourceAsync(string type, string id)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/res/{type}/{id}", Method.GET);
+            var response = await client.ExecuteAsync(request);
+            errorHandler(response, request);
+
+            return response.RawBytes;
+        }
+        /// <summary>
+        /// 获取某一页的卡池信息
+        /// </summary>
+        /// <param name="page">页码。</param>
+        /// <param name="limit">每页最多卡池数量。</param>
+        /// <param name="keywords">搜索关键词。</param>
+        /// <returns></returns>
+        public async Task<WorkshopCardPoolInfo[]> WorkshopSearchCardPools(int page, int limit, string keywords)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/search", Method.POST);
+            request.AddParameter("page", page);
+            request.AddParameter("limit", limit);
+            request.AddParameter("keyword", keywords);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        /// <summary>
+        /// 获取某个用户的的卡池信息
+        /// </summary>
+        /// <param name="uid">用户ID。</param>
+        /// <param name="page">页码。</param>
+        /// <param name="limit">每页最多卡池数量。</param>
+        /// <returns></returns>
+        public async Task<WorkshopCardPoolInfo[]> WorkshopGetUserCardPools(int uid, int page, int limit)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/user/{uid}", Method.GET);
+            request.AddParameter("id", uid);
+            request.AddParameter("page", page);
+            request.AddParameter("limit", limit);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        #endregion
 
         #endregion
     }
@@ -1096,13 +1134,15 @@ namespace NitoriNetwork.Common
     {
         public long ID;
         public uint Version;
+        public WorkshopCardPoolVersion[] Versions;
         public WorkshopCardPoolState State;
         public string Name;
         public uint Author;
         public uint CardCount;
         public string ContentID;
         public string CoverImage;
-        public uint CreatedAt;
+        public long CreatedAt;
+        public string Description;
         public WorkshopCardPoolDependecy[] Dependencies;
         public string[] Resources;
         public string[] PendingResources;
@@ -1113,6 +1153,15 @@ namespace NitoriNetwork.Common
     {
         public uint id;
         public int version;
+    }
+
+    [Serializable]
+    public class WorkshopCardPoolVersion
+    {
+        public long Version;
+        public WorkshopCardPoolState State;
+        public uint CardCount;
+        public long CreatedAt;
     }
 
     public enum WorkshopCardPoolState
