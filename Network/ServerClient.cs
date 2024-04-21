@@ -1151,8 +1151,8 @@ namespace NitoriNetwork.Common
     [Serializable]
     public class WorkshopCardPoolDependecy
     {
-        public uint id;
-        public int version;
+        public long ID;
+        public int Version;
     }
 
     [Serializable]
