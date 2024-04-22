@@ -19,7 +19,7 @@ namespace TouhouCardEngine
         {
             if (effect is IPileRangedEffect pileEffect)
             {
-                if (pileEffect.getPiles().Contains(card.pile?.name))
+                if (pileEffect.getPiles().ContainsPileOrAny(card.pile?.name))
                     await effect.enable(game, card, buff);
             }
             else

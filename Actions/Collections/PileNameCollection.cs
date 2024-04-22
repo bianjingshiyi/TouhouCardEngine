@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 namespace TouhouCardEngine
 {
     [Serializable]
@@ -11,9 +12,23 @@ namespace TouhouCardEngine
         public PileNameCollection(IEnumerable<string> collection) : base(collection)
         {
         }
-        public object Clone()
+        public virtual object Clone()
         {
             return new PileNameCollection(this);
+        }
+    }
+    [Serializable]
+    public class PileNameRange : PileNameCollection
+    {
+        public PileNameRange() : base()
+        {
+        }
+        public PileNameRange(IEnumerable<string> collection) : base(collection)
+        {
+        }
+        public override object Clone()
+        {
+            return new PileNameRange(this);
         }
     }
 }

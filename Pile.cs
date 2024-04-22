@@ -119,28 +119,30 @@ namespace TouhouCardEngine
 
             foreach (var effect in card.define.getEffects())
             {
-                if (effect is IPileRangedEffect pileEffect)
-                {
-                    if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
-                    {
-                        effects.Add((null, effect));
-                    }
-                }
+                checkEffect(effect, null);
             }
             foreach (var buff in card.getBuffs())
             {
                 foreach (var effect in buff.getEffects())
                 {
-                    if (effect is IPileRangedEffect pileEffect)
-                    {
-                        if ((from == null || !pileEffect.getPiles().Contains(from.name)) && pileEffect.getPiles().Contains(to.name))
-                        {
-                            effects.Add((buff, effect));
-                        }
-                    }
+                    checkEffect(effect, buff);
                 }
             }
             return effects.ToArray();
+
+            void checkEffect(Effect effect, Buff buff)
+            {
+                if (effect is not IPileRangedEffect pileEffect)
+                    return;
+
+                var validPiles = pileEffect.getPiles();
+                bool fromIsNotValid = from == null || !validPiles.ContainsPileOrAny(from.name);
+                bool toIsValid = validPiles.ContainsPileOrAny(to.name);
+                if (fromIsNotValid && toIsValid)
+                {
+                    effects.Add((buff, effect));
+                }
+            }
         }
         public static (Buff buff, Effect effect)[] getMoveShouldDisableCardEffects(Card card, Pile from, Pile to)
         {
@@ -150,28 +152,30 @@ namespace TouhouCardEngine
 
             foreach (var effect in card.define.getEffects())
             {
-                if (effect is IPileRangedEffect pileEffect)
-                {
-                    if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
-                    {
-                        effects.Add((null, effect));
-                    }
-                }
+                checkEffect(effect, null);
             }
             foreach (var buff in card.getBuffs())
             {
                 foreach (var effect in buff.getEffects())
                 {
-                    if (effect is IPileRangedEffect pileEffect)
-                    {
-                        if (pileEffect.getPiles().Contains(from.name) && (to == null || !pileEffect.getPiles().Contains(to.name)))
-                        {
-                            effects.Add((buff, effect));
-                        }
-                    }
+                    checkEffect(effect, null);
                 }
             }
             return effects.ToArray();
+
+            void checkEffect(Effect effect, Buff buff)
+            {
+                if (effect is not IPileRangedEffect pileEffect)
+                    return;
+
+                var validPiles = pileEffect.getPiles();
+                bool fromIsValid = validPiles.ContainsPileOrAny(from.name);
+                bool toIsNotValid = to == null || !validPiles.ContainsPileOrAny(to.name);
+                if (fromIsValid && toIsNotValid)
+                {
+                    effects.Add((buff, effect));
+                }
+            }
         }
 
         public Card getCard<T>() where T : CardDefine
@@ -322,6 +326,7 @@ namespace TouhouCardEngine
         }
         #endregion
         #region 属性字段
+        public const string PILE_RANGE_ANY = "BUILTIN_ANY";
         public string name { get; } = null;
         public Player owner { get; internal set; } = null;
         public int maxCount { get; set; }
