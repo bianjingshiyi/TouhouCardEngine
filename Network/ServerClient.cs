@@ -1054,7 +1054,7 @@ namespace NitoriNetwork.Common
         }
 
         /// <summary>
-        /// 移除创意工坊指定的卡组
+        /// 移除创意工坊指定的卡池。
         /// </summary>
         /// <param name="id"></param>
         /// <param name="version"></param>
@@ -1067,6 +1067,22 @@ namespace NitoriNetwork.Common
             errorHandler(response, response.Data, request);
 
             return true;
+        }
+
+        /// <summary>
+        /// 获取创意工坊指定的卡池的审核意见。
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public async Task<WorkshopCardPoolReview[]> WorkshopGetCardPoolReviews(long id, int version)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/review/{id}/{version}", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolReview[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
         }
         #endregion
 
@@ -1179,6 +1195,13 @@ namespace NitoriNetwork.Common
         public uint CardCount;
         public long CreatedAt;
     }
+    [Serializable]
+    public class WorkshopCardPoolReview
+    {
+        public string Message;
+        public uint Reviewer;
+        public WorkshopReviewResult Result;
+    }
 
     public enum WorkshopCardPoolState
     {
@@ -1206,5 +1229,11 @@ namespace NitoriNetwork.Common
         /// 非最新版本
         /// </summary>
         OldVer = 1
+    }
+    public enum WorkshopReviewResult
+    {
+        Pass = 0,
+        NotPass = 1,
+        Comment = 2
     }
 }
