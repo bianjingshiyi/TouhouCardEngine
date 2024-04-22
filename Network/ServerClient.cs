@@ -991,7 +991,7 @@ namespace NitoriNetwork.Common
         /// <param name="id"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public async Task<WorkshopCardPoolInfo> WorkshopGetCardPool(string id, int version)
+        public async Task<WorkshopCardPoolInfo> WorkshopGetCardPool(long id, int version)
         {
             RestRequest request = new RestRequest($"/api/Workshop/{id}/{version}", Method.GET);
 
@@ -1051,6 +1051,22 @@ namespace NitoriNetwork.Common
             errorHandler(response, response.Data, request);
 
             return response.Data.result;
+        }
+
+        /// <summary>
+        /// 移除创意工坊指定的卡组
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public async Task<bool> WorkshopDeleteCardPool(long id, int version)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/{id}/{version}", Method.DELETE);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo>>(request);
+            errorHandler(response, response.Data, request);
+
+            return true;
         }
         #endregion
 
