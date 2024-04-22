@@ -1222,6 +1222,10 @@ namespace NitoriNetwork.Common
         /// </summary>
         NoPass = -4,
         /// <summary>
+        /// 等待审核的旧版本
+        /// </summary>
+        ReviewingOldVer = -5,
+        /// <summary>
         /// 审核通过
         /// </summary>
         Pass = 0,
