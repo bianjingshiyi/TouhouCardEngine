@@ -227,12 +227,10 @@ namespace TouhouCardEngine
         {
             if (eventArg == null)
                 return -1;
-            var children = eventArg.getAllChildEvents();
-            var childrenEvents = _eventArgList
-                .Select((eventArg, index) => (eventArg, index))
-                .Where(e => children.Contains(e.eventArg) || e.eventArg == eventArg);
-            var index = childrenEvents.Max(pair => pair.index);
-            return index + 1;
+            var children = eventArg.getEventChildrenRecurse();
+            if (children.Length <= 0)
+                return _eventArgList.IndexOf(eventArg) + 1;
+            return children.Select(c => _eventArgList.IndexOf(c)).Max() + 1;
         }
         public int getCurrentEventIndex()
         {

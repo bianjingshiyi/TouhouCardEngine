@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 
@@ -74,5 +75,25 @@ namespace TouhouCardEngine.Interfaces
     public interface IMassCardEventDefine
     {
         ICard[] getCards(IEventArg arg);
+    }
+
+    public static class EventArgHelper
+    {
+        public static IEventArg[] getEventChildrenRecurse(this IEventArg eventArg)
+        {
+            var children = new List<IEventArg>();
+            getEventChildrenChain(eventArg, children);
+            return children.ToArray();
+        }
+        public static void getEventChildrenChain(this IEventArg eventArg, List<IEventArg> children)
+        {
+            foreach (var child in eventArg.getAllChildEvents())
+            {
+                if (children.Contains(child))
+                    continue;
+                children.Add(child);
+                getEventChildrenChain(child, children);
+            }
+        }
     }
 }
