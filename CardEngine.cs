@@ -42,6 +42,10 @@ namespace TouhouCardEngine
             random = new RNG(options.randomSeed);
             responseRNG = new RNG(options.randomSeed);
 
+            foreach (var rule in this.rules)
+            {
+                await rule.onGameInit(this, options);
+            }
             foreach (var player in players)
             {
                 if (this.players.Any(p => p.id == player.id))
@@ -51,10 +55,6 @@ namespace TouhouCardEngine
                 {
                     await rule.onPlayerInit(this, player);
                 }
-            }
-            foreach (var rule in this.rules)
-            {
-                await rule.onGameInit(this, options);
             }
         }
         public async Task run()
