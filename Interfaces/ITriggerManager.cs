@@ -18,6 +18,7 @@ namespace TouhouCardEngine.Interfaces
         IEventArg currentEvent { get; }
         IEventArg[] getEventChain();
         IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = false);
+        IEventArg[] getRecordedEventsOfDefine(EventReference eventRef, bool includeCanceled = false, bool includeUncompleted = false);
         [Obsolete]
         EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = false);
         [Obsolete]

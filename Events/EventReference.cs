@@ -52,5 +52,6 @@ namespace TouhouCardEngine
         public long cardPoolId;
         [Key(1)]
         public string eventName;
+        public static readonly EventReference ANY = new EventReference(0, "__BUILTIN_ANY");
     }
 }

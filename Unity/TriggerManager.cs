@@ -123,6 +123,7 @@ namespace TouhouCardEngine
             eventArg.record = record;
             _executingEvents.Add(eventArgItem);
             _eventArgList.Add(eventArg);
+            addCategorizedEvent(eventArg);
             _eventRecordList.Add(record);
             eventArg.isCanceled = false;
             eventArg.repeatTime = 0;
@@ -177,6 +178,10 @@ namespace TouhouCardEngine
         public IEventArg[] getRecordedEvents(bool includeCanceled = false, bool includeUncompleted = true)
         {
             return getEvents(includeCanceled, includeUncompleted).ToArray();
+        }
+        public IEventArg[] getRecordedEventsOfDefine(EventReference eventRef, bool includeCanceled = false, bool includeUncompleted = true)
+        {
+            return getEventsOfDefine(eventRef, includeCanceled, includeUncompleted).ToArray();
         }
         public EventRecord[] getEventRecords(bool includeCanceled = false, bool includeUncompleted = true)
         {
@@ -373,6 +378,18 @@ namespace TouhouCardEngine
         }
         #endregion
 
+        private void addCategorizedEvent(IEventArg eventArg)
+        {
+            var eventRef = eventArg?.define?.getReference();
+            if (eventRef == null)
+                return;
+            if (!_categorizedEvents.TryGetValue(eventRef, out var eventList))
+            {
+                eventList = new List<IEventArg>();
+                _categorizedEvents.Add(eventRef, eventList);
+            }
+            eventList.Add(eventArg);
+        }
         private bool eventOutOfLimit(EventDefine eventDefine)
         {
             if (_executingEvents.Where(e => e.eventArg.define == eventDefine).Count() >= MAX_EVENT_TIMES)
@@ -386,6 +403,12 @@ namespace TouhouCardEngine
         private IEnumerable<IEventArg> getEvents(bool includeCanceled, bool includeUncompleted)
         {
             return _eventArgList.Where(e => (includeCanceled || !e.isCanceled) && (includeUncompleted || e.isCompleted));
+        }
+        private IEnumerable<IEventArg> getEventsOfDefine(EventReference eventRef, bool includeCanceled, bool includeUncompleted)
+        {
+            if (_categorizedEvents.TryGetValue(eventRef, out var eventList))
+                return eventList;
+            return Enumerable.Empty<IEventArg>();
         }
         private IEnumerable<EventRecord> getRecords(bool includeCanceled, bool includeUncompleted)
         {
@@ -404,6 +427,7 @@ namespace TouhouCardEngine
         public IEventArg currentEvent => _executingEvents.LastOrDefault()?.eventArg;
         private List<EventListItem> _triggerList = new List<EventListItem>();
         private List<EventArgItem> _executingEvents = new List<EventArgItem>();
+        private Dictionary<EventReference, List<IEventArg>> _categorizedEvents = new Dictionary<EventReference, List<IEventArg>>();
         private List<IEventArg> _eventArgList = new List<IEventArg>();
         private List<EventRecord> _eventRecordList = new List<EventRecord>();
         private const int MAX_EVENT_TIMES = 30;
