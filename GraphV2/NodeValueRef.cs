@@ -10,9 +10,12 @@ namespace TouhouCardEngine
             outputPort = output;
         }
         public abstract Task<object> getValueObject(Flow flow, FlowScope scope = null);
+        public static NodeValueRef<T> FromType<T>(ValueOutput output)
+        {
+            return FromType(typeof(T), output) as NodeValueRef<T>;
+        }
         public static NodeValueRef FromType(Type type, ValueOutput output)
         {
-
             Type genericType;
             Type defType = typeof(NodeValueRef<>);
             if (type == defType)
