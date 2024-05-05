@@ -77,8 +77,8 @@ namespace TouhouCardEngine
                 return CanTypeConvert(srcType, genericArgs[0]);
             }
             //如果其中有类型是NodeConstProxy，那么检测泛型类型
-            bool srcIsProxy = srcType.IsSubclassOfRawGeneric(typeof(NodeConstProxy<>), out var srcProxyGenArgs);
-            bool destIsProxy = destType.IsSubclassOfRawGeneric(typeof(NodeConstProxy<>), out var destProxyGenArgs);
+            bool srcIsProxy = srcType.HasInterfaceOfRawGeneric(typeof(INodeConstProxy<>), out var srcProxyGenArgs);
+            bool destIsProxy = destType.HasInterfaceOfRawGeneric(typeof(INodeConstProxy<>), out var destProxyGenArgs);
             if (srcIsProxy || destIsProxy)
             {
                 var srcProxyType = srcIsProxy ? srcProxyGenArgs[0] : srcType;

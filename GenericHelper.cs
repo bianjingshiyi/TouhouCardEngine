@@ -19,5 +19,20 @@ namespace TouhouCardEngine
             genericArgs = null;
             return false;
         }
+        public static bool HasInterfaceOfRawGeneric(this Type toCheck, Type generic, out Type[] genericArgs)
+        {
+            var interfaces = toCheck.GetInterfaces();
+            foreach (var i in interfaces)
+            {
+                var interfaceType = i.IsGenericType ? i.GetGenericTypeDefinition() : i;
+                if (generic == interfaceType)
+                {
+                    genericArgs = i.GetGenericArguments();
+                    return true;
+                }
+            }
+            genericArgs = null;
+            return false;
+        }
     }
 }
