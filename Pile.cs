@@ -158,7 +158,7 @@ namespace TouhouCardEngine
             {
                 foreach (var effect in buff.getEffects())
                 {
-                    checkEffect(effect, null);
+                    checkEffect(effect, buff);
                 }
             }
             return effects.ToArray();
