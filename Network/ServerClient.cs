@@ -40,9 +40,9 @@ namespace NitoriNetwork.Common
         #region 基础行为
         RestClient client { get; }
 
-        string cookieFilePath { get; }
+        string cookieFilePath { get; set; }
 
-        CookieContainer cookie { get; }
+        CookieContainer cookie { get; set; }
 
         public string baseUri { get; private set; }
 
@@ -52,17 +52,14 @@ namespace NitoriNetwork.Common
         /// 指定一个服务器初始化Client
         /// </summary>
         /// <param name="baseUri"></param>
-        public ServerClient(string baseUri, string gameVersion = "1.0", string cookieFile = "", ILogger logger = null)
+        public ServerClient(string baseUri, string gameVersion = "1.0", ILogger logger = null)
         {
             this.baseUri = baseUri;
             this.logger = logger;
 
             client = new RestClient(baseUri);
-            client.CookieContainer = new CookieContainer();
             client.UserAgent = uaVersionKey + "/" + gameVersion + " " + additionalUserAgent();
 
-            cookieFilePath = cookieFile;
-            cookie = string.IsNullOrEmpty(cookieFilePath) ? new CookieContainer() : CookieContainerExtension.ReadFrom(cookieFile);
 
             if (!BsonClassMap.IsClassMapRegistered(typeof(KratosServerConfig)))
                 BsonClassMap.RegisterClassMap<KratosServerConfig>();
@@ -70,6 +67,12 @@ namespace NitoriNetwork.Common
             client.UseSerializer(
                 () => new MongoDBJsonSerializer()
             );
+        }
+        public void InitCookie(string cookieFile)
+        {
+            cookieFilePath = cookieFile;
+            client.CookieContainer = new CookieContainer();
+            cookie = string.IsNullOrEmpty(cookieFilePath) ? new CookieContainer() : CookieContainerExtension.ReadFrom(cookieFile);
         }
 
         public void SetClientBaseUri(string baseUri)
