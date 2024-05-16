@@ -136,8 +136,8 @@ namespace TouhouCardEngine
                     return;
 
                 var validPiles = pileEffect.getPiles();
-                bool fromIsNotValid = from == null || !validPiles.ContainsPileOrAny(from.name);
-                bool toIsValid = validPiles.ContainsPileOrAny(to.name);
+                bool fromIsNotValid = !validPiles.ContainsPileOrAny(from?.name);
+                bool toIsValid = validPiles.ContainsPileOrAny(to?.name);
                 if (fromIsNotValid && toIsValid)
                 {
                     effects.Add((buff, effect));
@@ -169,8 +169,8 @@ namespace TouhouCardEngine
                     return;
 
                 var validPiles = pileEffect.getPiles();
-                bool fromIsValid = validPiles.ContainsPileOrAny(from.name);
-                bool toIsNotValid = to == null || !validPiles.ContainsPileOrAny(to.name);
+                bool fromIsValid = validPiles.ContainsPileOrAny(from?.name);
+                bool toIsNotValid = !validPiles.ContainsPileOrAny(to?.name);
                 if (fromIsValid && toIsNotValid)
                 {
                     effects.Add((buff, effect));
