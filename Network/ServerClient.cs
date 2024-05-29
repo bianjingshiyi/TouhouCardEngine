@@ -1084,6 +1084,19 @@ namespace NitoriNetwork.Common
 
             return response.Data.result;
         }
+
+        /// <summary>
+        /// 获取创意工坊的EULA
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string> WorkshopGetEULA()
+        {
+            RestRequest request = new RestRequest($"/api/EULA/Workshop", Method.GET);
+            var response = await client.ExecuteAsync(request);
+            errorHandler(response, request);
+
+            return response.Content;
+        }
         #endregion
 
         #endregion
@@ -1166,6 +1179,7 @@ namespace NitoriNetwork.Common
     {
         public long ID;
         public uint Version;
+        public int Format;
         public WorkshopCardPoolVersion[] Versions;
         public WorkshopCardPoolState State;
         public string Name;
