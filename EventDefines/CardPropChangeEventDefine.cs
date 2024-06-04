@@ -6,6 +6,23 @@ namespace TouhouCardEngine
 {
     public class CardPropChangeEventDefine : EventDefine, ICardEventDefine
     {
+        public CardPropChangeEventDefine()
+        {
+            beforeVariableInfos = new EventVariableInfo[]
+            {
+                new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                new EventVariableInfo() { name = VAR_PROP_NAME, type = typeof(string) },
+                new EventVariableInfo() { name = VAR_VALUE_BEFORE, type = typeof(object) },
+                new EventVariableInfo() { name = VAR_VALUE_AFTER, type = typeof(object) },
+            };
+            afterVariableInfos = new EventVariableInfo[]
+            {
+                new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                new EventVariableInfo() { name = VAR_PROP_NAME, type = typeof(string) },
+                new EventVariableInfo() { name = VAR_VALUE_BEFORE, type = typeof(object) },
+                new EventVariableInfo() { name = VAR_VALUE_AFTER, type = typeof(object) },
+            };
+        }
         public override Task execute(IEventArg arg)
         {
             var game = arg.game;
@@ -46,10 +63,10 @@ namespace TouhouCardEngine
         {
             return arg.getVar<Card>(VAR_CARD);
         }
-        public const string VAR_CARD = "card";
-        public const string VAR_VALUE_BEFORE = "beforeValue";
-        public const string VAR_PROP_NAME = "propName";
-        public const string VAR_VALUE_AFTER = "value";
+        public const string VAR_CARD = "卡牌";
+        public const string VAR_VALUE_BEFORE = "原值";
+        public const string VAR_PROP_NAME = "属性名称";
+        public const string VAR_VALUE_AFTER = "值";
     }
 
 }
