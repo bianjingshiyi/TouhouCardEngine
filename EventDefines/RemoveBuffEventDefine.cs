@@ -44,6 +44,7 @@ namespace TouhouCardEngine
                 // 移除增益
                 game?.logger?.logTrace("Buff", $"{argCard}移除增益{argBuff}");
                 argCard.removeBuff(argBuff);
+                argBuff.card = null;
                 game.triggers.addChange(new RemoveBuffChange(argCard, argBuff));
 
                 // 禁用增益

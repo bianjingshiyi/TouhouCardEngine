@@ -18,6 +18,8 @@ namespace TouhouCardEngine
             var beforeValue = arg.getVar<object>(VAR_VALUE_BEFORE_CHANGED);
 
             var card = argBuff.card;
+            if (card == null)
+                return;
 
             // 当Buff属性发生改变的时候，如果有属性修正器的属性和Buff关联，记录与其有关的卡牌属性的值。
             var modifiers = argBuff.getModifiers().Where(m => m.relatedPropName == argPropName);

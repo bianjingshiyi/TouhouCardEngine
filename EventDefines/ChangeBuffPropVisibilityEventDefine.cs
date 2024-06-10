@@ -15,6 +15,8 @@ namespace TouhouCardEngine
             var invisible = arg.getVar<bool>(VAR_INVISIBLE);
 
             var card = buff.card;
+            if (card == null)
+                return Task.CompletedTask;
             if (buff.setPropInvisible(propName, player, invisible))
             {
                 game.triggers.addChange(new BuffPropVisibilityChange(card, buff.instanceID, propName, player, invisible));
