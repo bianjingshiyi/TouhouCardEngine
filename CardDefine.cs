@@ -29,6 +29,26 @@ namespace TouhouCardEngine
         public CardDefine() : this(0, string.Empty, null, null)
         {
         }
+        public CardDefine(CardDefine other)
+        {
+            cardPoolId = other.cardPoolId;
+            _id = other._id;
+            _type = other._type;
+            if (other._propDict != null)
+            {
+                foreach (var prop in other._propDict)
+                {
+                    _propDict.Add(prop.Key, prop.Value);
+                }
+            }
+            if (other._effectList != null)
+            {
+                foreach (var effect in other._effectList)
+                {
+                    _effectList.Add(effect);
+                }
+            }
+        }
         public override bool Equals(object obj)
         {
             if (obj is CardDefine other)
@@ -74,9 +94,7 @@ namespace TouhouCardEngine
         }
         public virtual Effect[] getEffects()
         {
-            if (_effectList != null && _effectList.Count > 0)
-                return _effectList.ToArray();
-            return _runtimeEffects;
+            return _effectList.ToArray();
         }
         public virtual void setEffects(Effect[] value)
         {
@@ -85,8 +103,6 @@ namespace TouhouCardEngine
                 _effectList.Clear();
                 _effectList.AddRange(generatedEffects);
             }
-            else
-                _runtimeEffects = value;
         }
         public int getEffectIndex(Effect effect)
         {
@@ -99,19 +115,11 @@ namespace TouhouCardEngine
         }
         public GeneratedEffect[] getGeneratedEffects()
         {
-            return _effectList.ToArray();
+            return _effectList.OfType<GeneratedEffect>().ToArray();
         }
         public DefineReference getDefineRef()
         {
             return new DefineReference(cardPoolId, id);
-        }
-        /// <summary>
-        /// 将读取到的更新的卡牌数据合并到这个卡牌上来。
-        /// </summary>
-        /// <param name="newVersion"></param>
-        public virtual void merge(CardDefine newVersion)
-        {
-            throw new NotImplementedException();
         }
         public override string ToString()
         {
@@ -147,9 +155,7 @@ namespace TouhouCardEngine
         [BsonElement]
         Dictionary<string, object> _propDict = new Dictionary<string, object>();
         [BsonElement]
-        List<GeneratedEffect> _effectList = new List<GeneratedEffect>();
-        [NonSerialized]
-        Effect[] _runtimeEffects = new Effect[0];
+        List<Effect> _effectList = new List<Effect>();
         #endregion
     }
     /// <summary>

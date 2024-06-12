@@ -106,6 +106,10 @@ namespace TouhouCardEngine
         {
             return cardRefs.Select(cardRef => getDefine(cardRef.cardPoolId, cardRef.defineId)).ToArray();
         }
+        public void addCardDefine(CardDefine cardDefine)
+        {
+            cards.Add(cardDefine);
+        }
         #endregion
 
         #region Card
@@ -399,7 +403,7 @@ namespace TouhouCardEngine
 
         private Dictionary<string, object> dicVar { get; } = new Dictionary<string, object>();
         private Dictionary<int, Card> cardIdDic { get; } = new Dictionary<int, Card>();
-        public List<CardDefine> cards = new List<CardDefine>();
+        private List<CardDefine> cards = new List<CardDefine>();
         #endregion
     }
 }
