@@ -11,7 +11,7 @@ namespace TouhouCardEngine
     public class CardDefine
     {
         #region 方法
-        public CardDefine(int id, string type, Dictionary<string, object> props, GeneratedEffect[] effects = null)
+        public CardDefine(int id, string type, Dictionary<string, object> props, Effect[] effects = null)
         {
             _id = id;
             _type = type;
@@ -98,20 +98,12 @@ namespace TouhouCardEngine
         }
         public virtual void setEffects(Effect[] value)
         {
-            if (value is GeneratedEffect[] generatedEffects)
-            {
-                _effectList.Clear();
-                _effectList.AddRange(generatedEffects);
-            }
+            _effectList.Clear();
+            _effectList.AddRange(value);
         }
         public int getEffectIndex(Effect effect)
         {
-            if (effect is GeneratedEffect generatedEffect)
-            {
-                return _effectList.IndexOf(generatedEffect);
-            }
-            else
-                return -1;
+            return _effectList.IndexOf(effect);
         }
         public GeneratedEffect[] getGeneratedEffects()
         {
