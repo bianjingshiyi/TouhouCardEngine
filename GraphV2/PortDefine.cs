@@ -34,6 +34,10 @@ namespace TouhouCardEngine
         {
             return displayName ?? name ?? string.Empty;
         }
+        public string[] getDisplayNameArgs()
+        {
+            return displayNameArgs;
+        }
         public override bool Equals(object obj)
         {
             if (obj is PortDefine def)
@@ -108,6 +112,7 @@ namespace TouhouCardEngine
         public Type type { get; set; }
         public string name { get; set; }
         public string displayName { get; set; }
+        public string[] displayNameArgs { get; set; } = new string[0];
         /// <summary>
         /// 是否是变长参数。
         /// 如果该端口定义是输入端口，则表示该输入端口会变长。如果是输出端口，表示这是GeneratedActionEntryNode的变长输入值组成的数组。
