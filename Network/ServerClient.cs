@@ -185,7 +185,7 @@ namespace NitoriNetwork.Common
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                if (!string.IsNullOrEmpty(data.message))
+                if (!string.IsNullOrEmpty(data?.message))
                 {
                     throw new NetClientException(data.message, request.Resource);
                 }
