@@ -31,11 +31,11 @@ namespace TouhouCardEngine
         /// <param name="port">发送或广播创建房间信息的端口</param>
         /// <returns></returns>
         /// <remarks>port主要是在局域网测试下有用</remarks>
-        public async Task createOnlineRoom(string name = "", string password = "")
+        public async Task createOnlineRoom(string name = "", string password = "", int rule = 0)
         {
             logger?.logTrace("客户端创建在线房间");
             localPlayer = curNetwork.GetSelfPlayerData();
-            room = await curNetwork.CreateRoom(MAX_PLAYER_COUNT, name, password);
+            room = await curNetwork.CreateRoom(MAX_PLAYER_COUNT, name, password, rule);
             isLocalRoom = false;
 
             // lobby.addRoom(room); // 不要在自己的房间列表里面显示自己的房间。

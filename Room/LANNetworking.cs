@@ -42,7 +42,7 @@ namespace TouhouCardEngine
         #endregion
 
         #region 房间相关
-        public override Task<RoomData> CreateRoom(int maxPlayerCount, string name, string password)
+        public override Task<RoomData> CreateRoom(int maxPlayerCount, string name, string password, int rule)
         {
             log?.log($"{name}创建房间");
             _hostRoomData = new RoomData(Guid.NewGuid().ToString());
@@ -51,8 +51,9 @@ namespace TouhouCardEngine
             _hostRoomData.maxPlayerCount = maxPlayerCount;
             _hostRoomData.setProp(RoomData.PROP_ROOM_NAME, name);
             _hostRoomData.setProp(RoomData.PROP_ROOM_PASSWORD, password);
+            _hostRoomData.setProp(RoomData.PROP_ROOM_MODE, rule);
 
-            _publicRoomData = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id, _hostRoomData.maxPlayerCount, _hostRoomData.playerDataList.Count, name, password);
+            _publicRoomData = new LobbyRoomData("127.0.0.1", Port, _hostRoomData.ID, _playerData.id, _hostRoomData.maxPlayerCount, _hostRoomData.playerDataList.Count, name, password, rule);
             invokeBroadcast(nameof(ILANRPCMethodClient.addDiscoverRoom), _publicRoomData.ToMaskedData());
 
             // 创建资源服务器
