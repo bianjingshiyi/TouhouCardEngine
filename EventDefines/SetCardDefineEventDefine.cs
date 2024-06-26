@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using TouhouCardEngine.Histories;
 using TouhouCardEngine.Interfaces;
@@ -8,6 +7,21 @@ namespace TouhouCardEngine
 {
     public class SetCardDefineEventDefine : EventDefine, ICardEventDefine
     {
+        public SetCardDefineEventDefine()
+        {
+            beforeVariableInfos = new EventVariableInfo[]
+            {
+                new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                new EventVariableInfo() { name = VAR_BEFORE_DEFINE, type = typeof(CardDefine) },
+                new EventVariableInfo() { name = VAR_AFTER_DEFINE, type = typeof(CardDefine) },
+            };
+            afterVariableInfos = new EventVariableInfo[]
+            {
+                new EventVariableInfo() { name = VAR_CARD, type = typeof(Card) },
+                new EventVariableInfo() { name = VAR_BEFORE_DEFINE, type = typeof(CardDefine) },
+                new EventVariableInfo() { name = VAR_AFTER_DEFINE, type = typeof(CardDefine) },
+            };
+        }
         public override async Task execute(IEventArg arg)
         {
             var game = arg.game;
@@ -57,8 +71,8 @@ namespace TouhouCardEngine
         {
             return arg.getVar<Card>(VAR_CARD);
         }
-        public const string VAR_BEFORE_DEFINE = "beforeDefine";
-        public const string VAR_CARD = "card";
-        public const string VAR_AFTER_DEFINE = "afterDefine";
+        public const string VAR_BEFORE_DEFINE = "原卡牌定义";
+        public const string VAR_CARD = "卡牌";
+        public const string VAR_AFTER_DEFINE = "卡牌定义";
     }
 }
