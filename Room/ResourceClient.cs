@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using UnityEngine.Networking;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
+using NitoriNetwork.Common;
+using System.Net;
 
 namespace TouhouCardEngine
 {
@@ -332,12 +334,12 @@ namespace TouhouCardEngine
         {
             if (op.webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
-                throw new Exception(op.webRequest.error);
+                throw new NetClientException(op.webRequest.error, (HttpStatusCode)op.webRequest.responseCode);
             }
             if (op.webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
                 if (op.webRequest.responseCode == 404) return false;
-                throw new Exception(op.webRequest.error);
+                throw new NetClientException(op.webRequest.error, (HttpStatusCode)op.webRequest.responseCode);
             }
             return true;
         }
@@ -364,7 +366,7 @@ namespace TouhouCardEngine
         {
             if (op.webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
-                throw new Exception(op.webRequest.error);
+                throw new NetClientException(op.webRequest.error, (HttpStatusCode)op.webRequest.responseCode);
             }
             if (op.webRequest.result == UnityWebRequest.Result.ProtocolError)
             {
@@ -374,7 +376,7 @@ namespace TouhouCardEngine
                 }
                 else
                 {
-                    throw new Exception(op.webRequest.error);
+                    throw new NetClientException(op.webRequest.error, (HttpStatusCode)op.webRequest.responseCode);
                 }
             }
             return op.webRequest.downloadHandler.data;

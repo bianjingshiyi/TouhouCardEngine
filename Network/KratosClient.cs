@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
+using Sentry.Protocol;
 
 namespace NitoriNetwork.Common
 {
@@ -411,7 +412,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<FlowResponse>(request);
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             return response.Data.flow;
         }
@@ -428,7 +429,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<FlowResponse>(request);
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             return response.Data.flow;
         }
@@ -444,7 +445,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<FlowResponse>(request);
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             return response.Data.flow;
         }
@@ -460,7 +461,7 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<FlowResponse>(request);
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             return response.Data.flow;
         }
@@ -488,13 +489,13 @@ namespace NitoriNetwork.Common
             }
 
             logger.log(response.Data.ToString());
-            throw new NetClientException("internal error");
+            throw new NetClientException("internal error", response.StatusCode);
         }
 
         void handleError(IRestResponse resp, CommonResponse data, string resource = "")
         {
             if (resp.ErrorException != null)
-                throw new NetClientException(resp.ErrorException, resource);
+                throw new NetClientException(resp.ErrorException, resp.StatusCode, resource);
 
             // 参数错误
             if (resp.StatusCode == HttpStatusCode.BadRequest)
@@ -506,7 +507,7 @@ namespace NitoriNetwork.Common
             }
 
             if (data.error != null)
-                throw new NetClientException(data.error.message);
+                throw new NetClientException(data.error.message, resp.StatusCode);
         }
 
         /// <summary>
@@ -532,7 +533,7 @@ namespace NitoriNetwork.Common
             }
 
             logger.log(response.Data.ToString());
-            throw new NetClientException("internal error");
+            throw new NetClientException("internal error", response.StatusCode);
         }
 
         class LogoutRequest
@@ -555,7 +556,7 @@ namespace NitoriNetwork.Common
             request.AddJsonBody(new LogoutRequest(SessionToken));
             var response = await client.ExecuteAsync(request);
             if (response.ErrorException != null)
-                throw new NetClientException(response.ErrorException.Message);
+                throw new NetClientException(response.ErrorException.Message, response.StatusCode);
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
@@ -586,7 +587,7 @@ namespace NitoriNetwork.Common
                 return response.Data.state == "success";
 
             logger.log(response.Data.state);
-            throw new NetClientException("internal error");
+            throw new NetClientException("internal error", response.StatusCode);
         }
 
         /// <summary>
@@ -609,7 +610,7 @@ namespace NitoriNetwork.Common
                 return response.Data.state == "sent_email";
 
             logger.log(response.Data.state);
-            throw new NetClientException("internal error");
+            throw new NetClientException("internal error", response.StatusCode);
         }
 
         /// <summary>
@@ -624,16 +625,16 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<SessionResponse>(request);
 
             if (response.ErrorException != null)
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
 
             if (response.IsSuccessful)
                 return response.Data;
 
             if (response.Data.error != null)
-                throw new NetClientException(response.Data.error.message);
+                throw new NetClientException(response.Data.error.message, response.StatusCode);
 
             logger.log(response.Data.ToString());
-            throw new NetClientException("internal error");
+            throw new NetClientException("internal error", response.StatusCode);
         }
     }
 

@@ -161,7 +161,7 @@ namespace NitoriNetwork.Common
         {
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -181,13 +181,13 @@ namespace NitoriNetwork.Common
         {
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 if (!string.IsNullOrEmpty(data?.message))
                 {
-                    throw new NetClientException(data.message, request.Resource);
+                    throw new NetClientException(data.message, response.StatusCode, request.Resource);
                 }
                 else
                 {
@@ -210,7 +210,7 @@ namespace NitoriNetwork.Common
         {
             if (response.ErrorException != null)
             {
-                throw new NetClientException(response.ErrorException, request.Resource);
+                throw new NetClientException(response.ErrorException, response.StatusCode, request.Resource);
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -220,11 +220,11 @@ namespace NitoriNetwork.Common
                     if (data.code == ResultCode.Fail)
                         return false;
 
-                    throw new NetClientException(data.message);
+                    throw new NetClientException(data.message, response.StatusCode);
                 }
                 else
                 {
-                    throw new NetClientException(data?.message ?? response.StatusDescription);
+                    throw new NetClientException(data?.message ?? response.StatusDescription, response.StatusCode);
                 }
             }
             if (data.code != ResultCode.Success)
@@ -1106,18 +1106,20 @@ namespace NitoriNetwork.Common
     public class NetClientException : System.Exception
     {
         public string Url { get; }
+        public HttpStatusCode StatusCode { get; }
         public NetClientException() { }
-        public NetClientException(string message, string url = "") : base(message)
+        public NetClientException(string message, HttpStatusCode code = HttpStatusCode.OK, string url = "") : base(message)
         {
             Url = url;
+            StatusCode = code;
         }
-        public NetClientException(HttpStatusCode code, string url = "") : base($"HTTP {(int)code}: {code}")
+        public NetClientException(Exception inner, HttpStatusCode code = HttpStatusCode.OK, string url = "") : base(inner.Message, inner)
         {
             Url = url;
+            StatusCode = code;
         }
-        public NetClientException(Exception inner, string url = "") : base(inner.Message)
+        public NetClientException(HttpStatusCode code, string url = "") : this($"HTTP {(int)code}: {code}", code, url)
         {
-            Url = url;
         }
         protected NetClientException(
           System.Runtime.Serialization.SerializationInfo info,
