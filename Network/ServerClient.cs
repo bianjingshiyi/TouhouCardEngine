@@ -1099,6 +1099,43 @@ namespace NitoriNetwork.Common
         }
         #endregion
 
+        #region 卡牌评分
+        public async Task<WorkshopCardPoolRating> GetCardPoolRating(long id)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/rating/{id}", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolRating>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        public async Task RateCardPoolCards(long id, string rating)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/rating/{id}", Method.POST);
+            request.AddParameter("rating", rating);
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+            errorHandler(response, response.Data, request);
+        }
+        public async Task<int> GetCardRating(long poolId, int id)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/rating/{poolId}/{id}", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<int>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        public async Task SetCardRating(long poolId, int id, bool value)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/rating/{poolId}/{id}", Method.POST);
+            request.AddParameter("rating", value);
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+            errorHandler(response, response.Data, request);
+        }
+        #endregion
+
         #endregion
     }
 
@@ -1217,6 +1254,12 @@ namespace NitoriNetwork.Common
         public string Message;
         public uint Reviewer;
         public WorkshopReviewResult Result;
+    }
+    [Serializable]
+    public class WorkshopCardPoolRating
+    {
+        public uint BadCount;
+        public uint GoodCount;
     }
 
     public enum WorkshopCardPoolState
