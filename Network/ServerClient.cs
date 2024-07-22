@@ -1088,7 +1088,21 @@ namespace NitoriNetwork.Common
 
             return response.Data.result;
         }
+        /// <summary>
+        /// 检查卡池在创意工坊中的存在情况。
+        /// </summary>
+        /// <param name="cardPoolsId"></param>
+        /// <returns></returns>
+        public async Task<bool[]> AreCardPoolsUploadedToWorkshop(params long[] cardPoolsId)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/exists", Method.POST);
+            request.AddParameter("id", string.Join(",", cardPoolsId));
 
+            var response = await client.ExecuteAsync<ExecuteResult<bool[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
         /// <summary>
         /// 获取创意工坊的EULA
         /// </summary>
