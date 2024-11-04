@@ -1097,6 +1097,44 @@ namespace NitoriNetwork.Common
 
             return response.Content;
         }
+        public async Task<WorkshopCardPoolComment[]> getWorkshopCardPoolComments(long cardPoolId, int offset, int count)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/comment/{cardPoolId}", Method.GET);
+            request.AddParameter("offset", offset);
+            request.AddParameter("count", count);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolComment[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        public async Task postWorkshopCardPoolComment(long cardPoolId, string comment)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/comment/{cardPoolId}", Method.POST);
+            request.AddParameter("comment", comment);
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+            errorHandler(response, response.Data, request);
+        }
+        public async Task<WorkshopCardComment[]> getWorkshopCardComments(long cardPoolId, int cardId, int offset, int count)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/comment/{cardPoolId}/{cardId}", Method.GET);
+            request.AddParameter("offset", offset);
+            request.AddParameter("count", count);
+
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardComment[]>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
+        public async Task postWorkshopCardComment(long cardPoolId, int cardId, string comment)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/comment/{cardPoolId}/{cardId}", Method.POST);
+            request.AddParameter("comment", comment);
+
+            var response = await client.ExecuteAsync<ExecuteResult>(request);
+            errorHandler(response, response.Data, request);
+        }
         #endregion
 
         #region 卡牌评分
@@ -1260,6 +1298,22 @@ namespace NitoriNetwork.Common
     {
         public uint BadCount;
         public uint GoodCount;
+    }
+
+    [Serializable]
+    public class WorkshopCardPoolComment
+    {
+        public string Content;
+        public uint CreatedAt;
+        public uint UID;
+    }
+    [Serializable]
+    public class WorkshopCardComment
+    {
+        public string Content;
+        public uint CreatedAt;
+        public int Rating;
+        public uint UID;
     }
 
     public enum WorkshopCardPoolState
