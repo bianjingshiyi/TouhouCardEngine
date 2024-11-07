@@ -1155,11 +1155,11 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<ExecuteResult>(request);
             errorHandler(response, response.Data, request);
         }
-        public async Task<int> GetCardRating(long poolId, int id)
+        public async Task<WorkshopCardPoolRating> GetCardRating(long poolId, int id)
         {
             RestRequest request = new RestRequest($"/api/Workshop/rating/{poolId}/{id}", Method.GET);
 
-            var response = await client.ExecuteAsync<ExecuteResult<int>>(request);
+            var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolRating>>(request);
             errorHandler(response, response.Data, request);
 
             return response.Data.result;
