@@ -1021,12 +1021,13 @@ namespace NitoriNetwork.Common
         /// <param name="limit">每页最多卡池数量。</param>
         /// <param name="keywords">搜索关键词。</param>
         /// <returns></returns>
-        public async Task<WorkshopCardPoolInfo[]> WorkshopSearchCardPools(int page, int limit, string keywords)
+        public async Task<WorkshopCardPoolInfo[]> WorkshopSearchCardPools(int page, int limit, string keywords, string sorting)
         {
             RestRequest request = new RestRequest($"/api/Workshop/search", Method.POST);
             request.AddParameter("page", page);
             request.AddParameter("limit", limit);
             request.AddParameter("keyword", keywords);
+            request.AddParameter("sortType", sorting);
 
             var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo[]>>(request);
             errorHandler(response, response.Data, request);
@@ -1040,12 +1041,13 @@ namespace NitoriNetwork.Common
         /// <param name="page">页码。</param>
         /// <param name="limit">每页最多卡池数量。</param>
         /// <returns></returns>
-        public async Task<WorkshopCardPoolInfo[]> WorkshopGetUserCardPools(int uid, int page, int limit)
+        public async Task<WorkshopCardPoolInfo[]> WorkshopGetUserCardPools(int uid, int page, int limit, string sorting)
         {
             RestRequest request = new RestRequest($"/api/Workshop/user/{uid}", Method.GET);
             request.AddParameter("id", uid);
             request.AddParameter("page", page);
             request.AddParameter("limit", limit);
+            request.AddParameter("sortType", sorting);
 
             var response = await client.ExecuteAsync<ExecuteResult<WorkshopCardPoolInfo[]>>(request);
             errorHandler(response, response.Data, request);
