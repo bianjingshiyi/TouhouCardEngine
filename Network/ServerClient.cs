@@ -1190,6 +1190,15 @@ namespace NitoriNetwork.Common
             var response = await client.ExecuteAsync<ExecuteResult>(request);
             errorHandler(response, response.Data, request);
         }
+        public async Task<int> GetMyCardRating(long poolId, int id)
+        {
+            RestRequest request = new RestRequest($"/api/Workshop/rating/my/{poolId}/{id}", Method.GET);
+
+            var response = await client.ExecuteAsync<ExecuteResult<int>>(request);
+            errorHandler(response, response.Data, request);
+
+            return response.Data.result;
+        }
         #endregion
 
         #endregion
