@@ -150,7 +150,7 @@ namespace TouhouCardEngine
             {
                 var parameters = await getParameters(flow, node);
 
-                object returnValue = _methodInfo.Invoke(null, parameters);
+                object returnValue = _methodInfo.Invoke(null, parameters); 
 
                 await sendReturnValue(flow, node, returnValue, parameters);
             }

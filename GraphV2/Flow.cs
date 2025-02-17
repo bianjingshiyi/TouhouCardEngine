@@ -221,27 +221,12 @@ namespace TouhouCardEngine
         }
         public bool tryConvertTo<T>(object input, out T output)
         {
-            output = default;
-            if (input == null)
+            if (tryConvertTo(input, typeof(T), out object result) && result is T t)
             {
-                return false;
-            }
-            if (input is T result)
-            {
-                output = result;
+                output = t;
                 return true;
             }
-            Type to = typeof(T);
-            foreach (ParamConversion conv in _conversions)
-            {
-                if (conv == null)
-                    continue;
-                if (conv.canConvert(input.GetType(), to))
-                {
-                    output = (T)conv.convert(this, input, to);
-                    return true;
-                }
-            }
+            output = default;
             return false;
         }
         #endregion
